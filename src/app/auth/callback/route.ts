@@ -9,7 +9,8 @@ export async function GET(req: Request) {
   if (code) {
     const sb = await supabaseServer();
     const { error } = await sb.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(`/login/mfa?next=${encodeURIComponent(safeNext)}`, url.origin));
+    // The dashboard guard decides whether a WhatsApp code is needed (new device) or not (trusted device).
+    if (!error) return NextResponse.redirect(new URL(safeNext, url.origin));
   }
   return NextResponse.redirect(new URL("/login?error=signin", url.origin));
 }

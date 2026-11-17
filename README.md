@@ -26,14 +26,16 @@ npm run dev
 
 Open http://localhost:3000/e/demo1 in a phone-sized window.
 
-## Testing the dashboard locally
+## Sign-in and security
 
-Add `NEXT_PUBLIC_DEV_PASSWORD_LOGIN=true` to `.env.local` to show an email/password form on `/login` for test accounts. Never set it in production.
+- Everyone (owners, their staff, the Taprizz admin and employees) signs in on `/login` with Google or email + password.
+- A second step is needed only on a new or untrusted device: a WhatsApp code (setup: `docs/WHATSAPP_CODES.md`), or the authenticator app as backup.
+- "Trust this device for 30 days" skips the code on that device. Dashboard data stays locked in the database until the session is verified.
 
 ## Decisions so far
 
 - **Plate links:** `taprizz.in/e/<code>`. A code never changes once printed; admins reassign it.
-- **Login:** Google sign-in plus an authenticator-app code (TOTP) for owners and the Taprizz team. The first super-admin is the founder's Google account.
+- **Login:** Google or email + password; WhatsApp code only on new devices and sensitive actions; authenticator app as backup. The first super-admin is the founder's Google account.
 - **Themes:** each client picks a guest page theme: Deep Navy (default), Midnight, Soft Pastel, Warm Sand or Forest. They live in `src/lib/themes.ts`.
 - **Business templates:** cafe, salon, gym, hotel, clinic, homestay/villa and resort. Each pre-fills review chips, keywords, card wording and sample offers.
 - **Review drafts:** pluggable provider (`REVIEW_AI_PROVIDER` = `template` | `openai` | `gemini` | `anthropic`). With no key it uses the built-in template writer. Drafts use only the guest's own answers.

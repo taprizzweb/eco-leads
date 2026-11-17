@@ -15,7 +15,6 @@ function LoginInner() {
   const next = params.get("next") || "/dashboard";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(params.get("error") ? "Google sign-in did not finish. Please try again." : "");
-  const devLogin = process.env.NEXT_PUBLIC_DEV_PASSWORD_LOGIN === "true";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -40,7 +39,8 @@ function LoginInner() {
     const { error } = await supabaseBrowser().auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) return setError("That email and password did not match.");
-    router.push(`/login/mfa?next=${encodeURIComponent(next)}`);
+    // The dashboard guard asks for a WhatsApp code only on a new or untrusted device.
+    router.push(next);
   }
 
   return (
@@ -58,13 +58,12 @@ function LoginInner() {
           {busy ? <Loader2 size={18} className="animate-spin" /> : <GoogleMark />}
           Continue with Google
         </button>
-        <p className="text-center text-xs text-gray-400">Next, you confirm with a 6-digit code from your authenticator app.</p>
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <hr className="flex-1 opacity-10" /> or use your email <hr className="flex-1 opacity-10" />
+        </div>
 
-        {devLogin && (
-          <form onSubmit={(e) => { e.preventDefault(); passwordSignIn(); }} className="flex flex-col gap-3" noValidate>
-            <hr className="my-1 opacity-10" />
-            <p className="text-xs uppercase tracking-wide text-gray-500">Development sign-in</p>
-            <label>
+        <form onSubmit={(e) => { e.preventDefault(); passwordSignIn(); }} className="flex flex-col gap-3" noValidate>
+          <label>
               <span className={authLabel}>Email</span>
               <input className={authInput} type="email" value={email} onChange={(e) => { setEmail(e.target.value); if (error) setError(""); }} autoComplete="username" />
             </label>
@@ -72,9 +71,9 @@ function LoginInner() {
               <span className={authLabel}>Password</span>
               <input className={authInput} type="password" value={password} onChange={(e) => { setPassword(e.target.value); if (error) setError(""); }} autoComplete="current-password" />
             </label>
-            <button className={authBtn} disabled={busy}>Sign in with password</button>
+            <button className={authBtn} disabled={busy}>Sign in</button>
+            <a href="/login/forgot" className="min-h-11 py-3 text-center text-xs text-gray-400 underline underline-offset-4 hover:text-white">Forgot password?</a>
           </form>
-        )}
 
         {error && <p role="alert" className="text-left text-sm text-red-400">{error}</p>}
       </div>

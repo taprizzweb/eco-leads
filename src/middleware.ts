@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { DEVICE_COOKIE } from "@/lib/security";
 
 // Refreshes the Supabase session cookie and guards the dashboard:
-// signed in -> second factor enrolled -> second factor verified (aal2).
+// signed in -> verified (WhatsApp code, trusted device, or authenticator app).
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
   const sb = createServerClient(
@@ -33,11 +34,23 @@ export async function middleware(req: NextRequest) {
 
   if (path.startsWith("/dashboard")) {
     if (!user) return redirect("/login");
-    const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal?.currentLevel !== "aal2") return redirect("/login/mfa");
+    // Verified = authenticator (aal2), a WhatsApp code this session, or a trusted device.
+    const { data: verified } = await sb.rpc("has_aal2");
+    if (!verified) {
+      const device = req.cookies.get(DEVICE_COOKIE)?.value;
+      const trusted = device ? (await sb.rpc("device_trust_check", { p_token: device })).data : false;
+      if (!trusted) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/login/mfa";
+        url.search = `?next=${encodeURIComponent(path)}`;
+        const r = NextResponse.redirect(url);
+        res.cookies.getAll().forEach((c) => r.cookies.set(c));
+        return r;
+      }
+    }
   }
-  if (path === "/login/mfa" && !user) return redirect("/login");
+  if ((path === "/login/mfa" || path === "/auth/reset") && !user) return redirect("/login");
   return res;
 }
 
-export const config = { matcher: ["/dashboard/:path*", "/login/:path*", "/login"] };
+export const config = { matcher: ["/dashboard/:path*", "/login/:path*", "/login", "/auth/reset"] };
