@@ -1,0 +1,431 @@
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, Trash2, ImagePlus, X, Smartphone, Lock } from "lucide-react";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { THEMES, type ThemeId } from "@/lib/themes";
+import { toWebp } from "@/lib/image";
+import type { DashClient } from "@/lib/dash";
+import type { GuestPageData } from "@/lib/types";
+import { GuestPage } from "@/components/guest/GuestPage";
+import { useToast } from "./Toast";
+
+type Photo = { id: string; url: string; label: string | null; caption: string | null; sort: number };
+type Offer = { id: string; title: string; details: string | null; starts_at: string | null; ends_at: string | null; claimable: boolean };
+type Ev = { id: string; title: string; details: string | null; starts_at: string };
+
+const SOCIALS = [
+  ["instagram", "Instagram link"],
+  ["facebook", "Facebook link"],
+  ["maps", "Google Maps link"],
+  ["phone", "Phone number"],
+  ["zomato", "Zomato link"],
+  ["swiggy", "Swiggy link"],
+] as const;
+
+function Section({ id, title, sub, children }: { id?: string; title: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <section id={id} className="d-card scroll-mt-24 p-5">
+      <h2 className="font-semibold">{title}</h2>
+      {sub && <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>{sub}</p>}
+      <div className="mt-4 space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium" style={{ color: "var(--d-text)" }}>{label}</span>
+      {hint && <span className="ml-2 text-xs" style={{ color: "var(--d-muted)" }}>{hint}</span>}
+      <span className="mt-1.5 block">{children}</span>
+    </label>
+  );
+}
+
+export function PageEditor({
+  client,
+  features,
+  template,
+  initialGallery,
+  initialOffers,
+  initialEvents,
+}: {
+  client: DashClient;
+  features: Record<string, unknown>;
+  template: { review_chips: string[]; card_copy: Record<string, { title?: string; help?: string }>; keywords: string[]; tagline: string | null } | null;
+  initialGallery: Photo[];
+  initialOffers: Offer[];
+  initialEvents: Ev[];
+}) {
+  const toast = useToast();
+  const router = useRouter();
+  const sb = supabaseBrowser();
+  const [f, setF] = useState({
+    name: client.name,
+    tagline: client.tagline ?? "",
+    google_review_url: client.google_review_url ?? "",
+    menu_url: client.menu_url ?? "",
+    theme: client.theme as ThemeId,
+    logo_url: client.logo_url,
+    socials: { ...client.socials } as Record<string, string>,
+    keywords: client.keywords.length ? client.keywords : template?.keywords ?? [],
+  });
+  const [saved, setSaved] = useState(JSON.stringify(f));
+  const dirty = JSON.stringify(f) !== saved;
+  const [saving, setSaving] = useState(false);
+  const [kw, setKw] = useState("");
+  const [gallery, setGallery] = useState(initialGallery);
+  const [offers, setOffers] = useState(initialOffers);
+  const [events, setEvents] = useState(initialEvents);
+  const [uploading, setUploading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [offerDraft, setOfferDraft] = useState({ title: "", details: "", starts_at: "", ends_at: "" });
+  const [eventDraft, setEventDraft] = useState({ title: "", details: "", starts_at: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const photoInput = useRef<HTMLInputElement>(null);
+  const logoInput = useRef<HTMLInputElement>(null);
+  const photoLimit = Number(features.photo_limit ?? 5);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
+
+  function validUrl(v: string) {
+    if (!v) return true;
+    try { const u = new URL(v); return u.protocol === "https:" || u.protocol === "http:"; } catch { return false; }
+  }
+  function checkUrl(key: string, v: string) {
+    setErrors((e) => ({ ...e, [key]: validUrl(v) ? "" : "This needs to be a full link starting with https://" }));
+  }
+
+  async function save() {
+    const bad = ["google_review_url", "menu_url"].some((k) => !validUrl(f[k as "menu_url"]));
+    if (!f.name.trim()) return toast("Your business name cannot be empty.", true);
+    if (bad) return toast("One of the links needs fixing before you publish.", true);
+    setSaving(true);
+    const socials = Object.fromEntries(Object.entries(f.socials).filter(([, v]) => v.trim()));
+    const { error } = await sb.from("clients").update({
+      name: f.name.trim(),
+      tagline: f.tagline.trim() || null,
+      google_review_url: f.google_review_url.trim() || null,
+      menu_url: f.menu_url.trim() || null,
+      theme: f.theme,
+      logo_url: f.logo_url,
+      socials,
+      keywords: f.keywords,
+    }).eq("id", client.id);
+    setSaving(false);
+    if (error) return toast("Your changes did not publish. Please try again.", true);
+    setSaved(JSON.stringify(f));
+    toast("Published. Guests see the new page now.");
+    router.refresh();
+  }
+
+  async function uploadAsset(file: File, folder: string) {
+    const blob = await toWebp(file, folder === "logo" ? 400 : 1200);
+    const path = `${client.id}/${folder}/${crypto.randomUUID()}.webp`;
+    const { error } = await sb.storage.from("page-assets").upload(path, blob, { contentType: "image/webp" });
+    if (error) throw error;
+    return sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl;
+  }
+
+  async function addPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    const room = photoLimit - gallery.length;
+    if (room <= 0) return toast(`Your plan allows ${photoLimit} photos. Remove one to add another.`, true);
+    setUploading(true);
+    let added = 0;
+    for (const file of Array.from(files).slice(0, room)) {
+      try {
+        const url = await uploadAsset(file, "gallery");
+        const sort = (gallery.at(-1)?.sort ?? 0) + 1 + added;
+        const { data, error } = await sb.from("gallery_photos").insert({ client_id: client.id, url, sort }).select("id, url, label, caption, sort").single();
+        if (error) throw error;
+        setGallery((g) => [...g, data]);
+        added++;
+      } catch {
+        toast(`${file.name} did not upload. Try a JPG or PNG photo.`, true);
+      }
+    }
+    setUploading(false);
+    if (added) toast(added === 1 ? "Photo added" : `${added} photos added`);
+  }
+
+  async function updatePhoto(id: string, patch: Partial<Photo>) {
+    setGallery((g) => g.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+    const { error } = await sb.from("gallery_photos").update(patch).eq("id", id);
+    if (error) toast("That photo change did not save.", true);
+  }
+
+  async function removePhoto(id: string) {
+    const prev = gallery;
+    setGallery((g) => g.filter((p) => p.id !== id));
+    const { error } = await sb.from("gallery_photos").delete().eq("id", id);
+    if (error) { setGallery(prev); return toast("The photo was not removed. Please try again.", true); }
+    toast("Photo removed");
+  }
+
+  async function addOffer() {
+    if (!offerDraft.title.trim()) return setErrors((e) => ({ ...e, offer: "Give the offer a short title, like HAPPY HOURS." }));
+    if (offerDraft.starts_at && offerDraft.ends_at && offerDraft.ends_at < offerDraft.starts_at) return setErrors((e) => ({ ...e, offer: "The end date is before the start date." }));
+    const { data, error } = await sb.from("offers").insert({
+      client_id: client.id,
+      title: offerDraft.title.trim().toUpperCase(),
+      details: offerDraft.details.trim() || null,
+      starts_at: offerDraft.starts_at || null,
+      ends_at: offerDraft.ends_at || null,
+    }).select("id, title, details, starts_at, ends_at, claimable").single();
+    if (error) return toast("The offer did not save. Please try again.", true);
+    setOffers((o) => [data, ...o]);
+    setOfferDraft({ title: "", details: "", starts_at: "", ends_at: "" });
+    toast("Offer is live");
+  }
+
+  async function removeOffer(id: string) {
+    const { error } = await sb.from("offers").delete().eq("id", id);
+    if (error) return toast("The offer was not removed. Please try again.", true);
+    setOffers((o) => o.filter((x) => x.id !== id));
+    toast("Offer removed");
+  }
+
+  async function addEvent() {
+    if (!eventDraft.title.trim() || !eventDraft.starts_at) return setErrors((e) => ({ ...e, event: "Add a title and a date and time." }));
+    const { data, error } = await sb.from("events").insert({
+      client_id: client.id,
+      title: eventDraft.title.trim(),
+      details: eventDraft.details.trim() || null,
+      starts_at: new Date(eventDraft.starts_at).toISOString(),
+    }).select("id, title, details, starts_at").single();
+    if (error) return toast("The event did not save. Please try again.", true);
+    setEvents((v) => [...v, data].sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
+    setEventDraft({ title: "", details: "", starts_at: "" });
+    toast("Event added");
+  }
+
+  async function removeEvent(id: string) {
+    const { error } = await sb.from("events").delete().eq("id", id);
+    if (error) return toast("The event was not removed. Please try again.", true);
+    setEvents((v) => v.filter((x) => x.id !== id));
+    toast("Event removed");
+  }
+
+  // The preview runs the real guest page component on the unsaved values.
+  const preview: GuestPageData = useMemo(() => ({
+    live: client.status === "active",
+    plate: { code: "preview", label: "Table 1" },
+    client: {
+      id: client.id, slug: client.slug, name: f.name || "Your business", tagline: f.tagline || template?.tagline || null,
+      logo_url: f.logo_url, theme: f.theme, google_review_url: f.google_review_url || null, menu_url: f.menu_url || null,
+      business_type: client.business_type, socials: f.socials, keywords: f.keywords,
+      review_chips: template?.review_chips ?? [], card_config: {}, card_copy: template?.card_copy ?? {},
+    },
+    features: features as GuestPageData["features"],
+    gallery: gallery.slice(0, photoLimit),
+    offers: offers.filter((o) => (!o.starts_at || o.starts_at <= today) && (!o.ends_at || o.ends_at >= today)),
+    events: events.filter((e) => new Date(e.starts_at).getTime() > Date.now() - 6 * 36e5),
+    reviews: [],
+  }), [f, gallery, offers, events, features, client, template, photoLimit, today]);
+
+  const phoneFrame = (
+    <div className="mx-auto w-[340px] overflow-hidden rounded-[36px] p-2" style={{ background: "linear-gradient(223deg,rgba(207,207,207,.25),rgba(60,60,60,.25))", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }}>
+      <div className="h-[680px] overflow-y-auto rounded-[28px] [&_.min-h-dvh]:min-h-full" inert>
+        <GuestPage data={preview} code="preview" />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.04em]">My Page</h1>
+          <p className="mt-1" style={{ color: "var(--d-muted)" }}>What guests see when they tap your plate.</p>
+        </div>
+        <button onClick={() => setShowPreview(true)} className="d-btn d-btn-s lg:hidden"><Smartphone size={16} /> Preview</button>
+      </div>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_356px]">
+        <div className="space-y-4">
+          <Section title="Basics">
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={() => logoInput.current?.click()} className="grid h-[72px] w-[72px] shrink-0 place-items-center overflow-hidden rounded-full" style={{ background: "var(--d-bg)", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }} aria-label="Change logo">
+                {f.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={f.logo_url} alt="" className="h-full w-full object-cover" />
+                ) : <ImagePlus size={20} />}
+              </button>
+              <input ref={logoInput} type="file" accept="image/*" hidden onChange={async (e) => {
+                const file = e.target.files?.[0]; e.target.value = "";
+                if (!file) return;
+                try { set("logo_url", await uploadAsset(file, "logo")); toast("Logo ready. Publish to show it."); } catch { toast("The logo did not upload. Try a JPG or PNG.", true); }
+              }} />
+              <div className="text-sm" style={{ color: "var(--d-muted)" }}>Square logo works best. We shrink it for fast loading.</div>
+            </div>
+            <Field label="Business name"><input className="d-input" value={f.name} onChange={(e) => set("name", e.target.value)} maxLength={60} /></Field>
+            <Field label="Tagline" hint="One short line"><input className="d-input" value={f.tagline} onChange={(e) => set("tagline", e.target.value)} maxLength={80} placeholder={template?.tagline ?? ""} /></Field>
+          </Section>
+
+          <Section title="Look" sub="Pick the theme guests see.">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" role="radiogroup" aria-label="Theme">
+              {(Object.keys(THEMES) as ThemeId[]).map((id) => {
+                const t = THEMES[id];
+                const on = f.theme === id;
+                return (
+                  <button key={id} role="radio" aria-checked={on} onClick={() => set("theme", id)} className="rounded-lg p-2 text-left text-sm" style={{ boxShadow: `inset 0 0 0 ${on ? 2 : 1}px ${on ? "var(--d-blue)" : "var(--d-line-2)"}` }}>
+                    <span className="mb-2 flex h-14 flex-col justify-end gap-1 rounded-md p-1.5" style={{ background: t.vars["--bg"] }}>
+                      <span className="h-2 rounded-sm" style={{ background: t.vars["--surface"] }} />
+                      <span className="h-2 w-2/3 rounded-sm" style={{ background: t.vars["--surface-2"] }} />
+                    </span>
+                    <span style={{ color: on ? "var(--d-text)" : "var(--d-sub)" }}>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Section title="Links">
+            <Field label="Google review link" hint="Where the review button opens">
+              <input className="d-input" inputMode="url" value={f.google_review_url} onChange={(e) => { set("google_review_url", e.target.value); if (errors.google_review_url) checkUrl("google_review_url", e.target.value); }} onBlur={(e) => checkUrl("google_review_url", e.target.value)} placeholder="https://g.page/r/..." />
+              {errors.google_review_url && <span className="mt-1 block text-sm" style={{ color: "var(--d-red)" }}>{errors.google_review_url}</span>}
+            </Field>
+            <Field label="Menu link">
+              <input className="d-input" inputMode="url" value={f.menu_url} onChange={(e) => { set("menu_url", e.target.value); if (errors.menu_url) checkUrl("menu_url", e.target.value); }} onBlur={(e) => checkUrl("menu_url", e.target.value)} placeholder="https://" />
+              {errors.menu_url && <span className="mt-1 block text-sm" style={{ color: "var(--d-red)" }}>{errors.menu_url}</span>}
+            </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {SOCIALS.map(([k, label]) => (
+                <Field key={k} label={label}>
+                  <input className="d-input" inputMode={k === "phone" ? "tel" : "url"} value={f.socials[k] ?? ""} onChange={(e) => set("socials", { ...f.socials, [k]: e.target.value })} placeholder={k === "phone" ? "+91 98765 43210" : "https://"} />
+                </Field>
+              ))}
+            </div>
+          </Section>
+
+          <Section title="Keywords" sub="Short words about your place. They slide under your photos.">
+            <div className="flex flex-wrap gap-2">
+              {f.keywords.map((k) => (
+                <span key={k} className="d-raise flex items-center gap-1 py-1 pr-1 pl-3 text-sm" style={{ color: "var(--d-text)" }}>
+                  {k}
+                  <button onClick={() => set("keywords", f.keywords.filter((x) => x !== k))} aria-label={`Remove ${k}`} className="grid h-8 w-8 place-items-center" style={{ color: "var(--d-muted)" }}><X size={14} /></button>
+                </span>
+              ))}
+            </div>
+            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); const v = kw.trim(); if (v && !f.keywords.includes(v) && f.keywords.length < 12) set("keywords", [...f.keywords, v]); setKw(""); }}>
+              <label className="sr-only" htmlFor="kw">New keyword</label>
+              <input id="kw" className="d-input" value={kw} onChange={(e) => setKw(e.target.value)} maxLength={24} placeholder="Pet Friendly" />
+              <button className="d-btn d-btn-s">Add keyword</button>
+            </form>
+          </Section>
+
+          <Section title="Photos" sub={`${gallery.length} of ${photoLimit} on your plan. Swipe order follows this list.`}>
+            {gallery.length === 0 && <p className="text-sm" style={{ color: "var(--d-muted)" }}>No photos yet. Your best dish or your favourite corner is a great first photo.</p>}
+            <ul className="space-y-2">
+              {gallery.map((p) => (
+                <li key={p.id} className="d-raise flex items-center gap-3 p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.url} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
+                  <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                    <label className="sr-only" htmlFor={`cap-${p.id}`}>Caption</label>
+                    <input id={`cap-${p.id}`} className="d-input" defaultValue={p.caption ?? ""} placeholder="Dish or caption" onBlur={(e) => e.target.value !== (p.caption ?? "") && updatePhoto(p.id, { caption: e.target.value || null })} />
+                    <label className="flex min-h-11 items-center gap-2 text-sm">
+                      <input type="checkbox" className="h-5 w-5" checked={p.label === "BEST SELLER"} onChange={(e) => updatePhoto(p.id, { label: e.target.checked ? "BEST SELLER" : null })} />
+                      Best seller label
+                    </label>
+                  </div>
+                  <button onClick={() => removePhoto(p.id)} aria-label="Remove photo" className="grid h-11 w-11 shrink-0 place-items-center" style={{ color: "var(--d-muted)" }}><Trash2 size={17} /></button>
+                </li>
+              ))}
+            </ul>
+            <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
+            <button onClick={() => photoInput.current?.click()} disabled={uploading || gallery.length >= photoLimit} className="d-btn d-btn-s">
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />} {uploading ? "Uploading" : "Add photos"}
+            </button>
+          </Section>
+
+          <Section id="offers" title="Offers" sub="Live offers run in the black strip. They disappear on their end date.">
+            <ul className="space-y-2">
+              {offers.map((o) => {
+                const ended = o.ends_at && o.ends_at < today;
+                return (
+                  <li key={o.id} className="d-raise flex items-center gap-3 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium" style={{ color: "var(--d-text)" }}>{o.title}</p>
+                      {o.details && <p className="text-sm" style={{ color: "var(--d-muted)" }}>{o.details}</p>}
+                      <p className="mt-1 text-xs" style={{ color: ended ? "var(--d-red)" : "var(--d-muted)" }}>
+                        {ended ? "Ended" : o.ends_at ? `Till ${new Date(o.ends_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : "No end date"}
+                      </p>
+                    </div>
+                    <button onClick={() => removeOffer(o.id)} aria-label={`Remove ${o.title}`} className="grid h-11 w-11 place-items-center" style={{ color: "var(--d-muted)" }}><Trash2 size={17} /></button>
+                  </li>
+                );
+              })}
+            </ul>
+            <form className="d-raise grid gap-3 p-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setErrors((x) => ({ ...x, offer: "" })); addOffer(); }}>
+              <Field label="Title"><input className="d-input" value={offerDraft.title} onChange={(e) => { setOfferDraft({ ...offerDraft, title: e.target.value }); setErrors((x) => ({ ...x, offer: "" })); }} maxLength={30} placeholder="HAPPY HOURS" /></Field>
+              <Field label="Details"><input className="d-input" value={offerDraft.details} onChange={(e) => setOfferDraft({ ...offerDraft, details: e.target.value })} maxLength={80} placeholder="20% off on all beverages, 4 to 7 pm" /></Field>
+              <Field label="Starts" hint="optional"><input type="date" className="d-input" value={offerDraft.starts_at} onChange={(e) => setOfferDraft({ ...offerDraft, starts_at: e.target.value })} /></Field>
+              <Field label="Ends" hint="optional"><input type="date" className="d-input" min={offerDraft.starts_at || today} value={offerDraft.ends_at} onChange={(e) => setOfferDraft({ ...offerDraft, ends_at: e.target.value })} /></Field>
+              {errors.offer && <p className="text-sm sm:col-span-2" style={{ color: "var(--d-red)" }}>{errors.offer}</p>}
+              <button className="d-btn d-btn-s sm:col-span-2"><Plus size={16} /> Add offer</button>
+            </form>
+          </Section>
+
+          {features.events ? (
+            <Section title="Events" sub="Upcoming nights, workshops and gatherings.">
+              <ul className="space-y-2">
+                {events.map((ev) => (
+                  <li key={ev.id} className="d-raise flex items-center gap-3 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium" style={{ color: "var(--d-text)" }}>{ev.title}</p>
+                      <p className="text-xs" style={{ color: "var(--d-muted)" }}>{new Date(ev.starts_at).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+                    </div>
+                    <button onClick={() => removeEvent(ev.id)} aria-label={`Remove ${ev.title}`} className="grid h-11 w-11 place-items-center" style={{ color: "var(--d-muted)" }}><Trash2 size={17} /></button>
+                  </li>
+                ))}
+              </ul>
+              <form className="d-raise grid gap-3 p-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setErrors((x) => ({ ...x, event: "" })); addEvent(); }}>
+                <Field label="Title"><input className="d-input" value={eventDraft.title} onChange={(e) => setEventDraft({ ...eventDraft, title: e.target.value })} maxLength={50} placeholder="Open mic night" /></Field>
+                <Field label="Date and time"><input type="datetime-local" className="d-input" value={eventDraft.starts_at} onChange={(e) => setEventDraft({ ...eventDraft, starts_at: e.target.value })} /></Field>
+                <div className="sm:col-span-2"><Field label="Details" hint="optional"><input className="d-input" value={eventDraft.details} onChange={(e) => setEventDraft({ ...eventDraft, details: e.target.value })} maxLength={100} /></Field></div>
+                {errors.event && <p className="text-sm sm:col-span-2" style={{ color: "var(--d-red)" }}>{errors.event}</p>}
+                <button className="d-btn d-btn-s sm:col-span-2"><Plus size={16} /> Add event</button>
+              </form>
+            </Section>
+          ) : (
+            <div className="d-card flex items-center gap-3 p-5 text-sm" style={{ color: "var(--d-muted)" }}>
+              <Lock size={16} /> Events come with the Premium plan.
+            </div>
+          )}
+        </div>
+
+        <aside className="sticky top-24 hidden lg:block" aria-label="Live preview">
+          <p className="mb-3 text-center text-sm" style={{ color: "var(--d-muted)" }}>Live preview</p>
+          {phoneFrame}
+        </aside>
+      </div>
+
+      {/* Publish bar: appears when there are unsaved page changes */}
+      {dirty && (
+        <div className="fixed inset-x-0 bottom-20 z-40 px-4 md:bottom-6">
+          <div className="d-raise mx-auto flex max-w-xl items-center justify-between gap-3 p-3 pl-4 shadow-2xl">
+            <span className="text-sm" style={{ color: "var(--d-text)" }}>You have unpublished changes</span>
+            <div className="flex gap-2">
+              <button onClick={() => setF(JSON.parse(saved))} className="d-btn d-btn-s">Discard</button>
+              <button onClick={save} disabled={saving} className="d-btn d-btn-p">{saving && <Loader2 size={16} className="animate-spin" />} Publish</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPreview && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 p-4 lg:hidden" role="dialog" aria-modal="true" aria-label="Preview">
+          <div className="mb-3 flex justify-end">
+            <button onClick={() => setShowPreview(false)} className="d-btn d-btn-s"><X size={16} /> Close preview</button>
+          </div>
+          {phoneFrame}
+        </div>
+      )}
+    </div>
+  );
+}

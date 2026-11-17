@@ -82,3 +82,83 @@ body {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* =====================================================================
+   Owner dashboard: "Sheen" graphite look (adapted from the MIT-licensed
+   Sheen Board template). Dark by default, light for daylight.
+   ===================================================================== */
+.dash {
+  --d-bg: #101010;
+  --d-top: #202020;
+  --d-surface: #1a1a1a;
+  --d-raise: linear-gradient(180deg, #262626, #1b1b1b);
+  --d-line: #272727;
+  --d-line-2: #2c2c2c;
+  --d-text: #e9e9e9;
+  --d-sub: #b6b6b6;
+  --d-muted: #8a8a8a;
+  --d-chip-bg: #161616;
+  --d-btn-p: linear-gradient(var(--d-a, 196deg), #fff 15%, #565656 100%);
+  --d-btn-p-text: #101010;
+  --d-btn-s: linear-gradient(var(--d-a, 220deg), rgba(255, 255, 255, 0.05) 25%, #1a1a1a 75%);
+  --d-btn-s-text: #cfcfcf;
+  --d-green: #3ecf63;
+  --d-amber: #e0a31c;
+  --d-blue: #5b8cff;
+  --d-red: #ff5d5d;
+  --d-bar: #5b8cff;
+  --d-ease: linear(0,0.0471,0.1568,0.2933,0.4335,0.5638,0.677,0.7706,0.8447,0.9011,0.9423,0.9712,0.9905,1.0025,1.0092,1.0123,1.013,1.0123,1.0109,1.0091,1.0073,1.0056,1.0041,1.0029,1);
+  background: radial-gradient(60% 420px at 50% -60px, var(--d-top) 0%, var(--d-bg) 100%) no-repeat, var(--d-bg);
+  color: var(--d-sub);
+  letter-spacing: -0.02em;
+  color-scheme: dark;
+}
+.dash[data-mode="light"] {
+  --d-bg: #f4f4f2;
+  --d-top: #ffffff;
+  --d-surface: #ffffff;
+  --d-raise: linear-gradient(180deg, #ffffff, #f7f7f6);
+  --d-line: #e3e3e0;
+  --d-line-2: #dcdcd8;
+  --d-text: #141414;
+  --d-sub: #3d3d3d;
+  --d-muted: #6b6b6b;
+  --d-chip-bg: #ffffff;
+  --d-btn-p: linear-gradient(var(--d-a, 196deg), #3a3a3a 0%, #111 100%);
+  --d-btn-p-text: #ffffff;
+  --d-btn-s: linear-gradient(var(--d-a, 220deg), #ffffff 25%, #efefed 75%);
+  --d-btn-s-text: #1f1f1f;
+  --d-green: #15803d;
+  --d-amber: #b45309;
+  --d-blue: #2f5fe0;
+  --d-red: #d92d2d;
+  --d-bar: #2f5fe0;
+  color-scheme: light;
+}
+.dash h1, .dash h2, .dash h3, .dash strong { color: var(--d-text); }
+.d-card { border-radius: 10px; background: var(--d-surface); box-shadow: inset 0 0 0 1px var(--d-line); }
+.d-raise { border-radius: 8px; background: var(--d-raise); box-shadow: inset 0 0 0 1px var(--d-line-2); }
+.d-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 22px; border-radius: 7px; font-size: 15px; font-weight: 500; white-space: nowrap;
+  transition: --d-a 380ms var(--d-ease), box-shadow 250ms ease, opacity 150ms;
+}
+.d-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.d-btn-p { --d-a: 196deg; color: var(--d-btn-p-text); background: var(--d-btn-p); box-shadow: inset 0 4px 12px rgba(255,255,255,.35); }
+.d-btn-s { --d-a: 220deg; color: var(--d-btn-s-text); background: var(--d-btn-s); box-shadow: inset 0 0 0 1px var(--d-line), inset -2px 2px 7px rgba(255,255,255,.1); }
+@media (hover: hover) and (pointer: fine) {
+  .d-btn-p:hover:not(:disabled) { --d-a: 257deg; }
+  .d-btn-s:hover:not(:disabled) { --d-a: 327deg; }
+}
+@property --d-a { syntax: "<angle>"; initial-value: 220deg; inherits: false; }
+.d-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; line-height: 14px; font-weight: 500; padding: 2px 7px; border-radius: 4px; color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--d-chip-bg)); }
+.d-col-h { position: relative; padding-left: 10px; font-weight: 600; color: var(--d-text); }
+.d-col-h::before { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: 2px; border-radius: 2px; background: var(--c); }
+.d-input { width: 100%; min-height: 44px; border-radius: 7px; padding: 10px 12px; background: var(--d-bg); color: var(--d-text); box-shadow: inset 0 0 0 1px var(--d-line-2); font-size: 15px; }
+.d-input:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--d-blue); }
+.dash :focus-visible { outline: 2px solid var(--d-blue); outline-offset: 2px; }
+.d-seg { display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: var(--d-surface); box-shadow: inset 0 0 0 1px var(--d-line); }
+.d-seg > * { min-height: 40px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--d-muted); }
+.d-seg > [aria-current="page"], .d-seg > [aria-pressed="true"] { color: var(--d-text); background: var(--d-bg); box-shadow: inset 0 0 0 1px var(--d-line-2); }
+.d-dots { background: radial-gradient(color-mix(in srgb, var(--d-text) 9%, transparent) 1px, transparent 1.3px) 0 0/27px 27px; }
+@media (prefers-reduced-motion: reduce) { .d-btn { transition: none; } }
