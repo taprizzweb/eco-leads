@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--border);
+}
+
+:root {
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --surface-2: #eef0f4;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: rgba(15, 23, 42, 0.08);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Strips: the only three moving things on the guest page ---------- */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--marquee-duration, 30s) linear infinite;
+}
+.marquee-pausable:hover .marquee-track,
+.marquee-pausable:active .marquee-track,
+.marquee-pausable:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+/* ---------- Hero review card: animated rainbow border with soft glow ---------- */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes spin-angle {
+  to { --angle: 360deg; }
+}
+.rainbow-border {
+  position: relative;
+  border-radius: 22px;
+  padding: 2px;
+  background: conic-gradient(from var(--angle), #ff5f6d, #ffc371, #f9f871, #5ef2a0, #4fc3f7, #a78bfa, #f472b6, #ff5f6d);
+  animation: spin-angle 4s linear infinite;
+}
+.rainbow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  filter: blur(14px);
+  opacity: 0.45;
+  z-index: -1;
+}
+
+/* Guests who ask their phone for less motion get a still page. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .rainbow-border {
+    animation: none !important;
+  }
+  .marquee-scroll {
+    overflow-x: auto;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
