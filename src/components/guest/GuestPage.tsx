@@ -11,7 +11,8 @@ import { ReviewFlow } from "./ReviewFlow";
 import { FeedbackForm } from "./FeedbackForm";
 import { CreatorsSheet } from "./CreatorsSheet";
 import { VisitorGate } from "./VisitorGate";
-import { loadVisitor, type Visitor } from "@/lib/visitor";
+import { forgetPass, loadVisitor, saveVisitor, type Visitor } from "@/lib/visitor";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 const DEFAULT_ORDER: CardKey[] = ["menu", "review", "complaint", "suggestion", "moment", "offers", "events", "membership", "creators"];
 
@@ -99,6 +100,12 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
       return;
     }
     if (!visitor) { setPending(k); setGate(true); return; }
+    if (visitor.fromPass) {
+      // Taprizz Pass from another place: this business gets the details only now, because the guest started something here.
+      // Offers consent is never carried over, so it is false here.
+      supabaseBrowser().rpc("guest_register_visitor", { p_client: client.id, p_name: visitor.name, p_phone: visitor.phone, p_marketing: false })
+        .then(({ error }) => { if (!error) { saveVisitor(client.id, visitor); setVisitor({ name: visitor.name, phone: visitor.phone }); } });
+    }
     setOpen(k);
   };
 
@@ -140,6 +147,12 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
             </span>
           )}
         </motion.header>
+        {visitor && (
+          <p className="flex items-center gap-2 px-5 pb-1 text-sm text-muted" aria-live="polite">
+            <span>Welcome back, <span className="font-semibold text-fg">{visitor.name}</span></span>
+            <button type="button" className="min-h-11 px-1 underline underline-offset-4" onClick={() => { forgetPass(client.id); setVisitor(null); }}>Not you?</button>
+          </p>
+        )}
 
         {/* 2. Social row */}
         {socials.length > 0 && (

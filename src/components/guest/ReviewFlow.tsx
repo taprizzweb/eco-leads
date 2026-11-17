@@ -7,7 +7,7 @@ import { LANGS, localize, resolveQuestions, type Lang } from "@/lib/review/quest
 import type { Visitor } from "@/lib/visitor";
 import { chip, glassInput, pillPrimary, pillSoft } from "./ui";
 
-type Step = "stars" | "q" | "extra" | "draft";
+type Step = "stars" | "q" | "draft";
 const MAX_TRIES = 3;
 
 // The guest's own answers become their review. The Google button is always available, at every rating,
@@ -44,28 +44,34 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   function choose(n: number) {
     setRating(n);
     setError(null);
-    if (step === "stars") setStep(questions.length ? "q" : "extra");
+    if (step === "stars") { if (questions.length) setStep("q"); else void write({}); }
   }
 
+  // "pick one" questions move on by themselves the moment a chip is tapped. "pick several" waits for Next.
   function toggle(id: string, type: "multi" | "single" | "text", chipValue: string) {
+    if (type === "single") {
+      const next = { ...answers, [id]: [chipValue] };
+      setAnswers(next);
+      setTimeout(() => advance(next), 220);
+      return;
+    }
     setAnswers((a) => {
       const cur = a[id] ?? [];
-      if (type === "single") return { ...a, [id]: cur[0] === chipValue ? [] : [chipValue] };
       return { ...a, [id]: cur.includes(chipValue) ? cur.filter((x) => x !== chipValue) : [...cur, chipValue] };
     });
   }
 
-  function next() {
-    if (qi + 1 < questions.length) setQi(qi + 1);
-    else setStep("extra");
+  // After the last question the review is written straight away. No extra step.
+  function advance(a: Record<string, string[]> = answers) {
+    if (qi + 1 < questions.length) setQi((i) => Math.min(i + 1, questions.length - 1));
+    else void write(a);
   }
   function back() {
-    if (step === "extra") { setQi(Math.max(0, questions.length - 1)); setStep(questions.length ? "q" : "stars"); }
-    else if (qi > 0) setQi(qi - 1);
+    if (qi > 0) setQi(qi - 1);
     else setStep("stars");
   }
 
-  async function write() {
+  async function write(a: Record<string, string[]> = answers, own: string = extra) {
     if (!rating) return setError("Tap a star rating first.");
     setLoading(true);
     setError(null);
@@ -74,8 +80,8 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          code, rating, language: lang, name: visitor?.name ?? "", extra,
-          answers: questions.map((x) => ({ id: x.id, values: answers[x.id] ?? [] })),
+          code, rating, language: lang, name: visitor?.name ?? "", extra: own,
+          answers: questions.map((x) => ({ id: x.id, values: a[x.id] ?? [] })),
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -145,20 +151,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
           )}
           <div className="flex gap-2 pt-1">
             <button className={`${pillSoft} !w-auto px-5`} onClick={back} aria-label="Back"><ArrowLeft size={18} /></button>
-            <button className={pillPrimary} onClick={next}>{(answers[q.id]?.length ?? 0) > 0 && answers[q.id][0] !== "" ? (qi + 1 === questions.length ? "Next" : "Next question") : "Skip"}</button>
-          </div>
-        </section>
-      )}
-
-      {!lowStars && step === "extra" && (
-        <section className="space-y-3">
-          <h3 className="text-lg font-semibold">Anything you would like to add?</h3>
-          <p className="-mt-1 text-sm text-muted">Optional. A few of your own words make the review truly yours.</p>
-          <textarea className={`${glassInput} min-h-24 rounded-2xl`} rows={3} maxLength={300} value={extra} onChange={(e) => setExtra(e.target.value)} aria-label="Anything you would like to add" />
-          {error && <p role="alert" className="text-sm text-amber-400">{error}</p>}
-          <div className="flex gap-2">
-            <button className={`${pillSoft} !w-auto px-5`} onClick={back} aria-label="Back"><ArrowLeft size={18} /></button>
-            <button className={pillPrimary} onClick={write} disabled={loading}>{loading && <Loader2 size={18} className="animate-spin" />}{loading ? "Writing your review" : "Write my review"}</button>
+            <button className={pillPrimary} onClick={() => advance()} disabled={loading}>{loading && <Loader2 size={18} className="animate-spin" />}{loading ? "Writing your review" : (answers[q.id]?.length ?? 0) > 0 && answers[q.id][0] !== "" ? (qi + 1 === questions.length ? "Write my review" : "Next") : qi + 1 === questions.length ? "Skip and write" : "Skip"}</button>
           </div>
         </section>
       )}
@@ -172,7 +165,10 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
             {copied ? <Check size={18} /> : <Copy size={18} />} Copy review and open Google
           </button>
           {tries < MAX_TRIES && (
-            <button onClick={write} disabled={loading} className={pillSoft}>{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Write another version</button>
+            <div className="space-y-2">
+              <input className={glassInput} maxLength={300} value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="Want to add something in your own words? (optional)" aria-label="Add something in your own words" />
+              <button onClick={() => write()} disabled={loading} className={pillSoft}>{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {extra.trim() ? "Rewrite with this" : "Write another version"}</button>
+            </div>
           )}
           <p className="text-center text-xs text-muted">Your review is copied. Paste it in the Google box and post.</p>
         </section>

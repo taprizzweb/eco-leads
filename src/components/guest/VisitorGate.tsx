@@ -41,7 +41,7 @@ export function VisitorGate({ clientId, businessName, onDone }: { clientId: stri
         <input type="checkbox" className="mt-1 h-5 w-5" checked={offers} onChange={(e) => setOffers(e.target.checked)} />
         <span>Send me offers from {businessName} on WhatsApp. <span className="text-muted">Optional. You can stop any time.</span></span>
       </label>
-      <p className="text-xs text-muted">We use your name to personalise your review and your number so {businessName} can reach you about your feedback. We never share it.</p>
+      <p className="text-xs text-muted">We use your name to personalise your review and your number so {businessName} can reach you about your feedback. We never share it. Your Taprizz Pass is remembered on this phone, so you will not be asked again at other Taprizz places. A place only receives your details when you start something there.</p>
       {err && <p role="alert" className="text-sm text-amber-400">{err}</p>}
       <button className={pillPrimary} disabled={busy}>{busy && <Loader2 size={18} className="animate-spin" />} Continue</button>
     </form>

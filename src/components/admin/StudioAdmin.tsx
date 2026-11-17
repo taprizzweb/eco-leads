@@ -90,13 +90,13 @@ function Rules({ initial }: { initial: Settings }) {
   const toast = useToast();
   const [rules, setRules] = useState(initial.rules ?? "");
   const [banned, setBanned] = useState((initial.banned ?? []).join("\n"));
-  const [lo, setLo] = useState(String(initial.length_min ?? 25));
-  const [hi, setHi] = useState(String(initial.length_max ?? 80));
+  const [lo, setLo] = useState(String(initial.length_min ?? 35));
+  const [hi, setHi] = useState(String(initial.length_max ?? 95));
   const [ex, setEx] = useState<Example[]>(initial.examples ?? []);
   const [busy, setBusy] = useState(false);
 
   async function save() {
-    const min = Math.max(10, Math.min(300, parseInt(lo) || 25)), max = Math.max(min, Math.min(300, parseInt(hi) || 80));
+    const min = Math.max(10, Math.min(300, parseInt(lo) || 35)), max = Math.max(min, Math.min(300, parseInt(hi) || 95));
     const payload: Settings = {
       rules: rules.trim(), banned: banned.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 60), length_min: min, length_max: max,
       examples: ex.map((e) => ({ ...e, text: e.text.trim() })).filter((e) => e.text).slice(0, 12),

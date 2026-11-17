@@ -30,8 +30,8 @@ export function buildAnswers(questions: Question[], raw: Raw[]): QA[] {
 type Raw2 = { rules?: string; banned?: string[]; length_min?: number; length_max?: number; examples?: StudioConfig["examples"]; category?: Partial<StudioConfig["category"]>; business?: Partial<StudioConfig["business"]> } | null;
 
 export function toConfig(raw: Raw2, fallbackName: string): StudioConfig {
-  const lo = Math.max(10, Math.min(300, Number(raw?.length_min) || 25));
-  const hi = Math.max(lo, Math.min(300, Number(raw?.length_max) || 80));
+  const lo = Math.max(10, Math.min(300, Number(raw?.length_min) || 35));
+  const hi = Math.max(lo, Math.min(300, Number(raw?.length_max) || 95));
   return {
     rules: String(raw?.rules ?? ""),
     banned: Array.isArray(raw?.banned) ? raw!.banned!.map(String) : [],
