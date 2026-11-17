@@ -48,12 +48,18 @@ export function QuestionsEditor({ value, onChange, max = MAX_QUESTIONS }: { valu
             <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove question ${i + 1}`} style={{ color: "var(--d-muted)" }} onClick={() => onChange(value.filter((_, k) => k !== i))}><Trash2 size={16} /></button>
           </div>
           {q.tr && <p className="text-xs" style={{ color: "var(--d-muted)" }}>Also shown in: {LANGS.filter((l) => q.tr?.[l.id]).map((l) => l.label).join(", ")}</p>}
+          {q.type === "text" && <p className="text-xs" style={{ color: "var(--d-muted)" }}>The guest types a few words of their own. No chips needed.</p>}
           {q.type !== "text" && <ChipsInput chips={q.chips} label={`Chips for question ${i + 1}`} onChange={(c) => upd(i, { chips: c, tr: undefined })} />}
         </div>
       ))}
-      <button type="button" className="d-btn d-btn-s" disabled={value.length >= max} onClick={() => onChange([...value, { id: newQuestionId(), label: "", type: "multi", chips: [] }])}>
-        <Plus size={15} /> Add question ({value.length} of {max})
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="d-btn d-btn-s" disabled={value.length >= max} onClick={() => onChange([...value, { id: newQuestionId(), label: "", type: "multi", chips: [] }])}>
+          <Plus size={15} /> Add chips question ({value.length} of {max})
+        </button>
+        <button type="button" className="d-btn d-btn-s" disabled={value.length >= max} onClick={() => onChange([...value, { id: newQuestionId(), label: "", type: "text", chips: [] }])}>
+          <Plus size={15} /> Add short-answer question
+        </button>
+      </div>
     </div>
   );
 }
