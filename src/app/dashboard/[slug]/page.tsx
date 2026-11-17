@@ -1,11 +1,41 @@
 import Link from "next/link";
 import { MessageSquareWarning, Lightbulb, ChevronRight, Plus, PencilLine, CheckCircle2 } from "lucide-react";
 import { loadClient, timeAgo } from "@/lib/dash";
-import { TapsChart } from "@/components/dash/TapsChart";
+import { TapsPeakCard, type PeriodSeries } from "@/components/dash/TapsPeakCard";
 import { QrButton } from "@/components/dash/QrButton";
 
 const TZ = "Asia/Kolkata";
 const ymd = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: TZ });
+
+// Builds Weekly / Monthly / Yearly series (and the period before, for the trend) from daily counts.
+function buildSeries(rows: { day: string; taps: number }[]): Record<"Weekly" | "Monthly" | "Yearly", PeriodSeries> {
+  const byDay = new Map(rows.map((r) => [r.day, r.taps]));
+  const dayAt = (ago: number) => new Date(Date.now() - ago * 864e5);
+  const count = (ago: number) => byDay.get(ymd(dayAt(ago))) ?? 0;
+  const span = (from: number, to: number) => { let n = 0; for (let a = from; a < to; a++) n += count(a); return n; };
+  const daily = (n: number, label: Intl.DateTimeFormatOptions) => {
+    const data: number[] = [], labels: string[] = [];
+    for (let a = n - 1; a >= 0; a--) { data.push(count(a)); labels.push(dayAt(a).toLocaleDateString("en-IN", { ...label, timeZone: TZ })); }
+    return { data, labels };
+  };
+  const months: { key: string; label: string }[] = [];
+  const [y, m] = ymd(new Date()).split("-").map(Number);
+  for (let i = 23; i >= 0; i--) {
+    const d = new Date(Date.UTC(y, m - 1 - i, 1));
+    months.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: "UTC" }) });
+  }
+  const perMonth = new Map<string, number>();
+  for (const r of rows) perMonth.set(r.day.slice(0, 7), (perMonth.get(r.day.slice(0, 7)) ?? 0) + r.taps);
+  const last12 = months.slice(12), prev12 = months.slice(0, 12);
+  const w = daily(7, { weekday: "short", day: "numeric" });
+  const mo = daily(30, { day: "numeric", month: "short" });
+  const yearData = last12.map((x) => perMonth.get(x.key) ?? 0);
+  return {
+    Weekly: { ...w, total: span(0, 7), prev: span(7, 14), vs: "the week before" },
+    Monthly: { ...mo, total: span(0, 30), prev: span(30, 60), vs: "the 30 days before" },
+    Yearly: { data: yearData, labels: last12.map((x) => x.label), total: yearData.reduce((a, b) => a + b, 0), prev: prev12.reduce((a, x) => a + (perMonth.get(x.key) ?? 0), 0), vs: "the year before" },
+  };
+}
 
 function monthStartIST(): string {
   const [y, m] = ymd(new Date()).split("-");
@@ -16,7 +46,6 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
   const { slug } = await params;
   const { sb, client } = await loadClient(slug);
   const since = monthStartIST();
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
   const cid = client.id;
   const head = { count: "exact" as const, head: true };
 
@@ -26,23 +55,12 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
     sb.from("contacts").select("id", head).eq("client_id", cid).gte("created_at", since),
     sb.from("feedback").select("id", head).eq("client_id", cid).eq("kind", "complaint").neq("status", "resolved"),
     sb.from("feedback").select("id, kind, body, plate_code, created_at").eq("client_id", cid).eq("status", "new").order("created_at", { ascending: false }).limit(5),
-    sb.from("taps").select("created_at").eq("client_id", cid).gte("created_at", weekAgo).limit(10000),
+    sb.rpc("client_tap_days", { p_client: cid, p_days: 760 }),
     sb.from("plates").select("code, label").eq("client_id", cid).eq("active", true),
   ]);
 
-  const counts = new Map<string, number>();
-  for (const t of week.data ?? []) {
-    const k = ymd(new Date(t.created_at));
-    counts.set(k, (counts.get(k) ?? 0) + 1);
-  }
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(Date.now() - (6 - i) * 864e5);
-    return {
-      label: d.toLocaleDateString("en-IN", { weekday: "short", timeZone: TZ }),
-      full: d.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short", timeZone: TZ }),
-      value: counts.get(ymd(d)) ?? 0,
-    };
-  });
+  const series = buildSeries((week.data ?? []) as { day: string; taps: number }[]);
+  const updated = `Updated ${new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: TZ })}`;
 
   const stats = [
     { label: "Reviews sent to Google", value: reviews.count ?? 0, tone: "var(--d-blue)" },
@@ -113,8 +131,8 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
             </div>
           )}
         </section>
-        <section className="d-card p-5 lg:col-span-2">
-          <TapsChart days={days} />
+        <section aria-label="Taps over time" className="lg:col-span-2">
+          <TapsPeakCard series={series} updated={updated} />
         </section>
       </div>
     </div>
