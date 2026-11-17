@@ -93,34 +93,41 @@ function replyPrompt(a: ReplyInput): string {
 
 /* ------------------------------------------------------------------ providers */
 
-type TextCaller = (prompt: string) => Promise<string>;
+type CallOpts = { max?: number; temp?: number };
+type TextCaller = (prompt: string, o?: CallOpts) => Promise<string>;
 
-const callOpenAI: TextCaller = async (prompt) => {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+const callOpenAI: TextCaller = async (prompt, o) => {
+  // REVIEW_AI_BASE_URL lets this talk to any OpenAI-compatible host (Groq, OpenRouter, a self-hosted open model).
+  const base = (process.env.REVIEW_AI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
+  const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 200, temperature: 0.8 }),
+    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: o?.max ?? 200, temperature: o?.temp ?? 0.8 }),
   });
   if (!res.ok) throw new Error(`openai ${res.status}`);
   return (await res.json()).choices?.[0]?.message?.content ?? "";
 };
 
-const callGemini: TextCaller = async (prompt) => {
+const callGemini: TextCaller = async (prompt, o) => {
   const model = process.env.REVIEW_AI_MODEL || "gemini-2.0-flash";
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 200, temperature: 0.8 } }),
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      // 2.5 models "think" first and that eats the output budget, so thinking is switched off for short reviews.
+      generationConfig: { maxOutputTokens: o?.max ?? 200, temperature: o?.temp ?? 0.8, ...(model.includes("2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
+    }),
   });
   if (!res.ok) throw new Error(`gemini ${res.status}`);
   return (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 };
 
-const callAnthropic: TextCaller = async (prompt) => {
+const callAnthropic: TextCaller = async (prompt, o) => {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "claude-haiku-5-5", max_tokens: 220, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "claude-haiku-5-5", max_tokens: o?.max ?? 220, temperature: Math.min(1, o?.temp ?? 0.8), messages: [{ role: "user", content: prompt }] }),
   });
   if (!res.ok) throw new Error(`anthropic ${res.status}`);
   return (await res.json()).content?.[0]?.text ?? "";
@@ -150,14 +157,14 @@ const clean = (t: string, max: number) => t.trim().replace(/^["'“”]+|["'“�
 const withTimeout = <T,>(p: Promise<T>, ms = 8000) =>
   Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 
-async function run(task: "review_draft" | "review_reply", payload: Record<string, unknown>, prompt: string, max: number): Promise<{ text: string; provider: string } | null> {
+async function run(task: "review_draft" | "review_reply", payload: Record<string, unknown>, prompt: string, max: number, opts?: CallOpts): Promise<{ text: string; provider: string } | null> {
   const name = (process.env.REVIEW_AI_PROVIDER || "template").toLowerCase();
   try {
     if (name === "custom" && process.env.REVIEW_AI_URL) {
       const t = clean(await withTimeout(callCustom(task, payload)), max);
       if (t) return { text: t, provider: "custom" };
     } else if (GENERAL[name] && process.env[GENERAL[name].key]) {
-      const t = clean(await withTimeout(GENERAL[name].call(prompt)), max);
+      const t = clean(await withTimeout(GENERAL[name].call(prompt, opts), 15000), max);
       if (t) return { text: t, provider: name };
     }
   } catch (e) {
@@ -223,4 +230,110 @@ export async function aiProbe(): Promise<{ ok: boolean; provider: string; ms: nu
       /fetch failed|ENOTFOUND|ECONNREFUSED/.test(m) ? "We could not reach that address. Check the web address is spelled right and the project is deployed." : undefined;
     return { ok: false, provider: st.provider, ms: Date.now() - t0, error: m, hint };
   }
+}
+
+/* ------------------------------------------------------------------ the AI Review Studio writer */
+
+import { type Lang } from "./questions";
+import { maxSimilarity, pickShape, shingles, shuffle, type Shape } from "./variation";
+
+export type StudioConfig = {
+  rules: string;
+  banned: string[];
+  length_min: number;
+  length_max: number;
+  examples: { language?: string; rating?: number; text: string }[];
+  category: { id?: string | null; label?: string | null; keywords: string[]; notes: string };
+  business: { name: string; tagline?: string | null };
+};
+export type QA = { id: string; label: string; values: string[] };
+export type ReviewRequest = { rating: number; language: Lang; name: string; answers: QA[]; extra: string };
+export type WrittenReview = { draft: string; provider: string; sig: number[]; similarity: number; tries: number };
+
+const FEELING: Record<number, string> = {
+  5: "delighted and grateful",
+  4: "happy, with at most one tiny wish for improvement",
+  3: "mixed: some things were good, some were only okay",
+  2: "disappointed, but fair and polite",
+  1: "upset, but civil and factual",
+};
+const LANG_RULE: Record<Lang, string> = {
+  en: "English: simple, natural, the way a regular Indian customer writes on Google. No fancy words.",
+  hi: "Hindi in Devanagari script: everyday spoken Hindi, not bookish or formal. A few common English words are fine, written in Devanagari or English as people naturally do.",
+  hinglish: "Hinglish: Hindi written in Roman letters mixed with English, exactly how people text each other (for example \"yaar coffee ekdum mast thi\"). Not Devanagari.",
+};
+
+const GENERIC_BANNED = ["hidden gem", "must visit", "must-visit", "a true delight", "nestled", "culinary journey", "elevated", "delve", "tapestry", "testament", "unforgettable experience", "five-star experience"];
+
+export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Shape, retry: boolean): string {
+  const facts = r.answers.filter((a) => a.values.length).map((a) => `- ${a.label} ${a.values.join(", ")}`);
+  const chosen = shuffle(facts).slice(0, Math.max(1, shape.mention));
+  const banned = [...new Set([...GENERIC_BANNED, ...(cfg.banned ?? [])])].slice(0, 60);
+  const ex = (cfg.examples ?? []).filter((e) => e.text?.trim() && (!e.language || e.language === r.language)).slice(0, 4);
+  return [
+    `You write ONE Google review exactly as a real customer would type it on their phone right after a visit. It is the customer's own review, so write it in the first person.`,
+    ``,
+    `BUSINESS: ${cfg.business.name}${cfg.category.label ? ` (${cfg.category.label})` : ""}${cfg.business.tagline ? `. ${cfg.business.tagline}` : ""}`,
+    cfg.category.keywords?.length ? `WORDS THAT FIT THIS KIND OF PLACE (use only where natural): ${cfg.category.keywords.join(", ")}` : "",
+    cfg.category.notes ? `WHAT GUESTS OF THIS KIND OF PLACE CARE ABOUT: ${cfg.category.notes}` : "",
+    ``,
+    `STAR RATING GIVEN: ${r.rating} out of 5. The feeling should be: ${FEELING[r.rating] ?? FEELING[3]}.`,
+    `LANGUAGE: ${LANG_RULE[r.language]}`,
+    ``,
+    `WHAT THE GUEST TOLD US (the ONLY facts you may use; mention about ${chosen.length} of them, not necessarily all):`,
+    ...(chosen.length ? chosen : ["- (nothing specific; keep it general and short)"]),
+    r.extra.trim() ? `THE GUEST'S OWN WORDS (weave these in, keep their meaning): "${r.extra.trim().slice(0, 300)}"` : "",
+    r.name ? `GUEST FIRST NAME: ${r.name}. ${shape.useName ? "Use the name once, naturally (for example introducing themselves)." : "Do NOT mention the name this time."}` : "",
+    ``,
+    `SHAPE FOR THIS ONE: about ${shape.words} words. Tone: ${shape.tone}. ${shape.opener[0].toUpperCase()}${shape.opener.slice(1)}.`,
+    retry ? `IMPORTANT: an earlier version was too similar to other reviews. Use clearly different wording, sentence order and length.` : "",
+    ``,
+    `HARD RULES:`,
+    `- Never invent anything the guest did not tell us: no dish names, staff names, prices, dates, offers or events.`,
+    `- Never offer or mention any reward, discount or gift. Never ask anyone to review.`,
+    `- No hashtags, no emojis, no quotation marks, no headings, no lists. Plain sentences only.`,
+    `- For 1 to 3 stars stay calm and factual. No insults, no accusations, nothing defamatory.`,
+    `- Do not sound like an advertisement. Avoid these phrases: ${banned.join("; ")}.`,
+    cfg.rules.trim() ? `\nHOUSE RULES FROM THE OWNER OF TAPRIZZ (follow these):\n${cfg.rules.trim().slice(0, 4000)}` : "",
+    ex.length ? `\nEXAMPLES OF THE STYLE WE WANT (never copy them, only the feel):\n${ex.map((e, i) => `${i + 1}. ${e.text.trim().slice(0, 400)}`).join("\n")}` : "",
+    ``,
+    `Output only the review text.`,
+  ].filter((l) => l !== "").join("\n");
+}
+
+function templateFromAnswers(r: ReviewRequest, business: string): string {
+  const facts = r.answers.flatMap((a) => a.values).slice(0, 3).map((v) => v.toLowerCase());
+  const f = facts.length ? facts.join(", ") : "";
+  const nm = r.name ? `${r.name} here. ` : "";
+  if (r.language === "hi") return `${nm}${business} में अच्छा अनुभव रहा।${f ? ` ${f} पसंद आया।` : ""}`.trim();
+  if (r.language === "hinglish") return `${nm}${business} ka experience ${r.rating >= 4 ? "kaafi accha" : r.rating === 3 ? "theek-thaak" : "thoda nirash karne wala"} raha.${f ? ` ${f} ${r.rating >= 4 ? "pasand aaya" : "ok tha"}.` : ""}`.trim();
+  return `${nm}${templateDraft({ rating: r.rating, chips: facts, businessName: business })}`.trim();
+}
+
+/**
+ * Writes one review. Up to three attempts: each gets a fresh random shape, and an attempt is accepted only when it is
+ * not too similar to the business's recent drafts. Without a working AI provider it falls back to plain sentences,
+ * which is what guests get until an AI key is connected.
+ */
+export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSigs: number[][], opts: { tries?: number } = {}): Promise<WrittenReview> {
+  const factCount = r.answers.filter((a) => a.values.length).length;
+  let best: WrittenReview | null = null;
+  const attempts = opts.tries ?? 3;
+  for (let i = 0; i < attempts; i++) {
+    const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, factCount);
+    const prompt = buildReviewPrompt(cfg, r, shape, i > 0);
+    const out = await run("review_draft", {
+      business: { name: cfg.business.name, type: cfg.category.label ?? null },
+      rating: r.rating, language: r.language, name: r.name, answers: r.answers, extra: r.extra, rules: cfg.rules, shape, prompt,
+    }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 1.0 });
+    if (!out) break; // no provider, or it failed: no point trying again
+    const sig = shingles(out.text);
+    const sim = maxSimilarity(sig, recentSigs);
+    const cand: WrittenReview = { draft: out.text, provider: out.provider, sig, similarity: sim, tries: i + 1 };
+    if (!best || sim < best.similarity) best = cand;
+    if (sim < 0.4) break;
+  }
+  if (best) return best;
+  const t = templateFromAnswers(r, cfg.business.name);
+  return { draft: t, provider: "template", sig: shingles(t), similarity: 0, tries: 0 };
 }

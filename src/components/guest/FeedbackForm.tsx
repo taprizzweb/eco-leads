@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Mic, Square, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { glassCard, glassInput, pillPrimary, pillSoft } from "./ui";
+import type { Visitor } from "@/lib/visitor";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 3;
@@ -14,17 +15,19 @@ export function FeedbackForm({
   kind,
   clientId,
   code,
+  visitor,
   onDone,
 }: {
   kind: "complaint" | "suggestion";
   clientId: string;
   code: string | null;
+  visitor?: Visitor | null;
   onDone: () => void;
 }) {
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<Attachment[]>([]);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(visitor?.name ?? "");
+  const [phone, setPhone] = useState(visitor?.phone ?? "");
   const [consent, setConsent] = useState(false);
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);

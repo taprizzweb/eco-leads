@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutGrid, Users, QrCode, BellRing, Wallet, Layers, Plug, ScrollText, UserCog, Sun, Moon, LogOut } from "lucide-react";
+import { LayoutGrid, Users, QrCode, BellRing, Wallet, Layers, Plug, Sparkles, ScrollText, UserCog, Sun, Moon, LogOut } from "lucide-react";
 import { ToastProvider } from "@/components/dash/Toast";
 import { Mark } from "@/components/dash/AuthFrame";
 
@@ -29,6 +29,7 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
     { href: "/admin/alerts", label: "Alerts", Icon: BellRing, badge: alerts },
     { href: "/admin/billing", label: "Billing", Icon: Wallet },
     { href: "/admin/packages", label: "Packages", Icon: Layers },
+    { href: "/admin/ai-studio", label: "AI Review Studio", Icon: Sparkles, min: "manager" },
     { href: "/admin/integrations", label: "Integrations", Icon: Plug, min: "manager" },
     { href: "/admin/audit", label: "Audit log", Icon: ScrollText, min: "manager" },
     { href: "/admin/team", label: "Team", Icon: UserCog, min: "manager" },

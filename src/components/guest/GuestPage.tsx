@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Instagram, Facebook, MapPin, Phone, ChevronRight, Star, UtensilsCrossed, Bike } from "lucide-react";
 import type { CardKey, GuestPageData } from "@/lib/types";
@@ -10,6 +10,8 @@ import { Sheet } from "./Sheet";
 import { ReviewFlow } from "./ReviewFlow";
 import { FeedbackForm } from "./FeedbackForm";
 import { CreatorsSheet } from "./CreatorsSheet";
+import { VisitorGate } from "./VisitorGate";
+import { loadVisitor, type Visitor } from "@/lib/visitor";
 
 const DEFAULT_ORDER: CardKey[] = ["menu", "review", "complaint", "suggestion", "moment", "offers", "events", "membership", "creators"];
 
@@ -63,6 +65,10 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
   const theme = getTheme(data.client.theme);
   const [open, setOpen] = useState<CardKey | null>(null);
   const close = useCallback(() => setOpen(null), []);
+  // The first tap on an action card asks for the guest's name and number (once per business, on their own phone).
+  const [visitor, setVisitor] = useState<Visitor | null>(null);
+  const [gate, setGate] = useState(false);
+  const [pending, setPending] = useState<CardKey | null>(null);
   const reduce = useReducedMotion();
   const { client } = data;
 
@@ -85,11 +91,14 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
     client.socials.swiggy && { href: client.socials.swiggy, label: "Swiggy", Icon: Bike },
   ].filter(Boolean) as { href: string; label: string; Icon: typeof Instagram }[];
 
+  useEffect(() => { setVisitor(loadVisitor(client.id)); }, [client.id]);
+
   const onCard = (k: CardKey) => {
     if (k === "menu" && client.menu_url) {
       window.open(client.menu_url, "_blank", "noopener");
       return;
     }
+    if (!visitor) { setPending(k); setGate(true); return; }
     setOpen(k);
   };
 
@@ -344,13 +353,16 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
 
       {/* Sheets */}
       <Sheet open={open === "review"} onClose={close} title="Review us on Google">
-        <ReviewFlow data={data} code={code} onPrivateFeedback={data.features.complaints ? () => setOpen("complaint") : undefined} />
+        <ReviewFlow data={data} code={code} visitor={visitor} onPrivateFeedback={data.features.complaints ? () => setOpen("complaint") : undefined} />
       </Sheet>
       <Sheet open={open === "complaint"} onClose={close} title="Raise a complaint">
-        <FeedbackForm kind="complaint" clientId={client.id} code={data.plate?.code ?? null} onDone={close} />
+        <FeedbackForm kind="complaint" clientId={client.id} code={data.plate?.code ?? null} visitor={visitor} onDone={close} />
       </Sheet>
       <Sheet open={open === "suggestion"} onClose={close} title="Any suggestions?">
         <FeedbackForm kind="suggestion" clientId={client.id} code={data.plate?.code ?? null} onDone={close} />
+      </Sheet>
+      <Sheet open={gate} onClose={() => { setGate(false); setPending(null); }} title="Before we start">
+        {gate && <VisitorGate clientId={client.id} businessName={client.name} onDone={(v) => { setVisitor(v); setGate(false); setOpen(pending); setPending(null); }} />}
       </Sheet>
       <Sheet open={open === "creators"} onClose={close} title="Creators corner">
         {open === "creators" && <CreatorsSheet clientId={client.id} businessType={client.business_type} businessName={client.name} onDone={close} />}

@@ -7,7 +7,7 @@ import { timeAgo } from "@/lib/dash-time";
 import { useToast } from "./Toast";
 
 type Review = { id: string; author: string; rating: number; body: string | null; reply_draft: string | null; replied_at: string | null; show_on_page: boolean; created_at: string };
-type Draft = { id: string; rating: number; answers: { chips?: string[]; company?: string; recommend?: string } | null; draft: string | null; copied: boolean; plate_code: string | null; created_at: string };
+type Draft = { id: string; rating: number; answers: { chips?: string[]; company?: string; recommend?: string; qa?: { label: string; values: string[] }[]; extra?: string } | null; draft: string | null; copied: boolean; plate_code: string | null; created_at: string };
 
 const Stars = ({ n, size = 15 }: { n: number; size?: number }) => (
   <span className="inline-flex gap-0.5" role="img" aria-label={`${n} stars`}>
@@ -152,7 +152,7 @@ export function ReviewsBoard({ clientId, reviews: r0, drafts, stats, replyMode, 
                   <Stars n={d.rating} size={13} /><span>{timeAgo(d.created_at)}</span>{d.plate_code && <span>{labels[d.plate_code] ?? d.plate_code}</span>}
                   {d.copied ? <span className="d-chip" style={{ ["--c" as string]: "var(--d-green)" }}>Copied to Google</span> : <span className="d-chip" style={{ ["--c" as string]: "var(--d-muted)" }}>Not copied</span>}
                 </div>
-                {d.answers?.chips?.length ? <p className="mt-1.5 text-xs" style={{ color: "var(--d-muted)" }}>Stood out: {d.answers.chips.join(", ")}{d.answers.company ? ` · came with ${d.answers.company}` : ""}</p> : null}
+                {d.answers?.qa?.length ? <p className="mt-1.5 text-xs" style={{ color: "var(--d-muted)" }}>{d.answers.qa.filter((x) => x.values?.length).map((x) => `${x.label}: ${x.values.join(", ")}`).join(" · ")}</p> : d.answers?.chips?.length ? <p className="mt-1.5 text-xs" style={{ color: "var(--d-muted)" }}>Stood out: {d.answers.chips.join(", ")}{d.answers.company ? ` · came with ${d.answers.company}` : ""}</p> : null}
                 <p className="mt-1.5 text-[14px]" style={{ color: "var(--d-sub)" }}>{d.draft}</p>
               </li>
             ))}
