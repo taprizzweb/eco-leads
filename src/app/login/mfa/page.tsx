@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2, Copy, Check } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { AuthFrame } from "@/components/dash/AuthFrame";
+import { AuthFrame, authBtnStrong, authInput, authLabel } from "@/components/dash/AuthFrame";
 
 type Mode = { kind: "loading" } | { kind: "verify"; factorId: string } | { kind: "enroll"; factorId: string; qr: string; secret: string };
 
@@ -49,7 +49,7 @@ function MfaInner() {
       title={enrolling ? "Turn on 2-step sign-in" : "Enter your code"}
       sub={enrolling ? "Scan this with Google Authenticator or any authenticator app." : "Open your authenticator app and type the 6-digit code."}
     >
-      {mode.kind === "loading" && !error && <div className="grid h-24 place-items-center"><Loader2 className="animate-spin" /></div>}
+      {mode.kind === "loading" && !error && <div className="grid h-24 place-items-center text-white"><Loader2 className="animate-spin" /></div>}
       {mode.kind === "enroll" && (
         <div className="mb-5 flex flex-col items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -57,8 +57,7 @@ function MfaInner() {
           <button
             type="button"
             onClick={() => { navigator.clipboard.writeText(mode.secret).then(() => setCopied(true)).catch(() => {}); }}
-            className="flex min-h-11 items-center gap-2 text-xs"
-            style={{ color: "var(--d-muted)" }}
+            className="flex min-h-11 items-center gap-2 text-xs text-gray-400 hover:text-white"
           >
             {copied ? <Check size={14} /> : <Copy size={14} />} Can&apos;t scan? Copy the setup key
           </button>
@@ -66,10 +65,10 @@ function MfaInner() {
       )}
       {mode.kind !== "loading" && (
         <form onSubmit={(e) => { e.preventDefault(); verify(); }} className="space-y-3">
-          <label className="block text-sm">
-            6-digit code
+          <label className="block">
+            <span className={authLabel}>6-digit code</span>
             <input
-              className="d-input mt-1 text-center text-xl tracking-[0.4em]"
+              className={`${authInput} text-center text-xl tracking-[0.4em]`}
               inputMode="numeric"
               autoComplete="one-time-code"
               maxLength={6}
@@ -78,15 +77,15 @@ function MfaInner() {
               autoFocus
             />
           </label>
-          <button className="d-btn d-btn-p w-full" disabled={busy}>
+          <button className={authBtnStrong} disabled={busy}>
             {busy && <Loader2 size={18} className="animate-spin" />}
             {enrolling ? "Turn on and continue" : "Verify and continue"}
           </button>
         </form>
       )}
-      {error && <p role="alert" className="mt-4 text-sm" style={{ color: "var(--d-red)" }}>{error}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-red-400">{error}</p>}
       <form action="/auth/signout" method="post" className="mt-4 text-center">
-        <button className="min-h-11 text-sm underline underline-offset-4" style={{ color: "var(--d-muted)" }}>Use a different account</button>
+        <button className="min-h-11 text-xs text-gray-400 underline underline-offset-4 hover:text-white">Use a different account</button>
       </form>
     </AuthFrame>
   );

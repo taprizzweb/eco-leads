@@ -4,6 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Mic, Square, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
+// Glass styling from the HextaUI sign-in card, tinted from the guest page theme so it reads on light and dark themes.
+const glassInput =
+  "w-full rounded-xl px-5 py-3 text-[15px] text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--text)_35%,transparent)] bg-[color-mix(in_srgb,var(--text)_8%,transparent)]";
+const glassCard =
+  "rounded-3xl p-5 shadow-xl backdrop-blur-sm bg-gradient-to-r from-[color-mix(in_srgb,var(--text)_7%,transparent)] to-transparent";
+const pillPrimary =
+  "flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-fg px-5 py-3 font-semibold text-bg shadow transition hover:opacity-90 disabled:opacity-60";
+const pillSoft =
+  "min-h-12 w-full rounded-full px-5 py-3 font-semibold shadow transition bg-[color-mix(in_srgb,var(--text)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--text)_16%,transparent)]";
+
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 3;
 
@@ -128,7 +138,7 @@ export function FeedbackForm({
         <p className="text-sm text-muted">
           {kind === "complaint" ? "Only the management can read this. If you left your number, they may reach out." : "Good ideas make the next visit better."}
         </p>
-        <button onClick={onDone} className="min-h-12 w-full rounded-2xl bg-surface-2 font-semibold">Back to the page</button>
+        <button onClick={onDone} className={pillSoft}>Back to the page</button>
       </div>
     );
   }
@@ -147,13 +157,13 @@ export function FeedbackForm({
           onChange={(e) => { setBody(e.target.value); if (error) setError(null); }}
           rows={4}
           maxLength={2000}
-          className="w-full rounded-2xl border border-line bg-surface-2 p-4 text-[15px] text-fg"
+          className={`${glassInput} min-h-28 rounded-2xl`}
         />
       </div>
 
       <div className="flex items-center gap-3">
         <input ref={fileInput} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
-        <button type="button" onClick={() => fileInput.current?.click()} aria-label="Add photo or video" className="grid h-12 w-12 place-items-center rounded-full bg-surface-2">
+        <button type="button" onClick={() => fileInput.current?.click()} aria-label="Add photo or video" className="grid h-12 w-12 place-items-center rounded-full bg-[color-mix(in_srgb,var(--text)_10%,transparent)]">
           <ImagePlus size={22} />
         </button>
         {recording ? (
@@ -163,7 +173,7 @@ export function FeedbackForm({
             <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
           </button>
         ) : (
-          <button type="button" onClick={startRecording} aria-label="Record a voice note" className="grid h-12 w-12 place-items-center rounded-full bg-surface-2">
+          <button type="button" onClick={startRecording} aria-label="Record a voice note" className="grid h-12 w-12 place-items-center rounded-full bg-[color-mix(in_srgb,var(--text)_10%,transparent)]">
             <Mic size={22} />
           </button>
         )}
@@ -189,15 +199,16 @@ export function FeedbackForm({
       )}
 
       {kind === "complaint" && (
-        <div className="space-y-3 rounded-2xl border border-line p-4">
-          <p className="text-sm text-muted">Want the management to get back to you? (optional)</p>
+        <div className={`${glassCard} space-y-3`}>
+          <p className="text-sm font-medium">Want the management to get back to you?</p>
+          <p className="-mt-2 text-xs text-muted">Optional. Only the management sees this.</p>
           <div>
-            <label htmlFor="fb-name" className="mb-1 block text-sm">Name</label>
-            <input id="fb-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className="h-12 w-full rounded-xl border border-line bg-surface-2 px-4 text-fg" />
+            <label htmlFor="fb-name" className="mb-1.5 block text-sm text-muted">Name</label>
+            <input id="fb-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={80} className={glassInput} />
           </div>
           <div>
-            <label htmlFor="fb-phone" className="mb-1 block text-sm">Phone</label>
-            <input id="fb-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="98765 43210" className="h-12 w-full rounded-xl border border-line bg-surface-2 px-4 text-fg" />
+            <label htmlFor="fb-phone" className="mb-1.5 block text-sm text-muted">Phone</label>
+            <input id="fb-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="98765 43210" maxLength={20} className={glassInput} />
           </div>
           <label className="flex min-h-11 items-start gap-3 text-sm">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-5 w-5" />
@@ -211,7 +222,7 @@ export function FeedbackForm({
       <button
         onClick={submit}
         disabled={sending || recording}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 font-semibold text-white disabled:opacity-60"
+        className={pillPrimary}
       >
         {sending && <Loader2 size={18} className="animate-spin" />}
         {sending ? "Sending" : kind === "complaint" ? "Send to management" : "Send suggestion"}
