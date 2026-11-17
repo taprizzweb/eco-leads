@@ -83,6 +83,10 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
+@property --d-a { syntax: "<angle>"; initial-value: 220deg; inherits: false; }
+
+/* In a layer so Tailwind utilities such as `hidden md:flex` still win. */
+@layer components {
 /* =====================================================================
    Owner dashboard: "Sheen" graphite look (adapted from the MIT-licensed
    Sheen Board template). Dark by default, light for daylight.
@@ -136,6 +140,8 @@ body {
   color-scheme: light;
 }
 .dash h1, .dash h2, .dash h3, .dash strong { color: var(--d-text); }
+/* The guest page preview inside My Page keeps its own theme colours. */
+.dash .guest-root :is(h1, h2, h3, strong) { color: inherit; }
 .d-card { border-radius: 10px; background: var(--d-surface); box-shadow: inset 0 0 0 1px var(--d-line); }
 .d-raise { border-radius: 8px; background: var(--d-raise); box-shadow: inset 0 0 0 1px var(--d-line-2); }
 .d-btn {
@@ -150,7 +156,6 @@ body {
   .d-btn-p:hover:not(:disabled) { --d-a: 257deg; }
   .d-btn-s:hover:not(:disabled) { --d-a: 327deg; }
 }
-@property --d-a { syntax: "<angle>"; initial-value: 220deg; inherits: false; }
 .d-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; line-height: 14px; font-weight: 500; padding: 2px 7px; border-radius: 4px; color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--d-chip-bg)); }
 .d-col-h { position: relative; padding-left: 10px; font-weight: 600; color: var(--d-text); }
 .d-col-h::before { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: 2px; border-radius: 2px; background: var(--c); }
@@ -162,3 +167,4 @@ body {
 .d-seg > [aria-current="page"], .d-seg > [aria-pressed="true"] { color: var(--d-text); background: var(--d-bg); box-shadow: inset 0 0 0 1px var(--d-line-2); }
 .d-dots { background: radial-gradient(color-mix(in srgb, var(--d-text) 9%, transparent) 1px, transparent 1.3px) 0 0/27px 27px; }
 @media (prefers-reduced-motion: reduce) { .d-btn { transition: none; } }
+}

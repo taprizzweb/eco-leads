@@ -5,7 +5,7 @@ One product, three faces:
 | Face | Who | Where |
 |---|---|---|
 | Guest page | Customer at the table, opened by NFC tap or QR | `/e/<code>` (e.g. `taprizz.in/e/demo1`) |
-| Owner dashboard | Cafe, salon, gym, hotel, stay owners and staff | _next step_ |
+| Owner dashboard | Cafe, salon, gym, hotel, stay owners and staff | `/dashboard` (Google sign-in + 2-step code) |
 | Admin panel | Taprizz team | _next step_ |
 
 Built from the Taprizz Product Blueprint (Nov 17, 2026).
@@ -25,6 +25,10 @@ npm run dev
 ```
 
 Open http://localhost:3000/e/demo1 in a phone-sized window.
+
+## Testing the dashboard locally
+
+Add `NEXT_PUBLIC_DEV_PASSWORD_LOGIN=true` to `.env.local` to show an email/password form on `/login` for test accounts. Never set it in production.
 
 ## Decisions so far
 
@@ -48,7 +52,7 @@ Open http://localhost:3000/e/demo1 in a phone-sized window.
 - [x] Database and security foundation (tables, RLS, private storage)
 - [x] Guest page: header, socials, offers strip, gallery, keyword strip, action cards, rainbow review card, reviews strip, paused state
 - [x] Complaint and suggestion forms with photo, video and voice notes
-- [ ] Google sign-in + 2FA, owner dashboard (Home, Inbox, My Page, Plan)
+- [x] Google sign-in + 2FA, owner dashboard (Home, Inbox, My Page, Plan) in the Sheen look, tested end to end
 - [ ] Admin panel (clients, package switches, plates and QR, pause and renew)
 - [ ] Share your moment, offer claim codes, membership, Creators corner
 - [ ] Review replies, monthly report, WhatsApp contacts and campaigns

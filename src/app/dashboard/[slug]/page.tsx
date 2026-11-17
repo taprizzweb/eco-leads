@@ -59,6 +59,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
     sb.from("plates").select("code, label").eq("client_id", cid).eq("active", true),
   ]);
 
+  const plateLabel = Object.fromEntries((plates.data ?? []).map((p) => [p.code, p.label ?? p.code]));
   const series = buildSeries((week.data ?? []) as { day: string; taps: number }[]);
   const updated = `Updated ${new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: TZ })}`;
 
@@ -114,7 +115,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[15px]" style={{ color: "var(--d-text)" }}>{f.body}</span>
                         <span className="text-xs" style={{ color: late ? "var(--d-red)" : "var(--d-muted)" }}>
-                          {complaint ? "Complaint" : "Suggestion"}{f.plate_code ? ` · ${f.plate_code}` : ""} · {timeAgo(f.created_at)}
+                          {complaint ? "Complaint" : "Suggestion"}{f.plate_code ? ` · ${plateLabel[f.plate_code] ?? f.plate_code}` : ""} · {timeAgo(f.created_at)}
                         </span>
                       </span>
                       <ChevronRight size={16} style={{ color: "var(--d-muted)" }} />

@@ -91,7 +91,7 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
   };
 
   return (
-    <div style={theme.vars as React.CSSProperties} className="min-h-dvh bg-bg text-fg" data-theme={theme.dark ? "dark" : "light"}>
+    <div style={theme.vars as React.CSSProperties} className="guest-root min-h-dvh bg-bg text-fg" data-theme={theme.dark ? "dark" : "light"}>
       <main className="mx-auto max-w-md pb-10">
         {/* 1. Header */}
         <header className="flex flex-col items-center px-4 pt-10 pb-5 text-center">
