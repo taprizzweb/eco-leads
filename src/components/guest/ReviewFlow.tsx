@@ -76,7 +76,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/review-draft", {
+      const send = () => fetch("/api/review-draft", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -84,6 +84,9 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
           answers: questions.map((x) => ({ id: x.id, values: a[x.id] ?? [] })),
         }),
       });
+      let res = await send();
+      // A busy writer is retried once on its own, so the guest rarely sees a hiccup.
+      if (res.status === 503) { await new Promise((r) => setTimeout(r, 2500)); res = await send(); }
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || "We could not write the review right now.");
       setDraft(j.draft);

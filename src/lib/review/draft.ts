@@ -93,7 +93,7 @@ function replyPrompt(a: ReplyInput): string {
 
 /* ------------------------------------------------------------------ providers */
 
-type CallOpts = { max?: number; temp?: number };
+type CallOpts = { max?: number; temp?: number; model?: string };
 type TextCaller = (prompt: string, o?: CallOpts) => Promise<string>;
 
 const callOpenAI: TextCaller = async (prompt, o) => {
@@ -103,7 +103,7 @@ const callOpenAI: TextCaller = async (prompt, o) => {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
-      model: process.env.REVIEW_AI_MODEL || "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: o?.max ?? 200, temperature: o?.temp ?? 0.8,
+      model: o?.model || process.env.REVIEW_AI_MODEL || "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: o?.max ?? 200, temperature: o?.temp ?? 0.8,
       // Set REVIEW_AI_NO_THINKING=1 for hybrid reasoning models on OpenRouter, so they answer directly instead of spending the budget thinking.
       ...(process.env.REVIEW_AI_NO_THINKING === "1" ? { reasoning: { enabled: false } } : {}),
     }),
@@ -113,7 +113,7 @@ const callOpenAI: TextCaller = async (prompt, o) => {
 };
 
 const callGemini: TextCaller = async (prompt, o) => {
-  const model = process.env.REVIEW_AI_MODEL || "gemini-2.0-flash";
+  const model = o?.model || process.env.REVIEW_AI_MODEL || "gemini-2.0-flash";
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
@@ -131,7 +131,7 @@ const callAnthropic: TextCaller = async (prompt, o) => {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "claude-haiku-5-5", max_tokens: o?.max ?? 220, temperature: Math.min(1, o?.temp ?? 0.8), messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: o?.model || process.env.REVIEW_AI_MODEL || "claude-haiku-5-5", max_tokens: o?.max ?? 220, temperature: Math.min(1, o?.temp ?? 0.8), messages: [{ role: "user", content: prompt }] }),
   });
   if (!res.ok) throw new Error(`anthropic ${res.status}`);
   return (await res.json()).content?.[0]?.text ?? "";
@@ -161,18 +161,42 @@ const clean = (t: string, max: number) => t.trim().replace(/^["'“”]+|["'“�
 const withTimeout = <T,>(p: Promise<T>, ms = 8000) =>
   Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 
+/** Models to try, in order: REVIEW_AI_MODEL first, then REVIEW_AI_FALLBACK_MODELS (comma separated). */
+const modelChain = (): (string | undefined)[] => {
+  const extra = (process.env.REVIEW_AI_FALLBACK_MODELS ?? "").split(",").map((m) => m.trim()).filter(Boolean);
+  return [undefined, ...extra];
+};
+const retryable = (e: unknown) => /\b(429|408|500|502|503|504)\b|timeout|fetch failed/i.test(String((e as Error)?.message ?? e));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export let lastProviderError = "";
+
 async function run(task: "review_draft" | "review_reply", payload: Record<string, unknown>, prompt: string, max: number, opts?: CallOpts): Promise<{ text: string; provider: string } | null> {
   const name = (process.env.REVIEW_AI_PROVIDER || "template").toLowerCase();
   try {
     if (name === "custom" && process.env.REVIEW_AI_URL) {
-      const t = clean(await withTimeout(callCustom(task, payload)), max);
+      const t = clean(await withTimeout(callCustom(task, payload), 12000), max);
       if (t) return { text: t, provider: "custom" };
     } else if (GENERAL[name] && process.env[GENERAL[name].key]) {
-      const t = clean(await withTimeout(GENERAL[name].call(prompt, opts), 15000), max);
-      if (t) return { text: t, provider: name };
+      // A busy or rate-limited model (typical on free plans) is retried once after a short pause, then the next model is tried.
+      for (const model of modelChain()) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const t = clean(await withTimeout(GENERAL[name].call(prompt, { ...opts, model }), 12000), max);
+            if (t) return { text: t, provider: name };
+            break;
+          } catch (e) {
+            lastProviderError = String((e as Error)?.message ?? e).slice(0, 160);
+            console.error(`${task}: provider "${name}"${model ? ` model ${model}` : ""} failed (try ${attempt + 1}): ${lastProviderError}`);
+            if (!retryable(e)) break;
+            if (attempt === 0) await sleep(1200);
+          }
+        }
+      }
     }
   } catch (e) {
-    console.error(`${task}: provider "${name}" failed, using the template`, e);
+    lastProviderError = String((e as Error)?.message ?? e).slice(0, 160);
+    console.error(`${task}: provider "${name}" failed`, e);
   }
   return null;
 }
@@ -241,6 +265,8 @@ export async function aiProbe(): Promise<{ ok: boolean; provider: string; ms: nu
 import { LANG_NAME, type Lang } from "./questions";
 import { maxSimilarity, pickShape, shingles, shuffle, type Shape } from "./variation";
 
+export class ReviewBusy extends Error {}
+
 export type StudioConfig = {
   rules: string;
   banned: string[];
@@ -263,7 +289,7 @@ const FEELING: Record<number, string> = {
 };
 const LANG_RULE: Record<Lang, string> = {
   en: "English, the way a regular Indian customer writes on Google: simple words, natural rhythm, no fancy vocabulary.",
-  hi: "Hindi in Devanagari script: everyday spoken Hindi, not bookish or formal. Common English words are fine when people really say them that way.",
+  hi: "Hindi in Devanagari script only: everyday spoken Hindi, not bookish or formal. Write common English words (coffee, staff, service) in Devanagari too (कॉफ़ी, स्टाफ़, सर्विस). Only the business name may stay in English letters.",
   hinglish: "Hinglish: Hindi written in Roman letters mixed with English, exactly how people text each other (for example \"coffee ekdum mast thi, staff bhi kaafi helpful\"). Never Devanagari.",
 };
 
@@ -299,7 +325,8 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
     `HELPFUL AND SEARCHABLE (without sounding like SEO): make the review useful to the next customer by saying what they would actually want to know (what to try, who it suits, what it is good for) using only the facts above. Mention the business name ${shape.seoMentions === 1 ? "once" : "at most twice"}${cfg.category.label ? ` and naturally refer to what kind of place it is (${cfg.category.label})` : ""}.${kw.length ? ` If it fits naturally, you may use one of: ${kw.join(", ")}.` : ""} Never stuff keywords.`,
     ``,
     `SHAPE FOR THIS ONE (follow it so that no two reviews look alike):`,
-    `- Length: about ${shape.words} words. Reviews of 40 words or more should have two or three different sentence lengths.`,
+    `- Write exactly ${shape.lines} sentences (about ${shape.words} words in total), with different sentence lengths.`,
+    `- Begin the review with exactly these words: "${shape.starter}" (then continue naturally).`,
     `- Tone: ${shape.tone}.`,
     `- Structure: ${shape.angle}`,
     `- Opening: ${shape.opener}.`,
@@ -325,7 +352,7 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
 export function looksMachineMade(text: string, shape: Shape, cfg: StudioConfig): boolean {
   const t = text.toLowerCase();
   const words = text.trim().split(/\s+/).length;
-  if (words < Math.max(8, shape.words * 0.45)) return true;
+  if (words < Math.max(8, shape.words * 0.3)) return true;
   if (/^\s*(i am|i'm|my name is|main hoon|mera naam)\b/.test(t)) return true;
   if (/(#\w+|[\u{1F300}-\u{1FAFF}])/u.test(text)) return true;
   return [...GENERIC_BANNED, ...(cfg.banned ?? [])].some((b) => b.trim() && t.includes(b.toLowerCase()));
@@ -350,12 +377,12 @@ export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSig
   let best: WrittenReview | null = null;
   const attempts = opts.tries ?? 4;
   for (let i = 0; i < attempts; i++) {
-    const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, factCount);
+    const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, factCount, r.language, r.rating);
     const prompt = buildReviewPrompt(cfg, r, shape, i > 0);
     const out = await run("review_draft", {
       business: { name: cfg.business.name, type: cfg.category.label ?? null },
       rating: r.rating, language: r.language, name: r.name, answers: r.answers, extra: r.extra, rules: cfg.rules, shape, prompt,
-    }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 1.0 });
+    }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 0.9 + Math.random() * 0.3 });
     if (!out) break; // no provider, or it failed: no point trying again
     const sig = shingles(out.text);
     const bad = looksMachineMade(out.text, shape, cfg);
@@ -366,6 +393,9 @@ export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSig
     if (sim < 0.4) break;
   }
   if (best) return best;
+  // A connected AI that is busy must never be answered with the plain template: ask the guest to try again instead.
+  const st = aiStatus();
+  if (st.provider !== "template" && st.ready) throw new ReviewBusy(lastProviderError);
   const t = templateFromAnswers(r, cfg.business.name);
   return { draft: t, provider: "template", sig: shingles(t), similarity: 0, tries: 0 };
 }

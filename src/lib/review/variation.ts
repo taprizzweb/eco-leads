@@ -59,13 +59,37 @@ const GRAMMAR = [
   "one long sentence followed by one very short one",
 ];
 
-export type Shape = { words: number; tone: string; opener: string; angle: string; grammar: string; mention: number; useName: boolean; seoMentions: number };
+export type Shape = { starter: string; lines: number; words: number; tone: string; opener: string; angle: string; grammar: string; mention: number; useName: boolean; seoMentions: number };
 
-export function pickShape(min: number, max: number, hasName: boolean, factCount: number): Shape {
+// Words a review must begin with. Re-rolled on every request, so the same answers never open the same way twice.
+const STARTERS: Record<string, Record<string, string[]>> = {
+  en: {
+    pos: ["Really glad", "Honestly,", "Such a", "Quick review:", "Loved", "Very happy", "Top notch", "Pleasant", "Can't complain", "Smooth", "Impressed", "Definitely", "What a", "Solid", "Worth it", "Lovely", "Hands down", "Genuinely", "Felt", "All good", "Glad I", "Short version:", "No complaints", "Easily", "Came for", "Turns out", "Nothing fancy, but", "Straight up,"],
+    mix: ["Decent", "Okay overall", "Mixed feelings", "Not bad", "Fair", "Some good", "It was fine", "Mostly", "Reasonable", "Partly", "Alright", "Honest take:", "Good in parts"],
+    neg: ["Not great", "Disappointed", "Expected more", "Sadly", "Unfortunately", "Below expectations", "Could be better", "A bit let down", "Room for improvement", "Wish"],
+  },
+  hinglish: {
+    pos: ["Bahut accha", "Kaafi accha", "Sach mein", "Ekdum", "Mast", "Badhiya", "Dil se", "Seedhi baat,", "Achha laga", "Yahan ka", "Bilkul", "Kya baat", "Zabardast", "Mujhe", "Overall", "Shandaar", "Ek number", "Sukoon", "Seriously,", "Kaafi", "Khush hoon", "Short mein,", "Koi shikayat nahi", "Dost ke saath aaya tha,", "Pehli baar aaya, par"],
+    mix: ["Theek-thaak", "Thik tha", "Kuch cheezein", "Average", "Overall theek", "Thoda", "Mixed", "Chal jayega", "Sahi tha", "Honestly,", "Normal"],
+    neg: ["Utna accha nahi", "Thoda disappoint", "Umeed", "Afsos", "Expected zyada", "Sach kahun", "Kuch khaas nahi", "Mazaa nahi", "Kaash"],
+  },
+  hi: {
+    pos: ["सच में", "काफ़ी अच्छा", "बहुत बढ़िया", "दिल से", "मज़ा आ गया", "सीधी बात,", "अच्छा लगा", "यहाँ का", "बिल्कुल", "क्या बात", "ज़बरदस्त", "मुझे", "कुल मिलाकर", "शानदार", "सुकून", "सच कहूँ तो", "कोई शिकायत नहीं", "छोटा सा रिव्यू,", "दोस्तों के साथ गया था,"],
+    mix: ["ठीक-ठाक", "ठीक था", "कुछ चीज़ें", "औसत", "कुल मिलाकर ठीक", "थोड़ा", "मिला-जुला", "चल जाएगा", "सही था"],
+    neg: ["उतना अच्छा नहीं", "थोड़ा निराश", "उम्मीद", "अफ़सोस", "उम्मीद से कम", "सच कहूँ तो", "कुछ ख़ास नहीं", "काश"],
+  },
+};
+const LINES = [{ v: 2, w: 10 }, { v: 3, w: 24 }, { v: 4, w: 28 }, { v: 5, w: 22 }, { v: 6, w: 16 }];
+const weighted = () => { let t = Math.random() * LINES.reduce((a, b) => a + b.w, 0); for (const l of LINES) { t -= l.w; if (t <= 0) return l.v; } return 4; };
+
+export function pickShape(min: number, max: number, hasName: boolean, factCount: number, lang: string = "en", rating: number = 5): Shape {
   const lo = Math.max(10, Math.min(min, max)), hi = Math.max(lo, max);
   // about one review in ten is very short, as real ones sometimes are
   const words = Math.random() < 0.1 ? Math.round(16 + Math.random() * 12) : Math.round(lo + Math.random() * (hi - lo));
+  const mood = rating >= 4 ? "pos" : rating === 3 ? "mix" : "neg";
   return {
+    starter: pick((STARTERS[lang] ?? STARTERS.en)[mood]),
+    lines: weighted(),
     words,
     tone: pick(TONES),
     opener: pick(OPENERS),

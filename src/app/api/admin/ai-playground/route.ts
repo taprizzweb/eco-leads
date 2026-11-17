@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { writeReview } from "@/lib/review/draft";
+import { ReviewBusy, writeReview } from "@/lib/review/draft";
 import { buildAnswers, cleanName, cleanText, resolveQuestions, toConfig } from "@/lib/review/prepare";
 
 export const maxDuration = 60;
@@ -39,7 +39,11 @@ export async function POST(req: Request) {
   const out: { text: string; provider: string; similarity: number; ms: number; tries: number; words: number }[] = [];
   for (let i = 0; i < b.count; i++) {
     const t0 = Date.now();
-    const r = await writeReview(cfg, { rating: b.rating, language: b.language, name: cleanName(b.name), answers, extra: cleanText(b.extra, 300) }, seen, { tries: 2 });
+    let r;
+    try { r = await writeReview(cfg, { rating: b.rating, language: b.language, name: cleanName(b.name), answers, extra: cleanText(b.extra, 300) }, seen, { tries: 2 }); } catch (e) {
+      if (e instanceof ReviewBusy) return NextResponse.json({ error: `The AI did not answer${e.message ? ` (${e.message})` : ""}. A free model is often rate-limited: try a paid or Gemini model, or add REVIEW_AI_FALLBACK_MODELS.` }, { status: 502 });
+      throw e;
+    }
     seen.push(r.sig);
     out.push({ text: r.draft, provider: r.provider, similarity: Math.round(r.similarity * 100), ms: Date.now() - t0, tries: r.tries, words: r.draft.split(/\s+/).filter(Boolean).length });
   }

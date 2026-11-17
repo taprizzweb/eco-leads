@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { writeReview } from "@/lib/review/draft";
+import { ReviewBusy, writeReview } from "@/lib/review/draft";
 import { buildAnswers, cleanName, cleanText, resolveQuestions, toConfig } from "@/lib/review/prepare";
 import type { GuestPageData } from "@/lib/types";
 
@@ -52,7 +52,11 @@ export async function POST(req: Request) {
     sb.rpc("guest_recent_sigs", { p_client: g.client.id }),
   ]);
   const cfg = toConfig(cfgRaw, g.client.name);
-  const out = await writeReview(cfg, { rating: b.rating, language: b.language, name, answers, extra: cleanText(b.extra, 300) }, (sigs ?? []) as number[][]);
+  let out;
+  try { out = await writeReview(cfg, { rating: b.rating, language: b.language, name, answers, extra: cleanText(b.extra, 300) }, (sigs ?? []) as number[][]); } catch (e) {
+    if (e instanceof ReviewBusy) return NextResponse.json({ error: "Our writer is a little busy. Please try again in a moment." }, { status: 503 });
+    throw e;
+  }
 
   const { data: id } = await sb.rpc("guest_save_review", {
     p_client: g.client.id,
