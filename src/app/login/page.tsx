@@ -21,6 +21,20 @@ function LoginInner() {
   async function google() {
     setBusy(true);
     setError("");
+    // If Google is not switched on in Supabase yet, say so here instead of leaving the guest on a raw error page.
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
+        headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY! },
+      });
+      const settings = await res.json();
+      if (!settings?.external?.google) {
+        setBusy(false);
+        setError("Google sign-in is not switched on yet. Use your email and password for now.");
+        return;
+      }
+    } catch {
+      // If the check itself fails, try Google anyway.
+    }
     const { error } = await supabaseBrowser().auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
