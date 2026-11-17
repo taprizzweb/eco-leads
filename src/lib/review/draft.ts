@@ -102,7 +102,11 @@ const callOpenAI: TextCaller = async (prompt, o) => {
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: o?.max ?? 200, temperature: o?.temp ?? 0.8 }),
+    body: JSON.stringify({
+      model: process.env.REVIEW_AI_MODEL || "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: o?.max ?? 200, temperature: o?.temp ?? 0.8,
+      // Set REVIEW_AI_NO_THINKING=1 for hybrid reasoning models on OpenRouter, so they answer directly instead of spending the budget thinking.
+      ...(process.env.REVIEW_AI_NO_THINKING === "1" ? { reasoning: { enabled: false } } : {}),
+    }),
   });
   if (!res.ok) throw new Error(`openai ${res.status}`);
   return (await res.json()).choices?.[0]?.message?.content ?? "";
