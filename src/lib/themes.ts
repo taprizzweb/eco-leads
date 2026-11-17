@@ -1,7 +1,7 @@
 // Guest page themes. Each client picks one in My Page; more can be added here.
 // Every theme defines the same CSS variables so components never hard-code colours.
 
-export type ThemeId = "navy" | "midnight" | "pastel" | "sand" | "forest";
+export type ThemeId = "graphite" | "navy" | "midnight" | "pastel" | "sand" | "forest";
 
 type Theme = {
   label: string;
@@ -10,6 +10,24 @@ type Theme = {
 };
 
 export const THEMES: Record<ThemeId, Theme> = {
+  // Default: the same graphite as the owner dashboard (Sheen look).
+  graphite: {
+    label: "Graphite",
+    dark: true,
+    vars: {
+      "--bg": "#0f0f10",
+      "--top": "#232325",
+      "--surface": "#1a1a1b",
+      "--surface-2": "#222224",
+      "--text": "#f2f2f2",
+      "--muted": "#9b9b9f",
+      "--border": "rgba(255,255,255,0.07)",
+      "--strip": "#f2f2f2",
+      "--strip-text": "#111111",
+      "--pill": "#202022",
+      "--pill-text": "#d9d9dc",
+    },
+  },
   navy: {
     label: "Deep Navy",
     dark: true,
@@ -93,7 +111,7 @@ export const THEMES: Record<ThemeId, Theme> = {
 };
 
 export function getTheme(id: string | null | undefined): Theme {
-  return THEMES[(id as ThemeId) ?? "navy"] ?? THEMES.navy;
+  return THEMES[(id as ThemeId) ?? "graphite"] ?? THEMES.graphite;
 }
 
 // Each action card keeps its own light tint so the stack is easy to tell apart.

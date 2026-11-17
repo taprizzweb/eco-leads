@@ -3,16 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Mic, Square, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-
-// Glass styling from the HextaUI sign-in card, tinted from the guest page theme so it reads on light and dark themes.
-const glassInput =
-  "w-full rounded-xl px-5 py-3 text-[15px] text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--text)_35%,transparent)] bg-[color-mix(in_srgb,var(--text)_8%,transparent)]";
-const glassCard =
-  "rounded-3xl p-5 shadow-xl backdrop-blur-sm bg-gradient-to-r from-[color-mix(in_srgb,var(--text)_7%,transparent)] to-transparent";
-const pillPrimary =
-  "flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-fg px-5 py-3 font-semibold text-bg shadow transition hover:opacity-90 disabled:opacity-60";
-const pillSoft =
-  "min-h-12 w-full rounded-full px-5 py-3 font-semibold shadow transition bg-[color-mix(in_srgb,var(--text)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--text)_16%,transparent)]";
+import { glassCard, glassInput, pillPrimary, pillSoft } from "./ui";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_FILES = 3;

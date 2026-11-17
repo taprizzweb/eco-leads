@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Star, Copy, Check, Loader2 } from "lucide-react";
 import type { GuestPageData } from "@/lib/types";
+import { chip, glassInput, pillPrimary } from "./ui";
 
 const COMPANY = [
   { id: "friends", label: "Friends" },
@@ -81,10 +82,7 @@ export function ReviewFlow({
     if (googleUrl) window.open(googleUrl, "_blank", "noopener");
   }
 
-  const pill = (active: boolean) =>
-    `min-h-11 rounded-full border px-4 text-sm font-medium transition-colors ${
-      active ? "border-transparent bg-blue-500 text-white" : "border-line bg-surface-2 text-fg"
-    }`;
+  const pill = chip;
 
   return (
     <div className="space-y-5">
@@ -102,9 +100,9 @@ export function ReviewFlow({
                 setRating(n);
                 if (step === "stars") setStep("chips");
               }}
-              className="grid h-14 w-14 place-items-center rounded-2xl bg-surface-2"
+              className="grid h-14 w-14 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--text)_7%,transparent)] transition active:scale-90"
             >
-              <Star size={30} className={n <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted"} />
+              <Star size={30} className={`transition-transform duration-200 ${n <= rating ? "scale-110 fill-amber-400 text-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.45)]" : "text-muted"}`} />
             </button>
           ))}
         </div>
@@ -147,7 +145,7 @@ export function ReviewFlow({
             <button
               onClick={makeDraft}
               disabled={loading}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 font-semibold text-white disabled:opacity-70"
+              className={pillPrimary}
             >
               {loading && <Loader2 size={18} className="animate-spin" />}
               {loading ? "Writing your draft" : "Write my review"}
@@ -168,12 +166,12 @@ export function ReviewFlow({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={5}
-            className="w-full rounded-2xl border border-line bg-surface-2 p-4 text-[15px] leading-relaxed text-fg"
+            className={`${glassInput} rounded-2xl leading-relaxed`}
           />
           <button
             onClick={copyAndOpen}
             disabled={!googleUrl}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 font-semibold text-white disabled:opacity-60"
+            className={pillPrimary}
           >
             {copied ? <Check size={18} /> : <Copy size={18} />}
             Copy review and open Google
