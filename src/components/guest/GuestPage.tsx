@@ -277,6 +277,35 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
               })}
             </section>
 
+            {/* Extra link buttons the owner added (name and URL) */}
+            {!!data.links?.length && (
+              <section aria-label="More from us" className="mt-3.5 space-y-3.5 px-4">
+                {data.links.map((l, i) => {
+                  const host = (() => { try { return l.url.startsWith("http") ? new URL(l.url).hostname.replace(/^www\./, "") : l.url.replace(/^(tel|mailto):/, ""); } catch { return ""; } })();
+                  return (
+                    <motion.a
+                      key={l.url + i}
+                      {...rise(5 + order.length + i)}
+                      whileTap={reduce ? undefined : { scale: 0.98 }}
+                      href={l.url}
+                      target={l.url.startsWith("http") ? "_blank" : undefined}
+                      rel="noopener"
+                      className="block w-full rounded-[26px] p-1.5 text-left ring-1 ring-line"
+                      style={{ background: "linear-gradient(180deg, color-mix(in srgb, var(--text) 5%, var(--surface)), var(--surface))", boxShadow: "0 18px 40px -24px rgba(0,0,0,0.7), inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent)" }}
+                    >
+                      <span className="flex min-h-[88px] items-center gap-4 rounded-[21px] py-4 pr-4 pl-5" style={{ background: "radial-gradient(90% 130% at 100% 50%, rgba(148,163,184,0.18), transparent 62%), color-mix(in srgb, var(--text) 3%, var(--bg))" }}>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[18px] leading-tight font-semibold tracking-[-0.02em]">{l.label}</span>
+                          {host && <span className="mt-1 block truncate text-[13.5px] text-muted">{host}</span>}
+                        </span>
+                        <AnimatedIcon name="link" tint="148, 163, 184" size={56} play={i} />
+                      </span>
+                    </motion.a>
+                  );
+                })}
+              </section>
+            )}
+
             {/* 8. Google reviews strip */}
             {data.reviews.length > 0 && (
               <section className="mt-9">

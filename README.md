@@ -63,6 +63,8 @@ Open http://localhost:3000/e/demo1 in a phone-sized window.
 - [x] Admin panel: overview, clients, add client, package switches, plates and QR, alerts, billing, packages, audit log, team (templates editor still to do)
 - [x] Creators corner: shoot brief, collab requests with approval, visit codes, monthly cap, post submissions, owner Content screen
 - [ ] Share your moment, offer claim codes, membership
+- [x] Extra link buttons: owners add a name and a URL on My Page; the admin sets how many each client may add (switch `custom_links`, 0 is off)
+- [x] Admin Integrations page: shows how the review writer is connected and sends a test review
 - [x] Reviews tab: paste a Google review, get a reply to copy; guests' drafts and answers visible; your own trained AI plugs in (`docs/REVIEW_AI.md`)
 - [ ] One-click and automatic review replies (waiting for Google Business Profile API approval), monthly report, WhatsApp contacts and campaigns
 - [ ] CAPTCHA on guest forms, 90-day deletion of complaint media, security review

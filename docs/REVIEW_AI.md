@@ -14,6 +14,12 @@ Your model keeps its own rules and training. We only send the facts and read the
 Then redeploy. If the URL is slow (over 8 seconds), fails, or returns nothing, the guest or owner still gets a built-in
 draft, so a page never breaks. The secret lives only in Vercel, never in the code or in chat.
 
+## Easiest way to check it
+
+In the admin panel open **Integrations** and press **Send a test review**. It shows whether your model answered,
+how long it took, the text it sent back, and a plain hint if something is wrong (wrong secret, wrong address, an error
+inside your project, or an empty answer).
+
 ## What we send (POST, JSON)
 
 Review draft, from a guest's own answers:

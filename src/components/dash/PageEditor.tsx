@@ -14,6 +14,7 @@ import { useToast } from "./Toast";
 type Photo = { id: string; url: string; label: string | null; caption: string | null; sort: number };
 type Offer = { id: string; title: string; details: string | null; starts_at: string | null; ends_at: string | null; claimable: boolean };
 type Ev = { id: string; title: string; details: string | null; starts_at: string };
+type Lnk = { id: string; label: string; url: string; sort: number };
 
 const SOCIALS = [
   ["instagram", "Instagram link"],
@@ -51,6 +52,7 @@ export function PageEditor({
   initialGallery,
   initialOffers,
   initialEvents,
+  initialLinks,
 }: {
   client: DashClient;
   features: Record<string, unknown>;
@@ -58,6 +60,7 @@ export function PageEditor({
   initialGallery: Photo[];
   initialOffers: Offer[];
   initialEvents: Ev[];
+  initialLinks: Lnk[];
 }) {
   const toast = useToast();
   const router = useRouter();
@@ -79,6 +82,9 @@ export function PageEditor({
   const [gallery, setGallery] = useState(initialGallery);
   const [offers, setOffers] = useState(initialOffers);
   const [events, setEvents] = useState(initialEvents);
+  const [links, setLinks] = useState(initialLinks);
+  const [linkDraft, setLinkDraft] = useState({ label: "", url: "" });
+  const linkLimit = Number(features.custom_links ?? 0);
   const [uploading, setUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [offerDraft, setOfferDraft] = useState({ title: "", details: "", starts_at: "", ends_at: "" });
@@ -210,6 +216,44 @@ export function PageEditor({
     toast("Event removed");
   }
 
+  // Extra link buttons: the admin sets how many are allowed; the database enforces it too.
+  const normUrl = (v: string) => {
+    const t = v.trim();
+    if (/^(https?:\/\/|tel:|mailto:)/i.test(t)) return t;
+    if (/^\+?[\d\s-]{8,15}$/.test(t)) return "tel:" + t.replace(/[\s-]/g, "");
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return "mailto:" + t;
+    return /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(t) ? "https://" + t : "";
+  };
+  async function addLink() {
+    const label = linkDraft.label.trim();
+    const url = normUrl(linkDraft.url);
+    if (!label) return setErrors((e) => ({ ...e, link: "Give the button a name, like Book a table." }));
+    if (!url) return setErrors((e) => ({ ...e, link: "That link does not look right. Use a web address like https://example.com, or a phone number." }));
+    if (links.length >= linkLimit) return setErrors((e) => ({ ...e, link: `You can add ${linkLimit} link${linkLimit === 1 ? "" : "s"}. Remove one to add another.` }));
+    const sort = (links.at(-1)?.sort ?? 0) + 1;
+    const { data, error } = await sb.from("client_links").insert({ client_id: client.id, label, url, sort }).select("id, label, url, sort").single();
+    if (error || !data) return toast(/limit|switched on/i.test(error?.message ?? "") ? "Extra links are not switched on for you, or the limit is used up." : "The link did not save. Please try again.", true);
+    setLinks((l) => [...l, data]);
+    setLinkDraft({ label: "", url: "" });
+    setErrors((e) => ({ ...e, link: "" }));
+    toast("Button added. It is live on your page.");
+  }
+  async function removeLink(id: string) {
+    const { error } = await sb.from("client_links").delete().eq("id", id);
+    if (error) return toast("The button was not removed. Please try again.", true);
+    setLinks((l) => l.filter((x) => x.id !== id));
+    toast("Button removed");
+  }
+  async function moveLink(i: number, d: -1 | 1) {
+    const j = i + d;
+    if (j < 0 || j >= links.length) return;
+    const a = links[i], b = links[j];
+    const next = links.map((x, k) => (k === i ? { ...x, sort: b.sort } : k === j ? { ...x, sort: a.sort } : x)).sort((x, y) => x.sort - y.sort);
+    setLinks(next);
+    const r = await Promise.all([sb.from("client_links").update({ sort: b.sort }).eq("id", a.id), sb.from("client_links").update({ sort: a.sort }).eq("id", b.id)]);
+    if (r.some((x) => x.error)) toast("The new order did not save.", true);
+  }
+
   // The preview runs the real guest page component on the unsaved values.
   const preview: GuestPageData = useMemo(() => ({
     live: client.status === "active",
@@ -225,7 +269,8 @@ export function PageEditor({
     offers: offers.filter((o) => (!o.starts_at || o.starts_at <= today) && (!o.ends_at || o.ends_at >= today)),
     events: events.filter((e) => new Date(e.starts_at).getTime() > Date.now() - 6 * 36e5),
     reviews: [],
-  }), [f, gallery, offers, events, features, client, template, photoLimit, today]);
+    links: links.slice(0, linkLimit).map((l) => ({ label: l.label, url: l.url })),
+  }), [f, gallery, offers, events, links, linkLimit, features, client, template, photoLimit, today]);
 
   const phoneFrame = (
     <div className="mx-auto w-[340px] overflow-hidden rounded-[36px] p-2" style={{ background: "linear-gradient(223deg,rgba(207,207,207,.25),rgba(60,60,60,.25))", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }}>
@@ -370,6 +415,38 @@ export function PageEditor({
               <button className="d-btn d-btn-s sm:col-span-2"><Plus size={16} /> Add offer</button>
             </form>
           </Section>
+
+          {linkLimit > 0 ? (
+            <Section id="links" title="Extra links" sub={`Add a button with a name and a link, for example Book a table or Order on Swiggy. ${links.length} of ${linkLimit} used.`}>
+              <ul className="space-y-2">
+                {links.map((l, i) => (
+                  <li key={l.id} className="d-raise flex items-center gap-2 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium" style={{ color: "var(--d-text)" }}>{l.label}</p>
+                      <p className="truncate text-xs" style={{ color: "var(--d-muted)" }}>{l.url}</p>
+                    </div>
+                    <button className="d-btn d-btn-s !min-h-10 !px-3" disabled={i === 0} aria-label={`Move ${l.label} up`} onClick={() => moveLink(i, -1)}>↑</button>
+                    <button className="d-btn d-btn-s !min-h-10 !px-3" disabled={i === links.length - 1} aria-label={`Move ${l.label} down`} onClick={() => moveLink(i, 1)}>↓</button>
+                    <button onClick={() => removeLink(l.id)} aria-label={`Remove ${l.label}`} className="grid h-11 w-11 place-items-center" style={{ color: "var(--d-muted)" }}><Trash2 size={17} /></button>
+                  </li>
+                ))}
+              </ul>
+              {links.length < linkLimit ? (
+                <form className="d-raise grid gap-3 p-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); addLink(); }} noValidate>
+                  <Field label="Button name"><input className="d-input" value={linkDraft.label} maxLength={40} onChange={(e) => { setLinkDraft({ ...linkDraft, label: e.target.value }); setErrors((x) => ({ ...x, link: "" })); }} placeholder="Book a table" /></Field>
+                  <Field label="Link"><input className="d-input" inputMode="url" value={linkDraft.url} onChange={(e) => { setLinkDraft({ ...linkDraft, url: e.target.value }); setErrors((x) => ({ ...x, link: "" })); }} placeholder="https://example.com/book" /></Field>
+                  {errors.link && <p role="alert" className="text-sm sm:col-span-2" style={{ color: "var(--d-red)" }}>{errors.link}</p>}
+                  <button className="d-btn d-btn-s sm:col-span-2"><Plus size={16} /> Add button</button>
+                </form>
+              ) : (
+                <p className="text-sm" style={{ color: "var(--d-muted)" }}>You have used all {linkLimit}. Remove one to add another, or ask Taprizz for more.</p>
+              )}
+            </Section>
+          ) : (
+            <div className="d-card flex items-center gap-3 p-5 text-sm" style={{ color: "var(--d-muted)" }}>
+              <Lock size={16} /> Want extra link buttons, like Book a table? Ask Taprizz to switch them on.
+            </div>
+          )}
 
           {features.events ? (
             <Section title="Events" sub="Upcoming nights, workshops and gatherings.">

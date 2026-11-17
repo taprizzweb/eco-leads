@@ -12,6 +12,7 @@ export type Features = {
   events?: boolean;
   membership?: boolean;
   creators?: boolean;
+  custom_links?: number;
 };
 
 export type CardKey =
@@ -53,4 +54,5 @@ export type GuestPageData = {
   offers: { id: string; title: string; details: string | null; starts_at: string | null; ends_at: string | null; claimable: boolean }[];
   events: { title: string; details: string | null; starts_at: string }[];
   reviews: { author: string; rating: number; body: string | null }[];
+  links?: { label: string; url: string }[];
 };

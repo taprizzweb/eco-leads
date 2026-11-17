@@ -50,6 +50,7 @@ export const FEATURE_DEFS: FeatureDef[] = [
       { value: "capped", label: "Included up to a cap" },
     ],
   },
+  { key: "custom_links", label: "Extra link buttons", hint: "how many the owner may add, 0 is off", type: "number", min: 0, max: 20 },
   { key: "content_help", label: "Content help", hint: "editing, posting, calendar", type: "bool" },
 ];
 

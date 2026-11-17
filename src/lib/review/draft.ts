@@ -182,3 +182,45 @@ export async function writeReply(a: ReplyInput): Promise<ReplyResult> {
   }, replyPrompt(a), 700);
   return r ? { reply: r.text, provider: r.provider } : { reply: templateReply(a), provider: "template" };
 }
+
+/* ------------------------------------------------------------------ admin: is the writer connected? */
+
+export function aiStatus() {
+  const provider = (process.env.REVIEW_AI_PROVIDER || "template").toLowerCase();
+  let host: string | null = null;
+  try { host = process.env.REVIEW_AI_URL ? new URL(process.env.REVIEW_AI_URL).host : null; } catch { host = "not a valid address"; }
+  const general = GENERAL[provider];
+  return {
+    provider,
+    host,
+    hasSecret: !!process.env.REVIEW_AI_SECRET,
+    keySet: general ? !!process.env[general.key] : null,
+    ready: provider === "template" || (provider === "custom" && !!host && host !== "not a valid address") || (!!general && !!process.env[general.key]),
+  };
+}
+
+/** Sends one sample review to the configured writer and reports what happened, without hiding errors behind the fallback. */
+export async function aiProbe(): Promise<{ ok: boolean; provider: string; ms: number; text?: string; error?: string; hint?: string }> {
+  const st = aiStatus();
+  const sample: ReplyInput = { businessName: "Test Cafe", businessType: "cafe", author: "Test Guest", rating: 2, text: "Waited 20 minutes for a cold coffee." };
+  const t0 = Date.now();
+  try {
+    let text = "";
+    if (st.provider === "custom") text = await withTimeout(callCustom("review_reply", { business: { name: sample.businessName, type: sample.businessType }, review: { author: sample.author, rating: sample.rating, text: sample.text } }), 10000);
+    else if (GENERAL[st.provider] && process.env[GENERAL[st.provider].key]) text = await withTimeout(GENERAL[st.provider].call(replyPrompt(sample)), 10000);
+    else return { ok: true, provider: "template", ms: Date.now() - t0, text: templateReply(sample), hint: st.provider === "template" ? "The built-in writer is active. Set REVIEW_AI_PROVIDER to custom to use your own model." : "The provider is chosen but its key or address is missing, so the built-in writer is used." };
+    text = clean(text, 700);
+    if (!text) return { ok: false, provider: st.provider, ms: Date.now() - t0, error: "Connected, but the answer was empty.", hint: 'Your endpoint must reply with JSON like {"text": "the reply"}.' };
+    return { ok: true, provider: st.provider, ms: Date.now() - t0, text };
+  } catch (e) {
+    const m = (e as Error).message || "failed";
+    const hint =
+      /custom 401|custom 403/.test(m) ? "Your project refused us. Check that the secret matches on both sides, and that Vercel Authentication is off for that project's production site." :
+      /custom 404/.test(m) ? "That address was not found. Check the path at the end of REVIEW_AI_URL." :
+      /custom 5\d\d/.test(m) ? "Your project reached an error while writing the reply. Check its logs." :
+      /timeout/.test(m) ? "No answer within 10 seconds. A slow model will fall back to the built-in writer for guests." :
+      /JSON|Unexpected/.test(m) ? 'Your endpoint did not return JSON. It must reply with {"text": "..."}.' :
+      /fetch failed|ENOTFOUND|ECONNREFUSED/.test(m) ? "We could not reach that address. Check the web address is spelled right and the project is deployed." : undefined;
+    return { ok: false, provider: st.provider, ms: Date.now() - t0, error: m, hint };
+  }
+}

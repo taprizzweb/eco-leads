@@ -16,11 +16,12 @@ import {
   CalendarCheck,
   Crown,
   Clapperboard,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import type { CardKey } from "@/lib/types";
 
-const ICONS: Record<CardKey, LucideIcon> = {
+const ICONS: Record<CardKey | "link", LucideIcon> = {
   menu: BookOpen,
   review: Star,
   complaint: MessageSquareMore,
@@ -30,10 +31,11 @@ const ICONS: Record<CardKey, LucideIcon> = {
   events: CalendarCheck,
   membership: Crown,
   creators: Clapperboard,
+  link: Link2,
 };
 
 // Exact 21st.dev icon components go here, e.g. { review: StarIcon21st }. They replace the defaults.
-const OVERRIDES: Partial<Record<CardKey, React.ComponentType<{ size?: number; className?: string }>>> = {};
+const OVERRIDES: Partial<Record<CardKey | "link", React.ComponentType<{ size?: number; className?: string }>>> = {};
 
 /** Re-run the draw animation whenever `play` changes. */
 function useDraw(play: number) {
@@ -57,7 +59,7 @@ function useDraw(play: number) {
   return ref;
 }
 
-export function AnimatedIcon({ name, tint, size = 64, play = 0 }: { name: CardKey; tint: string; size?: number; play?: number }) {
+export function AnimatedIcon({ name, tint, size = 64, play = 0 }: { name: CardKey | "link"; tint: string; size?: number; play?: number }) {
   const Override = OVERRIDES[name];
   const Icon = ICONS[name];
   const [hover, setHover] = useState(0);
