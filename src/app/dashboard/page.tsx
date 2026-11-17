@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
 export default async function DashboardIndex() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
+  // First sign-in after an invite: link this email to the business or team it was invited to.
+  await sb.rpc("claim_invites");
+  // Taprizz team members belong in the admin panel, not in one client's dashboard.
+  const { data: teamRole } = await sb.rpc("my_team_role");
+  if (teamRole) redirect("/admin");
   const { data: clients } = await sb.from("clients").select("slug, name").order("name");
   if (clients?.length === 1) redirect(`/dashboard/${clients[0].slug}`);
 

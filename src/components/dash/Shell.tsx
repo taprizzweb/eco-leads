@@ -14,12 +14,14 @@ export function Shell({
   clientName,
   logoUrl,
   openCount,
+  isTeam = false,
   children,
 }: {
   slug: string;
   clientName: string;
   logoUrl: string | null;
   openCount: number;
+  isTeam?: boolean;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -77,6 +79,11 @@ export function Shell({
             </nav>
 
             <div className="ml-auto flex items-center gap-2 md:ml-0">
+              {isTeam && (
+                <Link href="/admin" className="flex h-11 items-center rounded-xl px-3 text-sm font-semibold" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
+                  Admin
+                </Link>
+              )}
               <a href={`/e/${slug}`} target="_blank" rel="noopener" title="Open guest page" aria-label="Open guest page" className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
                 <ExternalLink size={17} />
               </a>

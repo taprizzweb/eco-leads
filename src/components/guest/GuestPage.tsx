@@ -153,6 +153,12 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
         {/* 10. Paused: plate never looks dead, guest can still review */}
         {!data.live ? (
           <section className="px-4">
+            {!client.google_review_url && (
+              <div className="rounded-[24px] px-5 py-8 text-center ring-1 ring-line" style={{ background: "var(--surface)" }}>
+                <p className="text-lg font-semibold">We will be right back</p>
+                <p className="mt-1 text-[13.5px] text-muted">This page is taking a short break. Please ask the staff if you need anything.</p>
+              </div>
+            )}
             {client.google_review_url && (
               <a href={client.google_review_url} target="_blank" rel="noopener" className="sweep-border block">
                 <span className="flex items-center justify-between rounded-[24.5px] px-5 py-6" style={{ background: "var(--surface)" }}>
