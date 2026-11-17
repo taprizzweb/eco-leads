@@ -31,6 +31,11 @@ Open http://localhost:3000/e/demo1 in a phone-sized window.
 - Everyone (owners, their staff, the Taprizz admin and employees) signs in on `/login` with Google or email + password.
 - A second step is needed only on a new or untrusted device: a WhatsApp code (setup: `docs/WHATSAPP_CODES.md`), or the authenticator app as backup.
 - "Trust this device for 30 days" skips the code on that device. Dashboard data stays locked in the database until the session is verified.
+- **The second step is currently switched OFF** (`app_settings.require_second_step = false`), so a password is enough. Turn it back on in the Supabase SQL Editor before real clients start using the dashboard:
+
+  ```sql
+  update app_settings set value = 'true'::jsonb, updated_at = now() where key = 'require_second_step';
+  ```
 
 ## Decisions so far
 
