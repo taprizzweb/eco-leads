@@ -1,20 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Trash2, AlertTriangle, Search } from "lucide-react";
+import Link from "next/link";
+import { ClientReviewSetup } from "./ClientReviewSetup";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { LANGS, cleanQuestions, defaultQuestions, resolveQuestions, type Lang, type Question } from "@/lib/review/questions";
 import { useToast } from "@/components/dash/Toast";
 import { AiTest } from "./AiTest";
 import { Pill } from "./ui";
-import { QuestionsEditor } from "./QuestionsEditor";
+import { QuestionsEditor, TranslateBar } from "./QuestionsEditor";
 
 type Example = { language?: string; rating?: number; text: string };
 type Settings = { rules?: string; banned?: string[]; length_min?: number; length_max?: number; examples?: Example[] };
 type Cat = { id: string; label: string; keywords: string[] | null; notes: string | null; questions: unknown; sort?: number };
-type Cl = { id: string; name: string; business_type: string | null; review_setup: { questions?: unknown; max_questions?: number } | null };
+type Cl = { id: string; name: string; slug?: string | null; business_type: string | null; review_setup: ClientSetup | null; logo_url?: string | null; theme?: string | null };
+type ClientSetup = NonNullable<Parameters<typeof ClientReviewSetup>[0]["setup"]>;
 type Status = { provider: string; host: string | null; hasSecret: boolean; keySet: boolean | null; ready: boolean };
-type Tab = "connection" | "rules" | "categories" | "playground";
+type Tab = "businesses" | "connection" | "rules" | "categories" | "playground";
 
 const SAMPLE_RULES = `Write like a real person typing on their phone, not like a brochure.
 Keep sentences short. It is fine to be a little informal.
@@ -23,8 +26,8 @@ Do not repeat the business name more than once.
 Never exaggerate. A 3-star review should sound lukewarm, not angry.`;
 
 export function StudioAdmin({ initial, categories, clients, status }: { initial: Settings; categories: Cat[]; clients: Cl[]; status: Status }) {
-  const [tab, setTab] = useState<Tab>("connection");
-  const tabs: { id: Tab; label: string }[] = [{ id: "connection", label: "Connection" }, { id: "rules", label: "Writing rules" }, { id: "categories", label: "Categories and questions" }, { id: "playground", label: "Playground" }];
+  const [tab, setTab] = useState<Tab>("businesses");
+  const tabs: { id: Tab; label: string }[] = [{ id: "businesses", label: "Businesses" }, { id: "connection", label: "Connection" }, { id: "rules", label: "Writing rules" }, { id: "categories", label: "Categories and questions" }, { id: "playground", label: "Playground" }];
   const aiOn = status.provider !== "template" && status.ready;
   return (
     <div className="space-y-4">
@@ -37,6 +40,7 @@ export function StudioAdmin({ initial, categories, clients, status }: { initial:
       <div className="d-seg w-fit max-w-full overflow-x-auto" role="tablist" aria-label="AI Review Studio">
         {tabs.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}
       </div>
+      {tab === "businesses" && <Businesses clients={clients} categories={categories} />}
       {tab === "connection" && <Connection status={status} />}
       {tab === "rules" && <Rules initial={initial} />}
       {tab === "categories" && <Categories initial={categories} />}
@@ -198,7 +202,7 @@ function Categories({ initial }: { initial: Cat[] }) {
         <textarea className="d-input mt-1.5" rows={3} maxLength={600} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} placeholder="Taste, how quickly food arrives, the vibe for working or meeting friends, cleanliness." /></label>
       <div>
         <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={f.custom} onChange={(e) => setF({ ...f, custom: e.target.checked, qs: e.target.checked && f.qs.length === 0 ? defaultQuestions(cur?.id) : f.qs })} /> Edit this category&apos;s questions</label>
-        {f.custom ? <div className="mt-2"><QuestionsEditor value={f.qs} onChange={(qs) => setF({ ...f, qs })} /></div> : <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>Using the built-in questions for this category.</p>}
+        {f.custom ? <div className="mt-2 space-y-3"><TranslateBar value={f.qs} onChange={(qs) => setF({ ...f, qs })} /><QuestionsEditor value={f.qs} onChange={(qs) => setF({ ...f, qs })} /></div> : <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>Using the built-in questions for this category.</p>}
       </div>
       <button className="d-btn d-btn-p" disabled={busy} onClick={save}>{busy && <Loader2 size={16} className="animate-spin" />} Save category</button>
     </section>
@@ -285,5 +289,51 @@ function Playground({ clients, categories }: { clients: Cl[]; categories: Cat[] 
         )}
       </div>
     </section>
+  );
+}
+
+
+/* ------------------------------------------------------------------ businesses */
+function Businesses({ clients, categories }: { clients: Cl[]; categories: Cat[] }) {
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState<string | null>(null);
+  const list = useMemo(() => clients.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase())), [clients, q]);
+  const cur = clients.find((c) => c.id === sel);
+  const catLabel = (id: string | null) => categories.find((c) => c.id === id)?.label ?? "No category";
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2" style={{ color: "var(--d-muted)" }} aria-hidden />
+        <input type="search" aria-label="Search businesses" className="d-input !pl-10" placeholder="Search a business by name" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((c) => (
+          <button key={c.id} type="button" aria-pressed={sel === c.id} onClick={() => setSel(c.id)} className="d-card flex items-center gap-3 p-3 text-left" style={sel === c.id ? { boxShadow: "inset 0 0 0 2px var(--d-text)" } : undefined}>
+            {c.logo_url
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={c.logo_url} alt="" className="h-10 w-10 shrink-0 rounded-xl object-cover" />
+              : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold" style={{ background: "var(--d-bg)", color: "var(--d-text)" }}>{c.name.slice(0, 1).toUpperCase()}</span>}
+            <span className="min-w-0"><span className="block truncate text-sm font-medium" style={{ color: "var(--d-text)" }}>{c.name}</span><span className="block truncate text-xs" style={{ color: "var(--d-muted)" }}>{catLabel(c.business_type)}</span></span>
+          </button>
+        ))}
+        {list.length === 0 && <p className="text-sm" style={{ color: "var(--d-muted)" }}>No business matches &ldquo;{q}&rdquo;.</p>}
+      </div>
+      {cur && (
+        <div className="space-y-4">
+          <section className="d-card flex flex-wrap items-center gap-4 p-5">
+            {cur.logo_url
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={cur.logo_url} alt={`${cur.name} logo`} className="h-14 w-14 rounded-2xl object-cover" />
+              : <span className="grid h-14 w-14 place-items-center rounded-2xl text-xl font-bold" style={{ background: "var(--d-bg)", color: "var(--d-text)" }}>{cur.name.slice(0, 1).toUpperCase()}</span>}
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold">{cur.name}</h2>
+              <p className="text-sm" style={{ color: "var(--d-muted)" }}>{catLabel(cur.business_type)} · colours: {cur.theme ?? "default"}</p>
+            </div>
+            {cur.slug && <Link className="d-btn d-btn-s" href={`/admin/clients/${cur.slug}`}>Change name, logo and colours</Link>}
+          </section>
+          <ClientReviewSetup key={cur.id} clientId={cur.id} clientName={cur.name} category={cur.business_type} setup={cur.review_setup ?? {}} categories={categories} />
+        </div>
+      )}
+    </div>
   );
 }

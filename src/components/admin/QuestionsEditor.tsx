@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
-import { MAX_QUESTIONS, newQuestionId, type QType, type Question } from "@/lib/review/questions";
+import { ArrowDown, ArrowUp, Languages, Loader2, Plus, Trash2, X } from "lucide-react";
+import { LANGS, MAX_QUESTIONS, newQuestionId, type Lang, type QType, type Question } from "@/lib/review/questions";
+import { useToast } from "@/components/dash/Toast";
 
 const TYPE_LABEL: Record<QType, string> = { multi: "Pick several", single: "Pick one", text: "Short answer" };
 
@@ -38,7 +39,7 @@ export function QuestionsEditor({ value, onChange, max = MAX_QUESTIONS }: { valu
         <div key={q.id} className="d-raise space-y-2.5 p-3">
           <div className="flex items-center gap-2">
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold" style={{ background: "var(--d-bg)", color: "var(--d-text)" }}>{i + 1}</span>
-            <input aria-label={`Question ${i + 1}`} className="d-input !min-h-10" value={q.label} maxLength={120} onChange={(e) => upd(i, { label: e.target.value })} placeholder="What did you have?" />
+            <input aria-label={`Question ${i + 1}`} className="d-input !min-h-10" value={q.label} maxLength={120} onChange={(e) => upd(i, { label: e.target.value, tr: undefined })} placeholder="What did you have?" />
             <select aria-label={`Type of question ${i + 1}`} className="d-input !min-h-10 !w-40" value={q.type} onChange={(e) => upd(i, { type: e.target.value as QType, chips: e.target.value === "text" ? [] : q.chips })}>
               {(Object.keys(TYPE_LABEL) as QType[]).map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
             </select>
@@ -46,12 +47,40 @@ export function QuestionsEditor({ value, onChange, max = MAX_QUESTIONS }: { valu
             <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Move question ${i + 1} down`} disabled={i === value.length - 1} style={{ color: "var(--d-muted)" }} onClick={() => move(i, 1)}><ArrowDown size={16} /></button>
             <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove question ${i + 1}`} style={{ color: "var(--d-muted)" }} onClick={() => onChange(value.filter((_, k) => k !== i))}><Trash2 size={16} /></button>
           </div>
-          {q.type !== "text" && <ChipsInput chips={q.chips} label={`Chips for question ${i + 1}`} onChange={(c) => upd(i, { chips: c })} />}
+          {q.tr && <p className="text-xs" style={{ color: "var(--d-muted)" }}>Also shown in: {LANGS.filter((l) => q.tr?.[l.id]).map((l) => l.label).join(", ")}</p>}
+          {q.type !== "text" && <ChipsInput chips={q.chips} label={`Chips for question ${i + 1}`} onChange={(c) => upd(i, { chips: c, tr: undefined })} />}
         </div>
       ))}
       <button type="button" className="d-btn d-btn-s" disabled={value.length >= max} onClick={() => onChange([...value, { id: newQuestionId(), label: "", type: "multi", chips: [] }])}>
         <Plus size={15} /> Add question ({value.length} of {max})
       </button>
+    </div>
+  );
+}
+
+// Write the questions in one language, press the button, and the other languages are filled in.
+export function TranslateBar({ value, onChange }: { value: Question[]; onChange: (q: Question[]) => void }) {
+  const toast = useToast();
+  const [from, setFrom] = useState<Lang>("en");
+  const [busy, setBusy] = useState(false);
+  const done = value.length > 0 && value.every((q) => LANGS.every((l) => q.tr?.[l.id]));
+  async function run() {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/admin/translate-questions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ from, questions: value }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Translation failed.");
+      onChange(j.questions);
+      toast(j.missing ? `Translated, but ${j.missing} question(s) need another try or a manual fix.` : "Done. Guests now see these questions in all three languages.", !!j.missing);
+    } catch (e) { toast((e as Error).message, true); } finally { setBusy(false); }
+  }
+  return (
+    <div className="d-raise flex flex-wrap items-center gap-2 p-3">
+      <Languages size={16} style={{ color: "var(--d-muted)" }} aria-hidden />
+      <span className="text-sm" style={{ color: "var(--d-text)" }}>I wrote these in</span>
+      <select aria-label="Language the questions are written in" className="d-input !min-h-10 !w-36" value={from} onChange={(e) => setFrom(e.target.value as Lang)}>{LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}</select>
+      <button type="button" className="d-btn d-btn-s" disabled={busy || value.length === 0} onClick={run}>{busy && <Loader2 size={15} className="animate-spin" />} {done ? "Translate again" : "Fill the other two languages"}</button>
+      <p className="w-full text-xs" style={{ color: "var(--d-muted)" }}>Editing a question or chip afterwards clears its translations, so press this again before saving.</p>
     </div>
   );
 }

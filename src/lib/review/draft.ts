@@ -234,7 +234,7 @@ export async function aiProbe(): Promise<{ ok: boolean; provider: string; ms: nu
 
 /* ------------------------------------------------------------------ the AI Review Studio writer */
 
-import { type Lang } from "./questions";
+import { LANG_NAME, type Lang } from "./questions";
 import { maxSimilarity, pickShape, shingles, shuffle, type Shape } from "./variation";
 
 export type StudioConfig = {
@@ -336,4 +336,47 @@ export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSig
   if (best) return best;
   const t = templateFromAnswers(r, cfg.business.name);
   return { draft: t, provider: "template", sig: shingles(t), similarity: 0, tries: 0 };
+}
+
+
+/* ------------------------------------------------------------------ translating questions */
+
+/**
+ * Translates a set of questions and their chips into other languages in one call, keeping chips in the same order.
+ * Uses the configured general model (a "custom" writer cannot translate). Returns null when no model is connected.
+ */
+export async function translateQuestions(
+  qs: { id: string; label: string; type: string; chips: string[] }[],
+  from: Lang,
+  to: Lang[],
+): Promise<Record<string, Partial<Record<Lang, { label: string; chips: string[] }>>> | null> {
+  const name = (process.env.REVIEW_AI_PROVIDER || "template").toLowerCase();
+  const g = GENERAL[name];
+  if (!g || !process.env[g.key]) return null;
+  const style: Record<Lang, string> = {
+    en: "natural, simple English",
+    hi: "natural spoken Hindi in Devanagari script, the way people actually talk, not stiff textbook Hindi",
+    hinglish: "natural Hinglish: Hindi as people type it on WhatsApp, in Roman letters, mixing common English words",
+  };
+  const src = qs.map((q) => ({ id: q.id, label: q.label, chips: q.chips }));
+  const prompt = [
+    `Translate these customer-feedback questions and their answer chips from ${LANG_NAME[from]} into: ${to.map((l) => `"${l}" (${style[l]})`).join("; ")}.`,
+    `Keep the meaning, keep each chip short (1 to 4 words), and keep the chips in exactly the same order and count.`,
+    `Reply with JSON only, no markdown: {"<id>": {"<lang>": {"label": "...", "chips": ["..."]}}} for every id and every requested language.`,
+    JSON.stringify(src),
+  ].join("\n");
+  const raw = await withTimeout(g.call(prompt, { max: 3000, temp: 0.2 }), 40000);
+  const json = raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+  const parsed = JSON.parse(json) as Record<string, Record<string, { label?: string; chips?: string[] }>>;
+  const out: Record<string, Partial<Record<Lang, { label: string; chips: string[] }>>> = {};
+  for (const q of qs) {
+    for (const l of to) {
+      const t = parsed?.[q.id]?.[l];
+      if (!t?.label) continue;
+      const chips = q.type === "text" ? [] : (t.chips ?? []).map((c) => String(c).trim());
+      if (q.type !== "text" && (chips.length !== q.chips.length || chips.some((c) => !c))) continue;
+      (out[q.id] ??= {})[l] = { label: String(t.label).trim(), chips };
+    }
+  }
+  return out;
 }

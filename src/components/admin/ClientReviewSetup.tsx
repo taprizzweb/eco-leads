@@ -7,7 +7,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { LANGS, cleanQuestions, defaultQuestions, type Lang, type Question } from "@/lib/review/questions";
 import { useToast } from "@/components/dash/Toast";
 import { Pill } from "./ui";
-import { QuestionsEditor } from "./QuestionsEditor";
+import { QuestionsEditor, TranslateBar } from "./QuestionsEditor";
 
 type Setup = { questions?: unknown; max_questions?: number; languages?: Lang[]; low_star_mode?: string; owner_edit_until?: string | null };
 type Cat = { id: string; label: string; questions: unknown };
@@ -93,7 +93,7 @@ export function ClientReviewSetup({ clientId, clientName, category, setup, categ
           <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={custom} onChange={(e) => { setCustom(e.target.checked); if (e.target.checked && qs.length === 0) setQs(catQs()); }} /> Custom questions for this business</label>
         </div>
         {custom ? (
-          <div className="mt-2"><QuestionsEditor value={qs} onChange={setQs} /></div>
+          <div className="mt-2 space-y-3"><TranslateBar value={qs} onChange={setQs} /><QuestionsEditor value={qs} onChange={setQs} /></div>
         ) : (
           <div className="mt-2 text-sm" style={{ color: "var(--d-sub)" }}>
             <p className="mb-2" style={{ color: "var(--d-muted)" }}>Using the {categories.find((c) => c.id === cat)?.label ?? "default"} questions (first {maxN}):</p>

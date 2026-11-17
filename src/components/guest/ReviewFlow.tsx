@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Star, Copy, Check, Loader2, ArrowLeft, RefreshCw, HeartHandshake } from "lucide-react";
 import type { GuestPageData } from "@/lib/types";
-import { LANGS, resolveQuestions, type Lang } from "@/lib/review/questions";
+import { LANGS, localize, resolveQuestions, type Lang } from "@/lib/review/questions";
 import type { Visitor } from "@/lib/visitor";
 import { chip, glassInput, pillPrimary, pillSoft } from "./ui";
 
@@ -38,6 +38,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   const pickLang = (l: Lang) => { setLang(l); try { localStorage.setItem("tz_lang", l); } catch { /* fine */ } };
 
   const q = questions[qi];
+  const lq = q ? localize(q, lang) : null;
   const lowStars = rating > 0 && rating <= 2 && lowMode === "private_first" && !!onPrivateFeedback && !continueAnyway;
 
   function choose(n: number) {
@@ -128,18 +129,18 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
         </div>
       )}
 
-      {!lowStars && step === "q" && q && (
+      {!lowStars && step === "q" && q && lq && (
         <section aria-labelledby="q-label" className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--text)_10%,transparent)]"><div className="h-full rounded-full bg-fg transition-all" style={{ width: `${((qi + 1) / (questions.length + 1)) * 100}%` }} /></div>
             <span className="text-xs tabular-nums text-muted">{qi + 1} of {questions.length}</span>
           </div>
-          <h3 id="q-label" className="text-lg font-semibold">{q.label}</h3>
+          <h3 id="q-label" className="text-lg font-semibold">{lq.label}</h3>
           {q.type === "text" ? (
             <input aria-labelledby="q-label" className={glassInput} maxLength={200} value={answers[q.id]?.[0] ?? ""} onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: [e.target.value] }))} />
           ) : (
             <div className="flex flex-wrap gap-2" role="group" aria-labelledby="q-label">
-              {q.chips.map((c) => <button key={c} aria-pressed={(answers[q.id] ?? []).includes(c)} onClick={() => toggle(q.id, q.type, c)} className={chip((answers[q.id] ?? []).includes(c))}>{c}</button>)}
+              {lq.chips.map((c) => <button key={c.value} aria-pressed={(answers[q.id] ?? []).includes(c.value)} onClick={() => toggle(q.id, q.type, c.value)} className={chip((answers[q.id] ?? []).includes(c.value))}>{c.text}</button>)}
             </div>
           )}
           <div className="flex gap-2 pt-1">

@@ -3,8 +3,10 @@
 // otherwise the defaults below. The admin decides the list and how many are shown (2 to 10).
 
 export type QType = "multi" | "single" | "text";
-export type Question = { id: string; label: string; type: QType; chips: string[] };
 export type Lang = "hinglish" | "en" | "hi";
+/** `label` and `chips` are the canonical text (what the review writer sees). `tr` holds the same question shown to guests in other languages, chips in the same order. */
+export type Tr = Partial<Record<Lang, { label: string; chips: string[] }>>;
+export type Question = { id: string; label: string; type: QType; chips: string[]; tr?: Tr };
 
 export const MAX_QUESTIONS = 10;
 export const LANGS: { id: Lang; label: string }[] = [
@@ -100,7 +102,17 @@ export function cleanQuestions(raw: unknown): Question[] {
     const chips = Array.isArray(o.chips) ? [...new Set((o.chips as unknown[]).map((c) => String(c).trim().slice(0, 30)).filter(Boolean))].slice(0, 12) : [];
     if (!label || (type !== "text" && chips.length < 1)) continue;
     seen.add(id);
-    out.push({ id, label, type, chips: type === "text" ? [] : chips });
+    const tr: Tr = {};
+    if (o.tr && typeof o.tr === "object") {
+      for (const l of ["hinglish", "en", "hi"] as Lang[]) {
+        const t = (o.tr as Record<string, unknown>)[l] as { label?: unknown; chips?: unknown } | undefined;
+        if (!t) continue;
+        const tl = String(t.label ?? "").trim().slice(0, 160);
+        const tc = Array.isArray(t.chips) ? (t.chips as unknown[]).map((c) => String(c).trim().slice(0, 60)) : [];
+        if (tl && (type === "text" || (tc.length === chips.length && tc.every(Boolean)))) tr[l] = { label: tl, chips: type === "text" ? [] : tc };
+      }
+    }
+    out.push({ id, label, type, chips: type === "text" ? [] : chips, ...(Object.keys(tr).length ? { tr } : {}) });
   }
   return out;
 }
@@ -114,3 +126,10 @@ export function resolveQuestions(review: { questions?: unknown; max_questions?: 
 }
 
 export const newQuestionId = () => "q" + Math.random().toString(36).slice(2, 7);
+
+/** The question as a guest in `lang` should see it. Chips keep their canonical value so answers stay valid. */
+export function localize(q: Question, lang: Lang): { label: string; chips: { value: string; text: string }[] } {
+  const t = q.tr?.[lang];
+  const ok = t && (q.type === "text" || t.chips.length === q.chips.length);
+  return { label: ok ? t.label : q.label, chips: q.chips.map((c, i) => ({ value: c, text: ok ? t.chips[i] : c })) };
+}

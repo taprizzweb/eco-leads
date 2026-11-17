@@ -10,7 +10,7 @@ export default async function AiStudioPage() {
   const [{ data: settings }, { data: cats }, { data: clients }] = await Promise.all([
     sb.rpc("ai_studio_get"),
     sb.from("business_templates").select("id, label, keywords, notes, questions, sort").order("sort"),
-    sb.from("clients").select("id, name, business_type, review_setup").order("name"),
+    sb.from("clients").select("id, name, slug, business_type, review_setup, logo_url, theme").order("name"),
   ]);
   return (
     <>
