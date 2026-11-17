@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 
@@ -14,6 +14,7 @@ export function Shell({
   clientName,
   logoUrl,
   openCount,
+  contentCount = 0,
   isTeam = false,
   children,
 }: {
@@ -21,6 +22,7 @@ export function Shell({
   clientName: string;
   logoUrl: string | null;
   openCount: number;
+  contentCount?: number;
   isTeam?: boolean;
   children: React.ReactNode;
 }) {
@@ -44,9 +46,13 @@ export function Shell({
   const tabs: Tab[] = [
     { href: base, label: "Home", Icon: Home, exact: true },
     { href: `${base}/inbox`, label: "Inbox", Icon: Inbox, badge: openCount },
+    { href: `${base}/reviews`, label: "Reviews", Icon: Star },
+    { href: `${base}/content`, label: "Content", Icon: Clapperboard, badge: contentCount },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft },
     { href: `${base}/plan`, label: "Plan", Icon: Gem },
   ];
+  // Phone bottom bar keeps five tabs; Plan sits in the top bar there.
+  const bottomTabs = tabs.filter((t) => t.label !== "Plan");
   const active = (t: Tab) => (t.exact ? path === t.href : path.startsWith(t.href));
 
   const ModeIcon = mode === "dark" ? Sun : Moon;
@@ -79,6 +85,9 @@ export function Shell({
             </nav>
 
             <div className="ml-auto flex items-center gap-2 md:ml-0">
+              <Link href={`${base}/plan`} aria-label="Plan" title="Plan" className="grid h-11 w-11 place-items-center rounded-xl md:hidden" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
+                <Gem size={17} />
+              </Link>
               {isTeam && (
                 <Link href="/admin" className="flex h-11 items-center rounded-xl px-3 text-sm font-semibold" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
                   Admin
@@ -103,8 +112,8 @@ export function Shell({
 
         {/* Phone: bottom bar */}
         <nav aria-label="Dashboard" className="fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 90%, transparent)" }}>
-          <div className="grid grid-cols-4">
-            {tabs.map((t) => {
+          <div className="grid grid-cols-5">
+            {bottomTabs.map((t) => {
               const { href, label, Icon, badge } = t;
               const on = active(t);
               return (

@@ -1,6 +1,9 @@
-// Review drafts are written ONLY from the guest's own answers (rating, chips,
-// company, recommend). Never invent dishes, staff names or experiences.
-// Provider is pluggable via REVIEW_AI_PROVIDER; with no key we use templates.
+// Review drafts (written from the guest's own answers) and review replies (written for the owner).
+// The writer is pluggable. Set REVIEW_AI_PROVIDER to:
+//   custom    your own trained model behind a URL (see docs/REVIEW_AI.md for the exact request and reply)
+//   openai | gemini | anthropic   a general model, with our prompt below
+//   template  built-in sentences, no AI, no cost (also the fallback whenever the chosen provider fails)
+// Drafts use ONLY what the guest answered. Nothing is invented, and no reward is ever tied to a review.
 
 export type ReviewAnswers = {
   rating: number;
@@ -10,8 +13,10 @@ export type ReviewAnswers = {
   businessName: string;
   businessType?: string | null;
 };
-
 export type DraftResult = { draft: string; provider: string };
+
+export type ReplyInput = { businessName: string; businessType?: string | null; author: string; rating: number; text: string };
+export type ReplyResult = { reply: string; provider: string };
 
 const COMPANY_PHRASE: Record<string, string> = {
   friends: "with friends",
@@ -21,21 +26,19 @@ const COMPANY_PHRASE: Record<string, string> = {
   work: "for work",
 };
 
-function list(items: string[]): string {
-  const lower = items.map((s) => s.toLowerCase());
-  if (lower.length <= 1) return lower.join("");
-  return `${lower.slice(0, -1).join(", ")} and ${lower[lower.length - 1]}`;
-}
+const list = (items: string[]) => {
+  const l = items.map((s) => s.toLowerCase());
+  return l.length <= 1 ? l.join("") : `${l.slice(0, -1).join(", ")} and ${l[l.length - 1]}`;
+};
+const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const firstName = (n: string) => n.trim().split(/\s+/)[0] ?? "";
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
+/* ------------------------------------------------------------------ templates (no AI) */
 
 export function templateDraft(a: ReviewAnswers): string {
   const chips = a.chips.slice(0, 4);
   const who = a.company ? ` ${COMPANY_PHRASE[a.company] ?? ""}` : "";
   const parts: string[] = [];
-
   if (a.rating >= 4) {
     parts.push(pick([`Visited ${a.businessName}${who} and had a great time.`, `Lovely visit to ${a.businessName}${who}.`, `Really enjoyed ${a.businessName}${who}.`]));
     if (chips.length) parts.push(pick([`The ${list(chips)} stood out.`, `Loved the ${list(chips)}.`, `Special mention for the ${list(chips)}.`]));
@@ -52,7 +55,17 @@ export function templateDraft(a: ReviewAnswers): string {
   return parts.join(" ");
 }
 
-function prompt(a: ReviewAnswers): string {
+export function templateReply(a: ReplyInput): string {
+  const n = firstName(a.author);
+  const hi = n ? `Thank you, ${n}.` : "Thank you.";
+  if (a.rating >= 4) return `${hi} We are so glad you enjoyed your visit to ${a.businessName}. Our team will be happy to hear this, and we hope to see you again soon.`;
+  if (a.rating === 3) return `${hi} We appreciate your honest feedback. We are sorry we did not fully get it right, and we will use what you shared to do better next time.`;
+  return `${n ? `${n}, we` : "We"} are sorry your visit to ${a.businessName} fell short. This is not the experience we want for anyone. Please contact us directly so we can understand what went wrong and put it right.`;
+}
+
+/* ------------------------------------------------------------------ prompts for general models */
+
+function draftPrompt(a: ReviewAnswers): string {
   return [
     `Write a short, natural Google review (2 to 3 sentences, under 60 words) in first person, in plain English.`,
     `Use ONLY these facts from the guest. Do not invent dishes, names, prices, or details that are not listed.`,
@@ -62,82 +75,110 @@ function prompt(a: ReviewAnswers): string {
     a.company ? `Came ${COMPANY_PHRASE[a.company] ?? a.company}` : "",
     a.recommend ? `Would recommend: ${a.recommend}` : "",
     `Match the tone to the rating. No hashtags, no emojis, no quotation marks. Output only the review text.`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean).join("\n");
 }
 
-async function callOpenAI(a: ReviewAnswers): Promise<string> {
+function replyPrompt(a: ReplyInput): string {
+  return [
+    `You write public replies from a business owner to a Google review. Write 2 to 3 sentences, warm and professional, plain English.`,
+    `Business: ${a.businessName}${a.businessType ? ` (${a.businessType})` : ""}`,
+    `Reviewer: ${a.author || "a guest"}. Rating: ${a.rating} out of 5.`,
+    `Review: """${a.text.slice(0, 1200)}"""`,
+    `Rules: address the reviewer by first name if given. Only refer to things the review actually says; never invent facts.`,
+    `Never offer discounts, gifts or rewards, never promise specific changes, never argue, never ask for another review.`,
+    `For 1 to 3 stars: apologise sincerely and invite them to contact the business directly. For 4 to 5 stars: thank them and welcome them back.`,
+    `No emojis, no hashtags, no quotation marks. Output only the reply text.`,
+  ].join("\n");
+}
+
+/* ------------------------------------------------------------------ providers */
+
+type TextCaller = (prompt: string) => Promise<string>;
+
+const callOpenAI: TextCaller = async (prompt) => {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: JSON.stringify({
-      model: process.env.REVIEW_AI_MODEL || "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt(a) }],
-      max_tokens: 160,
-      temperature: 0.8,
-    }),
+    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 200, temperature: 0.8 }),
   });
   if (!res.ok) throw new Error(`openai ${res.status}`);
-  const j = await res.json();
-  return j.choices?.[0]?.message?.content ?? "";
-}
+  return (await res.json()).choices?.[0]?.message?.content ?? "";
+};
 
-async function callGemini(a: ReviewAnswers): Promise<string> {
+const callGemini: TextCaller = async (prompt) => {
   const model = process.env.REVIEW_AI_MODEL || "gemini-2.0-flash";
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt(a) }] }],
-      generationConfig: { maxOutputTokens: 160, temperature: 0.8 },
-    }),
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 200, temperature: 0.8 } }),
   });
   if (!res.ok) throw new Error(`gemini ${res.status}`);
-  const j = await res.json();
-  return j.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-}
+  return (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+};
 
-async function callAnthropic(a: ReviewAnswers): Promise<string> {
+const callAnthropic: TextCaller = async (prompt) => {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: process.env.REVIEW_AI_MODEL || "claude-haiku-5-5",
-      max_tokens: 200,
-      messages: [{ role: "user", content: prompt(a) }],
-    }),
+    headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: process.env.REVIEW_AI_MODEL || "claude-haiku-5-5", max_tokens: 220, messages: [{ role: "user", content: prompt }] }),
   });
   if (!res.ok) throw new Error(`anthropic ${res.status}`);
-  const j = await res.json();
-  return j.content?.[0]?.text ?? "";
-}
+  return (await res.json()).content?.[0]?.text ?? "";
+};
 
-const PROVIDERS: Record<string, { key: string; call: (a: ReviewAnswers) => Promise<string> }> = {
+const GENERAL: Record<string, { key: string; call: TextCaller }> = {
   openai: { key: "OPENAI_API_KEY", call: callOpenAI },
   gemini: { key: "GEMINI_API_KEY", call: callGemini },
   anthropic: { key: "ANTHROPIC_API_KEY", call: callAnthropic },
 };
 
-export async function writeDraft(a: ReviewAnswers): Promise<DraftResult> {
+/** Your own trained model behind a URL. We send the facts as JSON and read { text } back. */
+async function callCustom(task: "review_draft" | "review_reply", payload: Record<string, unknown>): Promise<string> {
+  const url = process.env.REVIEW_AI_URL;
+  if (!url) throw new Error("REVIEW_AI_URL not set");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...(process.env.REVIEW_AI_SECRET ? { authorization: `Bearer ${process.env.REVIEW_AI_SECRET}` } : {}) },
+    body: JSON.stringify({ task, ...payload }),
+  });
+  if (!res.ok) throw new Error(`custom ${res.status}`);
+  const j = await res.json();
+  return String(j.text ?? j.review ?? j.reply ?? "");
+}
+
+const clean = (t: string, max: number) => t.trim().replace(/^["'“”]+|["'“”]+$/g, "").slice(0, max);
+const withTimeout = <T,>(p: Promise<T>, ms = 8000) =>
+  Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+
+async function run(task: "review_draft" | "review_reply", payload: Record<string, unknown>, prompt: string, max: number): Promise<{ text: string; provider: string } | null> {
   const name = (process.env.REVIEW_AI_PROVIDER || "template").toLowerCase();
-  const p = PROVIDERS[name];
-  if (p && process.env[p.key]) {
-    try {
-      const ctrl = AbortSignal.timeout(6000);
-      const text = await Promise.race([
-        p.call(a),
-        new Promise<string>((_, rej) => ctrl.addEventListener("abort", () => rej(new Error("timeout")))),
-      ]);
-      const clean = text.trim().replace(/^["']|["']$/g, "");
-      if (clean) return { draft: clean.slice(0, 600), provider: name };
-    } catch (e) {
-      console.error("review draft provider failed, using template", e);
+  try {
+    if (name === "custom" && process.env.REVIEW_AI_URL) {
+      const t = clean(await withTimeout(callCustom(task, payload)), max);
+      if (t) return { text: t, provider: "custom" };
+    } else if (GENERAL[name] && process.env[GENERAL[name].key]) {
+      const t = clean(await withTimeout(GENERAL[name].call(prompt)), max);
+      if (t) return { text: t, provider: name };
     }
+  } catch (e) {
+    console.error(`${task}: provider "${name}" failed, using the template`, e);
   }
-  return { draft: templateDraft(a), provider: "template" };
+  return null;
+}
+
+export async function writeDraft(a: ReviewAnswers): Promise<DraftResult> {
+  const r = await run("review_draft", {
+    business: { name: a.businessName, type: a.businessType ?? null },
+    rating: a.rating,
+    answers: { chips: a.chips, company: a.company ?? null, recommend: a.recommend ?? null },
+  }, draftPrompt(a), 600);
+  return r ? { draft: r.text, provider: r.provider } : { draft: templateDraft(a), provider: "template" };
+}
+
+export async function writeReply(a: ReplyInput): Promise<ReplyResult> {
+  const r = await run("review_reply", {
+    business: { name: a.businessName, type: a.businessType ?? null },
+    review: { author: a.author, rating: a.rating, text: a.text },
+  }, replyPrompt(a), 700);
+  return r ? { reply: r.text, provider: r.provider } : { reply: templateReply(a), provider: "template" };
 }

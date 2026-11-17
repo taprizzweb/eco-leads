@@ -61,6 +61,8 @@ Open http://localhost:3000/e/demo1 in a phone-sized window.
 - [x] Complaint and suggestion forms with photo, video and voice notes
 - [x] Google sign-in + 2FA, owner dashboard (Home, Inbox, My Page, Plan) in the Sheen look, tested end to end
 - [x] Admin panel: overview, clients, add client, package switches, plates and QR, alerts, billing, packages, audit log, team (templates editor still to do)
-- [ ] Share your moment, offer claim codes, membership, Creators corner
-- [ ] Review replies, monthly report, WhatsApp contacts and campaigns
+- [x] Creators corner: shoot brief, collab requests with approval, visit codes, monthly cap, post submissions, owner Content screen
+- [ ] Share your moment, offer claim codes, membership
+- [x] Reviews tab: paste a Google review, get a reply to copy; guests' drafts and answers visible; your own trained AI plugs in (`docs/REVIEW_AI.md`)
+- [ ] One-click and automatic review replies (waiting for Google Business Profile API approval), monthly report, WhatsApp contacts and campaigns
 - [ ] CAPTCHA on guest forms, 90-day deletion of complaint media, security review

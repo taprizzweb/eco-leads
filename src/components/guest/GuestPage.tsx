@@ -9,6 +9,7 @@ import { AnimatedIcon } from "./AnimatedIcon";
 import { Sheet } from "./Sheet";
 import { ReviewFlow } from "./ReviewFlow";
 import { FeedbackForm } from "./FeedbackForm";
+import { CreatorsSheet } from "./CreatorsSheet";
 
 const DEFAULT_ORDER: CardKey[] = ["menu", "review", "complaint", "suggestion", "moment", "offers", "events", "membership", "creators"];
 
@@ -26,7 +27,7 @@ const DEFAULT_COPY: Record<CardKey, { title: string; help: string }> = {
 
 // Flows built so far. Cards for later build steps stay hidden until their flow exists,
 // so a guest never taps into a dead end.
-const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events"];
+const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events", "creators"];
 
 function cardEnabled(k: CardKey, d: GuestPageData): boolean {
   const f = d.features;
@@ -321,6 +322,9 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
       </Sheet>
       <Sheet open={open === "suggestion"} onClose={close} title="Any suggestions?">
         <FeedbackForm kind="suggestion" clientId={client.id} code={data.plate?.code ?? null} onDone={close} />
+      </Sheet>
+      <Sheet open={open === "creators"} onClose={close} title="Creators corner">
+        {open === "creators" && <CreatorsSheet clientId={client.id} businessType={client.business_type} businessName={client.name} onDone={close} />}
       </Sheet>
       <Sheet open={open === "offers"} onClose={close} title="Offers right now">
         <ul className="space-y-3">
