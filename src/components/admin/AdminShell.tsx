@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { LayoutGrid, Users, QrCode, BellRing, Wallet, Layers, Plug, Sparkles, ScrollText, UserCog, Sun, Moon, LogOut } from "lucide-react";
 import { ToastProvider } from "@/components/dash/Toast";
 import { Mark } from "@/components/dash/AuthFrame";
+import { InstallApp } from "@/components/InstallApp";
 
 const KEY = "taprizz-dash-mode";
 type Item = { href: string; label: string; Icon: typeof Users; exact?: boolean; min?: "manager"; badge?: number; also?: string[] };
@@ -63,6 +64,7 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
             </nav>
             <div className="space-y-2 border-t pt-4" style={{ borderColor: "var(--d-line)" }}>
               <p className="truncate px-2 text-xs" style={{ color: "var(--d-muted)" }}>{email}</p>
+              <InstallApp className="d-btn d-btn-s w-full" />
               <div className="flex gap-2">
                 <button onClick={toggle} title={mode === "dark" ? "Light mode" : "Dark mode"} aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"} className={iconBtn} style={iconStyle}><ModeIcon size={17} /></button>
                 <form action="/auth/signout" method="post"><button title="Sign out" aria-label="Sign out" className={iconBtn} style={iconStyle}><LogOut size={17} /></button></form>
@@ -76,6 +78,7 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
               <div className="flex h-14 items-center gap-2 px-4">
                 <Mark size={32} />
                 <span className="flex-1 font-semibold" style={{ color: "var(--d-text)" }}>Taprizz Admin</span>
+                <InstallApp compact className={iconBtn} style={iconStyle} />
                 <button onClick={toggle} aria-label="Toggle light or dark" className={iconBtn} style={iconStyle}><ModeIcon size={17} /></button>
                 <form action="/auth/signout" method="post"><button aria-label="Sign out" className={iconBtn} style={iconStyle}><LogOut size={17} /></button></form>
               </div>
