@@ -252,7 +252,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
     <div className="min-h-dvh [overflow-x:clip]" data-theme={theme.dark ? "dark" : "light"} style={{ ...(theme.vars as React.CSSProperties), background: `radial-gradient(90% 420px at 50% -60px, var(--l-glow), transparent 70%), var(--l-bg)`, color: "var(--l-text)" }}>
       <main className="relative mx-auto flex max-w-md flex-col pb-8">
         <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-4">
-          <span className={topBtn} style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)" }} aria-hidden><Mark size={14} /></span>
+          <span className="rounded-full" style={{ boxShadow: "0 6px 18px -8px rgba(0,0,0,0.7)" }}><Mark size={36} /></span>
           <button type="button" onClick={share} aria-label="Share this page" className={topBtn} style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)", color: "var(--l-text)" }}><Share2 size={16} /></button>
         </div>
         <div role="status" aria-live="polite" className="pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center">
@@ -340,7 +340,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           </motion.section>
         )}
 
-        <footer className="mt-6 text-center text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}>Powered by Taprizz</footer>
+        <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><Mark size={16} />Powered by Taprizz</footer>
       </main>
       {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click")} />}
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click")} />}

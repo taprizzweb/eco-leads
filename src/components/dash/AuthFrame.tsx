@@ -2,13 +2,14 @@
 // the Taprizz admin, and Taprizz employees. Styled after the HextaUI
 // "Modern Stunning Sign In" card (src/components/ui/modern-stunning-sign-in.tsx).
 
+// The Taprizz logo on a light circle, so its dark bars stay visible on dark screens.
 export function Mark({ size = 26 }: { size?: number }) {
+  const h = Math.round(size * 0.6);
   return (
-    <svg width={size} height={size} viewBox="0 0 26 26" aria-hidden="true">
-      <circle cx="13" cy="13" r="13" fill="#d6d6d6" />
-      <path d="M7.4 14.6c.7-3.6 2.9-6 6.6-6.7" fill="none" stroke="#2a2a2a" strokeWidth="2.3" strokeLinecap="round" />
-      <circle cx="16.9" cy="16.6" r="1.9" fill="#2a2a2a" />
-    </svg>
+    <span aria-hidden="true" className="inline-grid shrink-0 place-items-center rounded-full bg-white" style={{ width: size, height: size }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/taprizz-logo.png" alt="" height={h} width={Math.round(h * 0.727)} style={{ height: h, width: "auto" }} draggable={false} />
+    </span>
   );
 }
 
@@ -32,8 +33,8 @@ export function AuthFrame({ title, sub, children, foot }: { title: string; sub: 
   return (
     <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-[#121212] px-4 py-10 text-gray-300">
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center rounded-3xl bg-gradient-to-r from-[#ffffff10] to-[#121212] p-8 shadow-2xl backdrop-blur-sm">
-        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-white/20 shadow-lg">
-          <Mark size={24} />
+        <div className="mb-6 rounded-full shadow-lg">
+          <Mark size={56} />
         </div>
         <h1 className="text-center text-2xl font-semibold text-white">{title}</h1>
         <p className="mt-2 mb-6 text-center text-sm text-gray-400">{sub}</p>

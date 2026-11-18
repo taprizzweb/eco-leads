@@ -46,7 +46,7 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
           {/* Sidebar: laptop */}
           <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r px-3 py-5 lg:flex" style={{ borderColor: "var(--d-line)" }}>
             <div className="mb-6 flex items-center gap-2.5 px-2">
-              <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: "#060606" }}><Mark size={20} /></span>
+              <Mark size={36} />
               <div className="leading-tight">
                 <p className="text-[15px] font-semibold" style={{ color: "var(--d-text)" }}>Taprizz</p>
                 <p className="text-xs" style={{ color: "var(--d-muted)" }}>Admin · {role}</p>
@@ -74,7 +74,7 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
             {/* Top bar: phone and tablet */}
             <header className="sticky top-0 z-30 border-b backdrop-blur-xl lg:hidden" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 85%, transparent)" }}>
               <div className="flex h-14 items-center gap-2 px-4">
-                <span className="grid h-8 w-8 place-items-center rounded-lg" style={{ background: "#060606" }}><Mark size={18} /></span>
+                <Mark size={32} />
                 <span className="flex-1 font-semibold" style={{ color: "var(--d-text)" }}>Taprizz Admin</span>
                 <button onClick={toggle} aria-label="Toggle light or dark" className={iconBtn} style={iconStyle}><ModeIcon size={17} /></button>
                 <form action="/auth/signout" method="post"><button aria-label="Sign out" className={iconBtn} style={iconStyle}><LogOut size={17} /></button></form>
