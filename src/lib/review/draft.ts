@@ -31,7 +31,7 @@ const list = (items: string[]) => {
   return l.length <= 1 ? l.join("") : `${l.slice(0, -1).join(", ")} and ${l[l.length - 1]}`;
 };
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-const firstName = (n: string) => n.trim().split(/\s+/)[0] ?? "";
+const firstName = (n: string) => n.trim().split(/\s+/).filter((w) => !/^(mr|mrs|ms|miss|dr|shri|smt)\.?$/i.test(w))[0] ?? "";
 
 /* ------------------------------------------------------------------ templates (no AI) */
 
@@ -57,6 +57,13 @@ export function templateDraft(a: ReviewAnswers): string {
 
 export function templateReply(a: ReplyInput): string {
   const n = firstName(a.author);
+  const lang = replyLanguage(a.text);
+  if (lang === "hindi") return a.rating >= 4
+    ? `${n ? `${n} जी, ` : ""}आपके इतने अच्छे शब्दों के लिए धन्यवाद। ${a.businessName} की पूरी टीम को यह सुनकर बहुत खुशी हुई। हम आपका फिर स्वागत करेंगे।`
+    : `${n ? `${n} जी, ` : ""}आपको जो असुविधा हुई उसके लिए हमें खेद है। कृपया हमसे सीधे संपर्क करें ताकि हम बात समझ सकें और उसे ठीक कर सकें।`;
+  if (lang === "hinglish") return a.rating >= 4
+    ? `${n ? `${n}, ` : ""}itne pyaare words ke liye shukriya. ${a.businessName} ki poori team ko ye sunkar bahut khushi hui. Aapka phir se swagat hai.`
+    : `${n ? `${n}, ` : ""}aapko jo pareshani hui uske liye hum maafi chahte hain. Kripya humse seedha sampark karein, taaki hum baat samajh kar use theek kar sakein.`;
   const hi = n ? `Thank you, ${n}.` : "Thank you.";
   if (a.rating >= 4) return `${hi} We are so glad you enjoyed your visit to ${a.businessName}. Our team will be happy to hear this, and we hope to see you again soon.`;
   if (a.rating === 3) return `${hi} We appreciate your honest feedback. We are sorry we did not fully get it right, and we will use what you shared to do better next time.`;
@@ -78,18 +85,48 @@ function draftPrompt(a: ReviewAnswers): string {
   ].filter(Boolean).join("\n");
 }
 
+/** Which language and script the reviewer wrote in, so the reply matches it. */
+export function replyLanguage(text: string): "hindi" | "hinglish" | "english" {
+  if (/[\u0900-\u097F]/.test(text)) return "hindi";
+  const hits = (text.toLowerCase().match(/\b(hai|nahi|nhi|bahut|bhut|accha|acha|achha|bohot|mast|bekar|kharab|khana|paisa|sabse|ekdum|bilkul|aur|ke|ka|ki|ko|mein|me|tha|thi|zyada|jyada|thoda|kaafi|kafi|shandar|badhiya|badiya)\b/g) ?? []).length;
+  return hits >= 2 ? "hinglish" : "english";
+}
+
+const REPLY_OPENERS = [
+  "start by thanking them for the specific thing they mentioned",
+  "start with a warm greeting and the reviewer's first name",
+  "start by saying what the team will be happy to hear",
+  "start with a short, friendly sentence about their visit",
+];
+const REPLY_BANNED = ["100%", "guaranteed", "guarantee", "cure", "miracle", "no side effects", "free ", "discount", "coupon"];
+
 function replyPrompt(a: ReplyInput): string {
+  const lang = replyLanguage(a.text);
+  const langRule = lang === "hindi" ? "Write the reply in Hindi, in Devanagari script, the way a polite shop owner would speak."
+    : lang === "hinglish" ? "Write the reply in Hinglish (Hindi written in the English alphabet), the same casual way the reviewer wrote."
+    : "Write the reply in simple English.";
+  const opener = REPLY_OPENERS[Math.floor(Math.random() * REPLY_OPENERS.length)];
   return [
-    `You write public replies from a business owner to a Google review. Write 2 to 3 sentences, warm and professional, plain English.`,
+    `You write public replies from a business owner to a Google review. Warm, human and professional. ${langRule}`,
+    `Length: ${a.rating >= 4 ? "2 sentences" : "3 sentences"}. Vary the wording, ${opener}.`,
     `Business: ${a.businessName}${a.businessType ? ` (${a.businessType})` : ""}`,
     `Reviewer: ${a.author || "a guest"}. Rating: ${a.rating} out of 5.`,
     `Review: """${a.text.slice(0, 1200)}"""`,
-    `Rules: address the reviewer by first name if given. Only refer to things the review actually says; never invent facts.`,
-    `Never offer discounts, gifts or rewards, never promise specific changes, never argue, never ask for another review.`,
+    `Rules: address the reviewer by first name if given. Mention one real thing from the review. Only refer to things the review actually says; never invent facts, staff names, prices or results.`,
+    `Never offer discounts, gifts or rewards, never promise specific changes, never argue, never ask for another review, never make health or medical claims. Never use the words: 100%, guaranteed, cure, miracle.`,
     `For 1 to 3 stars: apologise sincerely and invite them to contact the business directly. For 4 to 5 stars: thank them and welcome them back.`,
     `No emojis, no hashtags, no quotation marks. Output only the reply text.`,
   ].join("\n");
 }
+
+/** A reply that breaks a rule is replaced by the safe template, so nothing risky is ever shown or posted. */
+export const replyIsSafe = (reply: string, a: ReplyInput) => {
+  const t = reply.toLowerCase();
+  if (reply.trim().length < 15 || REPLY_BANNED.some((w) => t.includes(w))) return false;
+  if (/[\u{1F300}-\u{1FAFF}]/u.test(reply) || /#\w/.test(reply)) return false;
+  const wantsDevanagari = replyLanguage(a.text) === "hindi";
+  return wantsDevanagari ? /[\u0900-\u097F]/.test(reply) : !/[\u0900-\u097F]/.test(reply) || replyLanguage(a.text) !== "english";
+};
 
 /* ------------------------------------------------------------------ providers */
 
@@ -230,7 +267,7 @@ export async function writeReply(a: ReplyInput): Promise<ReplyResult> {
     business: { name: a.businessName, type: a.businessType ?? null },
     review: { author: a.author, rating: a.rating, text: a.text },
   }, replyPrompt(a), 700);
-  return r ? { reply: r.text, provider: r.provider } : { reply: templateReply(a), provider: "template" };
+  return r && replyIsSafe(r.text, a) ? { reply: r.text, provider: r.provider } : { reply: templateReply(a), provider: "template" };
 }
 
 /* ------------------------------------------------------------------ admin: is the writer connected? */
