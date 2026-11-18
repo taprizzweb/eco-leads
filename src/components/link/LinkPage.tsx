@@ -6,7 +6,7 @@ import { Bike, CalendarDays, Coffee, Gift, Globe, Instagram, Facebook, Link2, Ma
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Mark } from "@/components/dash/AuthFrame";
 import { BRAND, GoogleIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
-import { getLinkTheme, safeUrl, telLink, waLink, type LinkData, type LinkOutlet } from "@/lib/linkpage";
+import { getLinkTheme, isVideo, safeUrl, telLink, waLink, type LinkData, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
 const ICONS: Record<string, Ico> = {
@@ -26,8 +26,8 @@ function Marquee({ children, seconds, label }: { children: React.ReactNode; seco
   );
 }
 
-/** One photo at a time, with dots. It moves on by itself and also follows a swipe. It runs backwards, opposite to the tag strip. */
-function Slider({ photos }: { photos: { url: string; caption?: string }[] }) {
+/** One photo or clip at a time, with dots. It moves on by itself and also follows a swipe. The direction is set per page. */
+function Slider({ photos, backward }: { photos: { url: string; caption?: string; kind?: "image" | "video" }[]; backward: boolean }) {
   const reduce = useReducedMotion();
   const [i, setI] = useState(0);
   const [hold, setHold] = useState(false);
@@ -42,9 +42,12 @@ function Slider({ photos }: { photos: { url: string; caption?: string }[] }) {
   }), [n]);
   useEffect(() => {
     if (reduce || hold || n < 2) return;
-    const t = setInterval(() => go(-1), 3200);
+    const t = setInterval(() => go(backward ? -1 : 1), 3600);
     return () => clearInterval(t);
-  }, [reduce, hold, n, go]);
+  }, [reduce, hold, n, go, backward]);
+  // only the clip on screen plays, muted and looping
+  const vids = useRef<(HTMLVideoElement | null)[]>([]);
+  useEffect(() => { vids.current.forEach((v, k) => { if (!v) return; if (k === i && !reduce) void v.play().catch((e) => console.warn("Clip could not start:", e?.name)); else v.pause(); }); }, [i, reduce]);
   return (
     <div className="rounded-[26px] px-0 py-4" style={{ background: "var(--l-surface)", boxShadow: "inset 0 0 0 1px var(--l-line)" }}>
       <div className="relative overflow-hidden touch-pan-y" role="group" aria-roledescription="carousel" aria-label="Photos"
@@ -55,8 +58,10 @@ function Slider({ photos }: { photos: { url: string; caption?: string }[] }) {
           {photos.map((p, k) => (
             <div key={p.url + k} className="w-[66%] shrink-0 px-[1.5%]" aria-hidden={k !== i}>
               <div className="aspect-square overflow-hidden rounded-[18px] transition-all duration-700" style={{ opacity: k === i ? 1 : 0.45, transform: k === i ? "scale(1)" : "scale(0.94)", background: "var(--l-bg)" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt={p.caption ?? `Photo ${k + 1}`} loading={k < 3 ? "eager" : "lazy"} decoding="async" draggable={false} className="h-full w-full object-cover" />
+                {isVideo(p)
+                  ? <video ref={(el) => { vids.current[k] = el; }} src={p.url} muted loop playsInline preload={k === 0 ? "auto" : "metadata"} aria-label={p.caption ?? `Clip ${k + 1}`} className="h-full w-full object-cover" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : <img src={p.url} alt={p.caption ?? `Photo ${k + 1}`} loading={k < 3 ? "eager" : "lazy"} decoding="async" draggable={false} className="h-full w-full object-cover" />}
               </div>
             </div>
           ))}
@@ -222,7 +227,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         )}
 
         {data.photos.length > 0 && (
-          <motion.section {...rise(3)} className="mt-4 px-3" aria-label="Photos"><Slider photos={data.photos} /></motion.section>
+          <motion.section {...rise(3)} className="mt-4 px-3" aria-label="Photos"><Slider photos={data.photos} backward={data.photo_direction === "backward"} /></motion.section>
         )}
 
         {buttons.length > 0 && (

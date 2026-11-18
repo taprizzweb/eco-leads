@@ -17,13 +17,15 @@ export const LINK_THEMES: Record<LinkTheme, ThemeDef> = {
 export const getLinkTheme = (id: string | null | undefined) => LINK_THEMES[(id as LinkTheme) in LINK_THEMES ? (id as LinkTheme) : "midnight"];
 
 export type LinkSocials = Partial<Record<"instagram" | "facebook" | "zomato" | "swiggy" | "phone" | "maps" | "whatsapp" | "website", string>>;
-export type LinkPhoto = { url: string; caption?: string };
+export type LinkPhoto = { url: string; caption?: string; kind?: "image" | "video" };
+export const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
+export const isVideo = (p: { url: string; kind?: string }) => p.kind === "video" || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(p.url);
 export type LinkButton = { label: string; url: string; icon: string };
 export type LinkOutlet = { name: string; city?: string; address?: string; instagram?: string; image_url?: string; map_url?: string; phone?: string; whatsapp?: string; review_url?: string };
 export type LinkReview = { author: string; rating: number; body: string; date?: string; avatar?: string };
 export type LinkData = {
   id: string; slug: string; name: string; tagline: string | null; logo_url: string | null; theme: string; tags: string[];
-  socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; reviews: LinkReview[];
+  socials: LinkSocials; photos: LinkPhoto[]; photo_direction?: "forward" | "backward"; buttons: LinkButton[]; outlets: LinkOutlet[]; reviews: LinkReview[];
 };
 
 export const BUTTON_ICONS = ["menu", "drink", "map", "mail", "phone", "globe", "calendar", "star", "gift", "bag", "outlets", "whatsapp", "zomato", "swiggy", "link"] as const;

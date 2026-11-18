@@ -7,12 +7,12 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
 import { useToast } from "@/components/dash/Toast";
 import { slugify } from "@/lib/features";
-import { BUTTON_ICONS, ICON_LABEL, indianNational, LINK_THEMES, type LinkButton, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
+import { BUTTON_ICONS, ICON_LABEL, indianNational, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, type LinkButton, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
 
 type Row = {
   id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; tags: string[];
   socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; reviews: LinkReview[];
-  show_client_reviews: boolean; published: boolean; fee_inr: number; billing_note: string | null;
+  show_client_reviews: boolean; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
 };
 
 // An Indian mobile number box: +91 is already there, the person types the 10 digits. Numbers that came in with another country code stay as they are.
@@ -68,6 +68,15 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
     return sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl;
   }
 
+  async function uploadVideo(file: File): Promise<string> {
+    if (file.size > MAX_VIDEO_BYTES) throw new Error("big");
+    const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
+    const path = `links/${r.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await sb.storage.from("page-assets").upload(path, file, { contentType: file.type || "video/mp4" });
+    if (error) throw error;
+    return sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl;
+  }
+
   async function save() {
     const slug = slugify(r.slug);
     if (!/^[a-z0-9-]{3,40}$/.test(slug)) return toast("The page link needs 3 to 40 letters, numbers or dashes.", true);
@@ -78,7 +87,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
     const { error } = await sb.from("link_pages").update({
       slug, name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, tags, socials,
       photos: r.photos.slice(0, 30), buttons: r.buttons.filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30),
-      reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, published: r.published,
+      reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, published: r.published, photo_direction: r.photo_direction,
       fee_inr: Math.max(0, Math.floor(Number(r.fee_inr) || 0)), billing_note: r.billing_note?.trim() || null, updated_at: new Date().toISOString(),
     }).eq("id", r.id);
     setBusy(false);
@@ -147,14 +156,17 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
           <F label="Tags" hint="comma separated"><textarea className="d-input" rows={2} value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder="Specialty Coffee, Pet Friendly, All-Day Dining" /></F>
         </Sec>
 
-        <Sec title="Photos" sub="One photo at a time with dots. It slides on its own, backwards compared with the tags. Three or more look best.">
-          <input ref={photoIn} type="file" accept="image/*" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (fs.length) void guard("photos", async () => { const urls: LinkPhoto[] = []; for (const f of fs.slice(0, 30 - r.photos.length)) urls.push({ url: await upload(f, 1200) }); setR((s) => ({ ...s, photos: [...s.photos, ...urls] })); }); }} />
+        <Sec title="Photos and videos" sub="One at a time with dots. It slides on its own. Videos play muted and loop. Images are shrunk automatically; videos can be up to 20 MB (MP4, WebM or MOV).">
+          <F label="Which way it moves"><select className="d-input !w-auto" value={r.photo_direction} onChange={(e) => set("photo_direction", e.target.value as Row["photo_direction"])}><option value="forward">Forward (the next one comes from the right)</option><option value="backward">Backward (the next one comes from the left)</option></select></F>
+          <input ref={photoIn} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (!fs.length) return; void guard("photos", async () => { const items: LinkPhoto[] = []; for (const f of fs.slice(0, 30 - r.photos.length)) { if (f.type.startsWith("video/")) { if (f.size > MAX_VIDEO_BYTES) { toast(`${f.name} is over 20 MB. Use a shorter clip.`, true); continue; } items.push({ url: await uploadVideo(f), kind: "video" }); } else items.push({ url: await upload(f, 1200) }); } setR((s) => ({ ...s, photos: [...s.photos, ...items] })); }); }} />
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {r.photos.map((p, i) => (
               <div key={p.url + i} className="space-y-1">
                 <div className="relative aspect-[4/5] overflow-hidden rounded-xl" style={{ background: "var(--d-bg)" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.url} alt={p.caption ?? `Photo ${i + 1}`} className="h-full w-full object-cover" />
+                  {isVideo(p)
+                    ? <><video src={p.url} muted playsInline preload="metadata" aria-label={`Clip ${i + 1}`} className="h-full w-full object-cover" /><span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">VIDEO</span></>
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : <img src={p.url} alt={p.caption ?? `Photo ${i + 1}`} className="h-full w-full object-cover" />}
                 </div>
                 <div className="flex justify-between">
                   <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Move photo ${i + 1} earlier`} disabled={i === 0} onClick={() => set("photos", move(r.photos, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={15} /></button>
@@ -164,7 +176,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
               </div>
             ))}
           </div>
-          <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= 30} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} Add photos ({r.photos.length} of 30)</button>
+          <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= 30} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} Add photos or videos ({r.photos.length} of 30)</button>
         </Sec>
 
         <Sec title="Link buttons" sub='Each one opens a link. Choose "Opens the outlets list" for the Our Outlets button.'>
