@@ -6,7 +6,7 @@ import { Bike, CalendarDays, Coffee, Gift, Globe, Instagram, Facebook, Link2, Ma
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Mark } from "@/components/dash/AuthFrame";
 import { BRAND, GoogleIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
-import { getLinkTheme, isVideo, safeUrl, telLink, waLink, type LinkData, type LinkOutlet } from "@/lib/linkpage";
+import { getLinkTheme, isVideo, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
 const ICONS: Record<string, Ico> = {
@@ -146,12 +146,75 @@ function OutletsSheet({ outlets, onClose, onClick }: { outlets: LinkOutlet[]; on
   );
 }
 
+function OffersSheet({ offers, outlets, onClose, onClick }: { offers: LinkOffer[]; outlets: LinkOutlet[]; onClose: () => void; onClick: () => void }) {
+  const panel = useRef<HTMLDivElement>(null);
+  // Offers are grouped by outlet, in the order of the outlets list. Offers for every outlet come first.
+  const groups = useMemo(() => {
+    const names = [...new Set(offers.map((o) => (o.outlet ?? "").trim()))];
+    const order = ["", ...outlets.map((o) => o.name.trim())];
+    names.sort((a, b) => (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b)));
+    return names.map((n) => ({ name: n, items: offers.filter((o) => (o.outlet ?? "").trim() === n) }));
+  }, [offers, outlets]);
+  const [pick, setPick] = useState("__all");
+  const shown = pick === "__all" ? groups : groups.filter((g) => g.name === pick);
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = "hidden";
+    const t = setTimeout(() => panel.current?.querySelector<HTMLElement>("button")?.focus(), 50);
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", key);
+    return () => { clearTimeout(t); document.body.style.overflow = ""; window.removeEventListener("keydown", key); prev?.focus(); };
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="Offers">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <motion.div ref={panel} initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="relative max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-t-[22px] bg-white px-5 pb-10 text-[#111]" style={{ boxShadow: "0 -20px 60px -20px rgba(0,0,0,0.6)" }}>
+        <div className="sticky top-0 z-10 -mx-5 flex items-center gap-2 bg-white px-5 py-4">
+          <h2 className="flex-1 text-[17px] font-semibold tracking-[-0.01em]">Offers</h2>
+          <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full text-black/70"><X size={20} /></button>
+        </div>
+        {groups.length > 1 && (
+          <div className="-mx-5 mb-3 flex gap-2 overflow-x-auto px-5 pb-1 no-scrollbar" role="tablist" aria-label="Choose an outlet">
+            {[{ id: "__all", label: "All" }, ...groups.map((g) => ({ id: g.name, label: g.name || "Every outlet" }))].map((c) => (
+              <button key={c.id} role="tab" aria-selected={pick === c.id} onClick={() => setPick(c.id)} className="h-8 shrink-0 rounded-full px-3.5 text-[12.5px] font-medium" style={pick === c.id ? { background: "#111", color: "#fff" } : { background: "rgba(0,0,0,0.06)", color: "#333" }}>{c.label}</button>
+            ))}
+          </div>
+        )}
+        <div className="space-y-6">
+          {shown.map((g) => (
+            <section key={g.name} aria-label={g.name || "Every outlet"}>
+              <h3 className="mb-2 text-[11px] font-semibold tracking-[0.18em] text-black/50 uppercase">{g.name || "At every outlet"}</h3>
+              <ul className="space-y-2.5">
+                {g.items.map((o, i) => {
+                  const href = safeUrl(o.link);
+                  return (
+                    <li key={i} className="rounded-2xl p-4" style={{ background: "rgba(0,0,0,0.04)", boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)" }}>
+                      <p className="text-[15px] font-semibold">{o.title}</p>
+                      {o.details && <p className="mt-1 text-[13px] leading-snug text-black/60">{o.details}</p>}
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                        {o.valid_till && <span className="rounded-full bg-black/[0.07] px-2.5 py-1 text-[11px] font-medium text-black/65">{o.valid_till}</span>}
+                        {href && <a href={href} target={href.startsWith("tel:") || href.startsWith("mailto:") ? undefined : "_blank"} rel="noopener" onClick={onClick} className="rounded-full bg-black px-3.5 py-1.5 text-[12px] font-semibold text-white">Get this offer</a>}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 const PALETTE = ["#6c5ce7", "#00a3a3", "#e17055", "#0984e3", "#d63384", "#2d9b5e"];
 
 export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean }) {
   const theme = getLinkTheme(data.theme);
   const reduce = useReducedMotion();
   const [outlets, setOutlets] = useState(false);
+  const [offersOpen, setOffersOpen] = useState(false);
   const [note, setNote] = useState("");
   const sb = supabaseBrowser();
   const track = (kind: "view" | "click") => { if (!preview) void sb.rpc("link_track", { p_id: data.id, p_kind: kind }); };
@@ -180,7 +243,8 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
     s.website && { href: s.website, label: "Website", node: <Globe size={22} strokeWidth={1.6} />, brand: null },
   ].filter(Boolean) as { href: string; label: string; node: React.ReactNode; brand: { bg: string; fg: string } | null }[];
 
-  const buttons = data.buttons.filter((b) => b.label.trim() && (b.url === "#outlets" ? data.outlets.length > 0 : !!safeUrl(b.url)));
+  const offers = (data.offers ?? []).filter((o) => o.title.trim());
+  const buttons = data.buttons.filter((b) => b.label.trim() && (b.url === "#outlets" ? data.outlets.length > 0 : b.url === "#offers" ? offers.length > 0 : !!safeUrl(b.url)));
   const rise = (i: number) => (reduce ? {} : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] as const } });
   const topBtn = "grid h-9 w-9 place-items-center rounded-full transition active:scale-90";
 
@@ -234,16 +298,22 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.nav {...rise(4)} aria-label="Links" className="mt-4 space-y-2.5 px-3">
             {buttons.map((b, i) => {
               const Icon = ICONS[b.icon] ?? Link2;
+              // Zomato and Swiggy show their own logos, not a generic icon
+              const glyph = b.icon === "zomato"
+                ? <span className="grid h-6 w-9 place-items-center rounded-md" style={{ background: BRAND.zomato.bg, color: BRAND.zomato.fg }}><ZomatoIcon size={15} /></span>
+                : b.icon === "swiggy"
+                  ? <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: BRAND.swiggy.bg, color: BRAND.swiggy.fg }}><SwiggyIcon size={17} /></span>
+                  : <Icon size={21} strokeWidth={1.7} />;
               const inner = (
                 <>
-                  <span className="absolute left-4 grid h-6 w-6 place-items-center" aria-hidden><Icon size={21} strokeWidth={1.7} /></span>
+                  <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{glyph}</span>
                   <span className="text-[22px] leading-none tracking-[0.03em] uppercase" style={display}>{b.label}</span>
                 </>
               );
               const cls = "relative flex min-h-[52px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]";
               const st = { background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8)" } as const;
-              return b.url === "#outlets"
-                ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click"); setOutlets(true); }}>{inner}</button>
+              return b.url === "#outlets" || b.url === "#offers"
+                ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click"); if (b.url === "#offers") setOffersOpen(true); else setOutlets(true); }}>{inner}</button>
                 : <a key={i} href={b.url} target={b.url.startsWith("tel:") || b.url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener" className={cls} style={st} onClick={() => track("click")}>{inner}</a>;
             })}
           </motion.nav>
@@ -272,6 +342,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
 
         <footer className="mt-6 text-center text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}>Powered by Taprizz</footer>
       </main>
+      {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click")} />}
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click")} />}
     </div>
   );

@@ -12,7 +12,7 @@ async function load(slug: string, preview: boolean): Promise<LinkData | null> {
   if (data) return data as LinkData;
   if (!preview) return null;
   // The Taprizz team may preview a page that is not published yet (the table is closed to everyone else).
-  const { data: row } = await sb.from("link_pages").select("id, slug, name, tagline, logo_url, theme, tags, socials, photos, photo_direction, buttons, outlets, reviews").eq("slug", slug.toLowerCase()).maybeSingle();
+  const { data: row } = await sb.from("link_pages").select("id, slug, name, tagline, logo_url, theme, tags, socials, photos, photo_direction, buttons, outlets, offers, reviews").eq("slug", slug.toLowerCase()).maybeSingle();
   return row ? (row as unknown as LinkData) : null;
 }
 

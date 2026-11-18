@@ -37,12 +37,14 @@ export function LinksAdmin({ links, clients }: { links: LinkRow[]; clients: Clie
       if (!c) return setErr("Pick a business.");
       const { data: cl } = await sb.from("clients").select("name, tagline, logo_url, google_review_url, menu_url, socials, keywords").eq("id", c.id).single();
       const { data: ph } = await sb.from("gallery_photos").select("url, caption").eq("client_id", c.id).order("sort").limit(14);
+      const { data: of } = await sb.from("offers").select("title, details, ends_at").eq("client_id", c.id).or(`ends_at.is.null,ends_at.gte.${new Date().toISOString().slice(0, 10)}`).limit(20);
       const socials = (cl?.socials ?? {}) as Record<string, string>;
       const buttons = DEFAULT_BUTTONS.map((b) => (b.icon === "menu" ? { ...b, url: cl?.menu_url ?? "" } : b));
       row = {
         client_id: c.id, name: cl?.name ?? c.name, slug: slugify(slug || c.slug), tagline: cl?.tagline ?? null, logo_url: cl?.logo_url ?? null, theme,
         tags: cl?.keywords ?? [], socials: { instagram: socials.instagram, facebook: socials.facebook, zomato: socials.zomato, swiggy: socials.swiggy, phone: socials.phone, maps: socials.maps },
         photos: (ph ?? []).map((p) => ({ url: p.url, caption: p.caption ?? undefined })), buttons,
+        offers: (of ?? []).map((o) => ({ outlet: "", title: o.title, details: o.details ?? undefined, valid_till: o.ends_at ? `Valid till ${new Date(o.ends_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}` : undefined })),
         outlets: cl?.google_review_url ? [{ name: cl?.name ?? c.name, review_url: cl.google_review_url, map_url: socials.maps ?? "", phone: socials.phone ?? "" }] : [],
       };
     } else {

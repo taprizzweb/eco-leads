@@ -7,11 +7,11 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
 import { useToast } from "@/components/dash/Toast";
 import { slugify } from "@/lib/features";
-import { BUTTON_ICONS, ICON_LABEL, indianNational, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, type LinkButton, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
+import { BUTTON_ICONS, ICON_LABEL, indianNational, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, type LinkButton, type LinkOffer, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
 
 type Row = {
   id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; tags: string[];
-  socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; reviews: LinkReview[];
+  socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; offers: LinkOffer[]; reviews: LinkReview[];
   show_client_reviews: boolean; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
 };
 
@@ -89,7 +89,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
     setBusy(true);
     const { error } = await sb.from("link_pages").update({
       slug, name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, tags, socials,
-      photos: r.photos.slice(0, 30), buttons: r.buttons.filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30),
+      photos: r.photos.slice(0, 30), buttons: r.buttons.filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30), offers: r.offers.filter((o) => o.title.trim()).slice(0, 60),
       reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, published: r.published, photo_direction: r.photo_direction,
       fee_inr: Math.max(0, Math.floor(Number(r.fee_inr) || 0)), billing_note: r.billing_note?.trim() || null, updated_at: new Date().toISOString(),
     }).eq("id", r.id);
@@ -182,7 +182,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
           <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= 30} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} Add photos or videos ({r.photos.length} of 30)</button>
         </Sec>
 
-        <Sec title="Link buttons" sub='Each one opens a link. Choose "Opens the outlets list" for the Our Outlets button.'>
+        <Sec title="Link buttons" sub="Each one opens a link. The Outlets and Offers shortcuts open a list on the page instead.">
           <div className="space-y-3">
             {r.buttons.map((b, i) => (
               <div key={i} className="d-raise space-y-2 p-3">
@@ -193,11 +193,12 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
                   <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Move button ${i + 1} down`} disabled={i === r.buttons.length - 1} onClick={() => set("buttons", move(r.buttons, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={16} /></button>
                   <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove button ${i + 1}`} onClick={() => set("buttons", r.buttons.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={16} /></button>
                 </div>
-                {b.url === "#outlets" ? (
-                  <div className="flex items-center justify-between gap-2 text-sm" style={{ color: "var(--d-muted)" }}><span>Opens the outlets list{r.outlets.length === 0 ? " (add outlets below first)" : ""}.</span><button type="button" className="underline underline-offset-4" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "" } : x)))}>Use a link instead</button></div>
+                {b.url === "#outlets" || b.url === "#offers" ? (
+                  <div className="flex items-center justify-between gap-2 text-sm" style={{ color: "var(--d-muted)" }}><span>{b.url === "#offers" ? `Opens the offers list, outlet by outlet${r.offers.length === 0 ? " (add offers below first)" : ""}.` : `Opens the outlets list${r.outlets.length === 0 ? " (add outlets below first)" : ""}.`}</span><button type="button" className="underline underline-offset-4" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "" } : x)))}>Use a link instead</button></div>
                 ) : (
                   <div className="flex gap-2"><input aria-label={`Button ${i + 1} link`} className="d-input !min-h-10" inputMode="url" maxLength={500} value={b.url} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: e.target.value } : x)))} placeholder="https://, tel: or mailto:" />
-                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#outlets", icon: "outlets" } : x)))}>Outlets</button></div>
+                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#outlets", icon: "outlets" } : x)))}>Outlets</button>
+                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#offers", icon: "gift" } : x)))}>Offers</button></div>
                 )}
               </div>
             ))}
@@ -244,6 +245,37 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
             })}
           </div>
           <button type="button" className="d-btn d-btn-s" disabled={r.outlets.length >= 30} onClick={() => set("outlets", [...r.outlets, { name: "" }])}><Plus size={15} /> Add outlet</button>
+        </Sec>
+
+        <Sec title="Offers" sub="Pick the outlet, write the offer. Guests press the Offers button and see the offers outlet by outlet, with no photos. Each offer can have its own link.">
+          <div className="space-y-3">
+            {r.offers.map((o, i) => {
+              const upd = (p: Partial<LinkOffer>) => set("offers", r.offers.map((x, k) => (k === i ? { ...x, ...p } : x)));
+              const names = r.outlets.map((x) => x.name.trim()).filter(Boolean);
+              return (
+                <div key={i} className="d-raise space-y-2 p-3">
+                  <div className="flex gap-2">
+                    <select aria-label={`Offer ${i + 1} outlet`} className="d-input !min-h-10" value={o.outlet} onChange={(e) => upd({ outlet: e.target.value })}>
+                      <option value="">Every outlet</option>
+                      {names.map((n) => <option key={n} value={n}>{n}</option>)}
+                      {o.outlet && !names.includes(o.outlet) && <option value={o.outlet}>{o.outlet} (removed)</option>}
+                    </select>
+                    <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Move offer ${i + 1} up`} disabled={i === 0} onClick={() => set("offers", move(r.offers, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={16} /></button>
+                    <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Move offer ${i + 1} down`} disabled={i === r.offers.length - 1} onClick={() => set("offers", move(r.offers, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={16} /></button>
+                    <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove offer ${i + 1}`} onClick={() => set("offers", r.offers.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={16} /></button>
+                  </div>
+                  <input aria-label={`Offer ${i + 1} title`} className="d-input !min-h-10" maxLength={80} value={o.title} onChange={(e) => upd({ title: e.target.value })} placeholder="2% off on the final bill" />
+                  <textarea aria-label={`Offer ${i + 1} details`} className="d-input" rows={2} maxLength={300} value={o.details ?? ""} onChange={(e) => upd({ details: e.target.value })} placeholder="Details: timing, conditions" />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input aria-label={`Offer ${i + 1} valid till`} className="d-input !min-h-10" maxLength={40} value={o.valid_till ?? ""} onChange={(e) => upd({ valid_till: e.target.value })} placeholder="Valid till 30 Nov" />
+                    <input aria-label={`Offer ${i + 1} link`} className="d-input !min-h-10" inputMode="url" maxLength={500} value={o.link ?? ""} onChange={(e) => upd({ link: e.target.value })} placeholder="Link for this offer (optional)" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button type="button" className="d-btn d-btn-s" disabled={r.offers.length >= 60} onClick={() => set("offers", [...r.offers, { outlet: r.outlets[0]?.name.trim() ?? "", title: "" }])}><Plus size={15} /> Add offer</button>
+          {r.offers.length > 0 && !r.buttons.some((b) => b.url === "#offers") && <p className="text-xs" style={{ color: "var(--d-amber)" }}>There is no Offers button yet. Add one in Link buttons and press the Offers shortcut, or guests will not see these.</p>}
         </Sec>
 
         <Sec title="Reviews" sub="Shown as a moving row of Google review cards.">

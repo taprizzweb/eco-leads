@@ -22,10 +22,12 @@ export const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 export const isVideo = (p: { url: string; kind?: string }) => p.kind === "video" || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(p.url);
 export type LinkButton = { label: string; url: string; icon: string };
 export type LinkOutlet = { name: string; city?: string; address?: string; instagram?: string; image_url?: string; map_url?: string; phone?: string; whatsapp?: string; review_url?: string };
+/** An offer of one outlet. `outlet` is the outlet name; empty means every outlet. */
+export type LinkOffer = { outlet: string; title: string; details?: string; link?: string; valid_till?: string };
 export type LinkReview = { author: string; rating: number; body: string; date?: string; avatar?: string };
 export type LinkData = {
   id: string; slug: string; name: string; tagline: string | null; logo_url: string | null; theme: string; tags: string[];
-  socials: LinkSocials; photos: LinkPhoto[]; photo_direction?: "forward" | "backward"; buttons: LinkButton[]; outlets: LinkOutlet[]; reviews: LinkReview[];
+  socials: LinkSocials; photos: LinkPhoto[]; photo_direction?: "forward" | "backward"; buttons: LinkButton[]; outlets: LinkOutlet[]; offers?: LinkOffer[]; reviews: LinkReview[];
 };
 
 export const BUTTON_ICONS = ["menu", "drink", "map", "mail", "phone", "globe", "calendar", "star", "gift", "bag", "outlets", "whatsapp", "zomato", "swiggy", "link"] as const;
@@ -59,6 +61,7 @@ export const safeUrl = (v: string | undefined | null) => { const s = (v ?? "").t
 export const DEFAULT_BUTTONS: LinkButton[] = [
   { label: "Food Menu", url: "", icon: "menu" },
   { label: "Beverage Menu", url: "", icon: "drink" },
+  { label: "Offers", url: "#offers", icon: "gift" },
   { label: "Our Outlets", url: "#outlets", icon: "outlets" },
   { label: "Contact Us", url: "", icon: "mail" },
 ];
