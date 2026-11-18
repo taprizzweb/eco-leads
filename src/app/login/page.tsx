@@ -6,13 +6,14 @@ import { Loader2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AuthFrame, authBtn, authBtnStrong, authInput, authLabel } from "@/components/dash/AuthFrame";
 import { GoogleMark } from "@/components/ui/modern-stunning-sign-in";
+import { safeNext } from "@/lib/safe-next";
 
 // One sign-in for everyone: business owners and staff, the Taprizz admin and Taprizz employees.
 // Where each person lands afterwards depends on their role, not on the login screen.
 function LoginInner() {
   const params = useSearchParams();
   const router = useRouter();
-  const next = params.get("next") || "/dashboard";
+  const next = safeNext(params.get("next"));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(params.get("error") ? "Google sign-in did not finish. Please try again." : "");
   const [email, setEmail] = useState("");

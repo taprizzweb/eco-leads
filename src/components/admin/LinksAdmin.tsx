@@ -110,7 +110,7 @@ export function LinksAdmin({ links, clients }: { links: LinkRow[]; clients: Clie
                 ? <img src={l.logo_url} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
                 : <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-lg font-bold" style={{ background: "var(--d-bg)", color: "var(--d-text)" }}>{l.name.slice(0, 1).toUpperCase()}</span>}
               <div className="min-w-0 flex-1">
-                <Link href={`/admin/tools/links/${l.id}`} className="block truncate font-semibold hover:underline">{l.name}</Link>
+                <Link href={`/admin/tools/links/${l.id}`} className="block truncate py-1 font-semibold hover:underline">{l.name}</Link>
                 <p className="truncate text-xs" style={{ color: "var(--d-muted)" }}>/l/{l.slug} · {l.views} views · {l.clicks} taps{l.fee_inr ? ` · Rs ${l.fee_inr.toLocaleString("en-IN")}` : " · free"}</p>
                 <div className="mt-1 flex gap-1.5">{l.published ? <Pill tone="green">Live</Pill> : <Pill tone="amber">Draft</Pill>}{l.client_id ? <Pill tone="blue">Registered</Pill> : <Pill tone="gray">Link only</Pill>}</div>
               </div>

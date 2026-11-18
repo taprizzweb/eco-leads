@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Loader2, Copy, Check, MessageCircle, KeyRound } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AuthFrame, authBtn, authBtnStrong, authInput, authLabel } from "@/components/dash/AuthFrame";
+import { safeNext } from "@/lib/safe-next";
 
 type Status = { verified: boolean; whatsapp_ready: boolean; phone: string | null; phone_verified: boolean; has_totp: boolean; pending_to: string | null; retry_in: number };
 type Mode =
@@ -19,7 +20,7 @@ type Mode =
 // and "Trust this device" skips this screen for 30 days, so each code costs money only when needed.
 function VerifyInner() {
   const params = useSearchParams();
-  const next = params.get("next") || "/dashboard";
+  const next = safeNext(params.get("next"));
   const [status, setStatus] = useState<Status | null>(null);
   const [mode, setMode] = useState<Mode>({ kind: "loading" });
   const [phone, setPhone] = useState("");

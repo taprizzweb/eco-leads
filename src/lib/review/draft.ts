@@ -157,7 +157,20 @@ async function callCustom(task: "review_draft" | "review_reply", payload: Record
   return String(j.text ?? j.review ?? j.reply ?? "");
 }
 
-const clean = (t: string, max: number) => t.trim().replace(/^["'“”]+|["'“”]+$/g, "").slice(0, max);
+/** Tidies what a model sends back: code fences, "Review:" labels, quotes, markdown and line breaks go; a cut-off ending is trimmed to the last full sentence. */
+const clean = (t: string, max: number) => {
+  let s = t.replace(/\r/g, "").trim();
+  s = s.replace(/^```[a-z]*\s*/i, "").replace(/\s*```$/, "").trim();
+  s = s.replace(/^(here(?:'|’)s|here is)[^:\n]{0,40}:\s*/i, "").replace(/^(google\s+)?review\s*[:：-]\s*/i, "").replace(/^(final|draft|output|text)\s*[:：-]\s*/i, "");
+  s = s.replace(/\*\*|__|`/g, "").replace(/\s*\n+\s*/g, " ").replace(/\s{2,}/g, " ");
+  s = s.replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
+  if (s.length > max) {
+    const cut = s.slice(0, max);
+    const last = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("।"), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+    s = last > max * 0.5 ? cut.slice(0, last + 1) : cut;
+  }
+  return s;
+};
 const withTimeout = <T,>(p: Promise<T>, ms = 8000) =>
   Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 
@@ -376,12 +389,30 @@ function templateFromAnswers(r: ReviewRequest, business: string): string {
  * not too similar to the business's recent drafts. Without a working AI provider it falls back to plain sentences,
  * which is what guests get until an AI key is connected.
  */
+/** Removes the sentences that break a rule (rewards, links, numbers, hashtags, stock phrases, "my name is"). Returns what is left. */
+export function repairDraft(text: string, cfg: StudioConfig): string {
+  const bad = (x: string) => /(#\w+|[\u{1F300}-\u{1FAFF}]|https?:\/\/|www\.|\d{6,}|\b(discount|coupon|voucher|cashback|% off|percent off|free gift|in return)\b)/iu.test(x)
+    || [...GENERIC_BANNED, ...(cfg.banned ?? [])].some((b) => b.trim() && x.toLowerCase().includes(b.toLowerCase()))
+    || /^\s*(i am|i'm|my name is|main hoon|mera naam)\b/i.test(x);
+  const sentences = text.match(/[^.!?।]+[.!?।]*/g) ?? [];
+  return sentences.map((x) => x.trim()).filter((x) => x && !bad(x)).join(" ").trim();
+}
+
+/**
+ * Writes one review. Up to four attempts: each gets a fresh random shape, and an attempt is accepted only when it is
+ * not too similar to the business's recent drafts and passes the rules. If every attempt breaks a rule, the offending
+ * sentences are cut out; if too little is left, the guest is asked to try again. A draft that breaks a rule is never returned.
+ * Without a connected AI it falls back to plain sentences.
+ */
 export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSigs: number[][], opts: { tries?: number } = {}): Promise<WrittenReview> {
   const factCount = r.answers.filter((a) => a.values.length).length;
   let best: WrittenReview | null = null;
+  const broken: { text: string; provider: string; shape: Shape }[] = [];
   const attempts = opts.tries ?? 4;
   const deadline = Date.now() + 24000; // the API route may run for 30 s at most
-  for (let i = 0; i < attempts; i++) {
+  // Up to two extra attempts when the best draft so far is almost a copy of a recent one.
+  for (let i = 0; i < attempts + 2; i++) {
+    if (i >= attempts && (!best || best.similarity < 0.85 || Date.now() > deadline - 6000)) break;
     const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, factCount, r.language, r.rating);
     const prompt = buildReviewPrompt(cfg, r, shape, i > 0);
     const out = await run("review_draft", {
@@ -389,18 +420,24 @@ export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSig
       rating: r.rating, language: r.language, name: r.name, answers: r.answers, extra: r.extra, rules: cfg.rules, shape, prompt,
     }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 0.9 + Math.random() * 0.3, deadline });
     if (!out) break; // no provider, or it failed: no point trying again
+    if (looksMachineMade(out.text, shape, cfg)) { broken.push({ text: out.text, provider: out.provider, shape }); continue; }
     const sig = shingles(out.text);
-    const bad = looksMachineMade(out.text, shape, cfg);
-    // a draft that sounds machine-made counts as maximally similar, so a better one replaces it
-    const sim = bad ? 1 : maxSimilarity(sig, recentSigs);
+    const sim = maxSimilarity(sig, recentSigs);
     const cand: WrittenReview = { draft: out.text, provider: out.provider, sig, similarity: sim, tries: i + 1 };
     if (!best || sim < best.similarity) best = cand;
     if (sim < 0.4) break;
   }
   if (best) return best;
+  // Every attempt broke a rule: keep what is still clean, if enough is left.
+  for (const b of broken) {
+    const fixed = repairDraft(b.text, cfg);
+    if (fixed && !looksMachineMade(fixed, { ...b.shape, lines: Math.min(b.shape.lines, 2) }, cfg)) {
+      return { draft: fixed, provider: b.provider, sig: shingles(fixed), similarity: 0.5, tries: attempts };
+    }
+  }
   // A connected AI that is busy must never be answered with the plain template: ask the guest to try again instead.
   const st = aiStatus();
-  if (st.provider !== "template" && st.ready) throw new ReviewBusy(lastProviderError);
+  if (st.provider !== "template" && st.ready) throw new ReviewBusy(broken.length ? "the writer's answers broke the rules" : lastProviderError);
   const t = templateFromAnswers(r, cfg.business.name);
   return { draft: t, provider: "template", sig: shingles(t), similarity: 0, tries: 0 };
 }

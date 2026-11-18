@@ -70,7 +70,7 @@ function Slider({ photos, backward }: { photos: { url: string; caption?: string;
       {n > 1 && (
         <div className="mt-3 flex justify-center gap-1.5" role="tablist" aria-label="Choose a photo">
           {photos.map((_, k) => (
-            <button key={k} role="tab" aria-selected={k === i} aria-label={`Photo ${k + 1}`} onClick={() => setI(k)} className="grid h-4 w-4 place-items-center">
+            <button key={k} role="tab" aria-selected={k === i} aria-label={`Photo ${k + 1}`} onClick={() => setI(k)} className="grid h-6 w-6 place-items-center">
               <span className="block rounded-full transition-all" style={{ width: k === i ? 8 : 5, height: k === i ? 8 : 5, background: k === i ? "var(--l-text)" : "var(--l-muted)", opacity: k === i ? 1 : 0.55 }} />
             </button>
           ))}
