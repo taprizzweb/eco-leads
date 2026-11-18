@@ -1,7 +1,7 @@
 // Guest page themes. Each client picks one in My Page; more can be added here.
 // Every theme defines the same CSS variables so components never hard-code colours.
 
-export type ThemeId = "graphite" | "navy" | "midnight" | "pastel" | "sand" | "forest";
+export type ThemeId = "graphite" | "navy" | "midnight" | "pastel" | "sand" | "forest" | "midnightblue" | "gold" | "ocean" | "wine" | "plum" | "ivory";
 
 type Theme = {
   label: string;
@@ -106,6 +106,102 @@ export const THEMES: Record<ThemeId, Theme> = {
       "--strip-text": "#FFFFFF",
       "--pill": "#1D3A2D",
       "--pill-text": "#D6EDE0",
+    },
+  },
+  midnightblue: {
+    label: "Midnight Blue",
+    dark: true,
+    vars: {
+      "--bg": "#050A1A",
+      "--surface": "#0E1630",
+      "--surface-2": "#16203F",
+      "--text": "#EEF2FF",
+      "--muted": "#8F9BC0",
+      "--border": "rgba(255,255,255,0.08)",
+      "--strip": "#EEF2FF",
+      "--strip-text": "#050A1A",
+      "--pill": "#172044",
+      "--pill-text": "#D5DEFF",
+    },
+  },
+  gold: {
+    label: "Obsidian Gold",
+    dark: true,
+    vars: {
+      "--bg": "#09090A",
+      "--surface": "#151413",
+      "--surface-2": "#1E1C1A",
+      "--text": "#F6F1E7",
+      "--muted": "#A39B88",
+      "--border": "rgba(255,255,255,0.08)",
+      "--strip": "#D8B25C",
+      "--strip-text": "#09090A",
+      "--pill": "#24211B",
+      "--pill-text": "#EBDDB8",
+    },
+  },
+  ocean: {
+    label: "Deep Ocean",
+    dark: true,
+    vars: {
+      "--bg": "#041418",
+      "--surface": "#0A2229",
+      "--surface-2": "#0F2E37",
+      "--text": "#E9FBFA",
+      "--muted": "#86B1B2",
+      "--border": "rgba(255,255,255,0.08)",
+      "--strip": "#3FD9CC",
+      "--strip-text": "#041418",
+      "--pill": "#123942",
+      "--pill-text": "#CFF5F1",
+    },
+  },
+  wine: {
+    label: "Burgundy",
+    dark: true,
+    vars: {
+      "--bg": "#14060B",
+      "--surface": "#240D14",
+      "--surface-2": "#31121C",
+      "--text": "#FDEEF2",
+      "--muted": "#B58A96",
+      "--border": "rgba(255,255,255,0.08)",
+      "--strip": "#F0678B",
+      "--strip-text": "#14060B",
+      "--pill": "#3E1824",
+      "--pill-text": "#F8D5DE",
+    },
+  },
+  plum: {
+    label: "Plum",
+    dark: true,
+    vars: {
+      "--bg": "#0D0716",
+      "--surface": "#1A1030",
+      "--surface-2": "#241640",
+      "--text": "#F4EEFF",
+      "--muted": "#A592C8",
+      "--border": "rgba(255,255,255,0.08)",
+      "--strip": "#A984FF",
+      "--strip-text": "#0D0716",
+      "--pill": "#2D1D52",
+      "--pill-text": "#E3D8FF",
+    },
+  },
+  ivory: {
+    label: "Ivory",
+    dark: false,
+    vars: {
+      "--bg": "#F7F3EC",
+      "--surface": "#FFFFFF",
+      "--surface-2": "#F0EADD",
+      "--text": "#1B1710",
+      "--muted": "#7B7365",
+      "--border": "rgba(27,23,16,0.09)",
+      "--strip": "#1B1710",
+      "--strip-text": "#F7F3EC",
+      "--pill": "#EBE2D0",
+      "--pill-text": "#4A3C1F",
     },
   },
 };

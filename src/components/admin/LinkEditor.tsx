@@ -192,6 +192,8 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
 
         <Sec title="Outlets" sub="One card per store, with a photo, address and buttons for directions, WhatsApp, call and Google review.">
           <input ref={outletIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; const i = outletTarget.current; e.target.value = ""; if (f) void guard(`outlet${i}`, async () => { const u = await upload(f, 1200); setR((s) => ({ ...s, outlets: s.outlets.map((o, k) => (k === i ? { ...o, image_url: u } : o)) })); }); }} />
+          <datalist id="outlet-tags">{[...new Set(r.outlets.map((o) => (o.city ?? "").trim()).filter(Boolean))].map((t) => <option key={t} value={t} />)}</datalist>
+          <p className="text-xs" style={{ color: "var(--d-muted)" }}>The <b>filter tag</b> is the short name guests see in the dropdown at the top of the outlets list (All, Jaipur, Delhi...). Give outlets of the same area the same tag. Leave it empty on every outlet to hide the dropdown. Keep it short: a city or area, not the full address.</p>
           <div className="space-y-4">
             {r.outlets.map((o, i) => {
               const upd = (p: Partial<LinkOutlet>) => set("outlets", r.outlets.map((x, k) => (k === i ? { ...x, ...p } : x)));
@@ -206,7 +208,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
                     <div className="min-w-0 flex-1 space-y-2">
                       <input aria-label={`Outlet ${i + 1} name`} className="d-input !min-h-10" maxLength={80} value={o.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Town Coffee 1.0" />
                       <input aria-label={`Outlet ${i + 1} address`} className="d-input !min-h-10" maxLength={200} value={o.address ?? ""} onChange={(e) => upd({ address: e.target.value })} placeholder="Address" />
-                      <input aria-label={`Outlet ${i + 1} city`} className="d-input !min-h-10" maxLength={40} value={o.city ?? ""} onChange={(e) => upd({ city: e.target.value })} placeholder="City (for the filter, e.g. Jaipur)" />
+                      <input aria-label={`Outlet ${i + 1} filter tag`} list="outlet-tags" className="d-input !min-h-10" maxLength={30} value={o.city ?? ""} onChange={(e) => upd({ city: e.target.value })} placeholder="Filter tag, e.g. Malviya Nagar or Jaipur" />
                     </div>
                     <div className="flex shrink-0 flex-col">
                       <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Move outlet ${i + 1} up`} disabled={i === 0} onClick={() => set("outlets", move(r.outlets, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={15} /></button>
