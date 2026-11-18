@@ -8,7 +8,7 @@ import { ToastProvider } from "@/components/dash/Toast";
 import { Mark } from "@/components/dash/AuthFrame";
 
 const KEY = "taprizz-dash-mode";
-type Item = { href: string; label: string; Icon: typeof Users; exact?: boolean; min?: "manager"; badge?: number };
+type Item = { href: string; label: string; Icon: typeof Users; exact?: boolean; min?: "manager"; badge?: number; also?: string[] };
 
 export function AdminShell({ role, email, alerts, children }: { role: "owner" | "manager" | "rep"; email: string; alerts: number; children: React.ReactNode }) {
   const path = usePathname();
@@ -29,12 +29,12 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
     { href: "/admin/alerts", label: "Alerts", Icon: BellRing, badge: alerts },
     { href: "/admin/billing", label: "Billing", Icon: Wallet },
     { href: "/admin/packages", label: "Packages", Icon: Layers },
-    { href: "/admin/ai-studio", label: "AI Review Studio", Icon: Sparkles, min: "manager" },
+    { href: "/admin/tools", label: "Tools", Icon: Sparkles, min: "manager", also: ["/admin/ai-studio"] },
     { href: "/admin/integrations", label: "Integrations", Icon: Plug, min: "manager" },
     { href: "/admin/audit", label: "Audit log", Icon: ScrollText, min: "manager" },
     { href: "/admin/team", label: "Team", Icon: UserCog, min: "manager" },
   ].filter((i) => !i.min || role !== "rep") as Item[];
-  const on = (i: Item) => (i.exact ? path === i.href : path.startsWith(i.href));
+  const on = (i: Item) => (i.exact ? path === i.href : path.startsWith(i.href) || !!i.also?.some((a) => path.startsWith(a)));
   const ModeIcon = mode === "dark" ? Sun : Moon;
   const iconBtn = "grid h-11 w-11 place-items-center rounded-xl";
   const iconStyle = { background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" };

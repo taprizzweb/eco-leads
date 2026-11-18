@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 
@@ -16,6 +16,7 @@ export function Shell({
   openCount,
   contentCount = 0,
   isTeam = false,
+  waOn = false,
   children,
 }: {
   slug: string;
@@ -24,6 +25,7 @@ export function Shell({
   openCount: number;
   contentCount?: number;
   isTeam?: boolean;
+  waOn?: boolean;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -49,10 +51,11 @@ export function Shell({
     { href: `${base}/reviews`, label: "Reviews", Icon: Star },
     { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft },
+    ...(waOn ? [{ href: `${base}/offers`, label: "Offers", Icon: Megaphone } as Tab] : []),
     { href: `${base}/plan`, label: "Plan", Icon: Gem },
   ];
   // Phone bottom bar keeps five tabs; Plan sits in the top bar there.
-  const bottomTabs = tabs.filter((t) => t.label !== "Plan");
+  const bottomTabs = tabs.filter((t) => t.label !== "Plan" && t.label !== "Offers");
   const active = (t: Tab) => (t.exact ? path === t.href : path.startsWith(t.href));
 
   const ModeIcon = mode === "dark" ? Sun : Moon;
@@ -85,6 +88,11 @@ export function Shell({
             </nav>
 
             <div className="ml-auto flex items-center gap-2 md:ml-0">
+              {waOn && (
+                <Link href={`${base}/offers`} aria-label="Send an offer" title="Send an offer" className="grid h-11 w-11 place-items-center rounded-xl md:hidden" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
+                  <Megaphone size={17} />
+                </Link>
+              )}
               <Link href={`${base}/plan`} aria-label="Plan" title="Plan" className="grid h-11 w-11 place-items-center rounded-xl md:hidden" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
                 <Gem size={17} />
               </Link>

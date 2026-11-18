@@ -16,6 +16,7 @@ export type DashClient = {
   card_config: Record<string, unknown>;
   business_type: string | null;
   creator_settings: Record<string, unknown>;
+  review_setup: Record<string, unknown> | null;
   package_id: string;
   status: "active" | "paused";
   expires_at: string | null;
@@ -26,7 +27,7 @@ export const loadClient = cache(async (slug: string) => {
   const sb = await supabaseServer();
   const { data } = await sb
     .from("clients")
-    .select("id, slug, name, tagline, logo_url, google_review_url, menu_url, theme, socials, keywords, card_config, business_type, creator_settings, package_id, status, expires_at")
+    .select("id, slug, name, tagline, logo_url, google_review_url, menu_url, theme, socials, keywords, card_config, business_type, creator_settings, review_setup, package_id, status, expires_at")
     .eq("slug", slug)
     .maybeSingle();
   if (!data) notFound();

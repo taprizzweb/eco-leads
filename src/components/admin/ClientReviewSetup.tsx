@@ -83,7 +83,7 @@ export function ClientReviewSetup({ clientId, clientName, category, setup, categ
 
       <div className="mt-4">
         <label className="flex min-h-10 items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={collect} onChange={(e) => setCollect(e.target.checked)} />
-          <span><span className="font-medium" style={{ color: "var(--d-text)" }}>Ask guests for their name and number</span><br /><span className="text-xs" style={{ color: "var(--d-muted)" }}>Turn this off for businesses that do not need it (for example a hotel with tourists, or a cafe that sends no offers). Guests then go straight in, and nothing about them is stored. Names and numbers that are collected are deleted automatically after 45 days.</span></span></label>
+          <span><span className="font-medium" style={{ color: "var(--d-text)" }}>WhatsApp offers: ask guests for name and number</span><br /><span className="text-xs" style={{ color: "var(--d-muted)" }}>Off by default. Switch it on only for businesses that want to send offers to their customers. Then guests see a short &ldquo;Before we start&rdquo; form once, and the owner gets a page to request offers. When it is off, guests go straight in and nothing about them is stored. Collected numbers are deleted after 45 days.</span></span></label>
       </div>
 
       <label className="mt-4 block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>If a guest gives 1 or 2 stars</span>
