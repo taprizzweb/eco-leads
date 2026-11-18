@@ -19,7 +19,7 @@ export const getLinkTheme = (id: string | null | undefined) => LINK_THEMES[(id a
 export type LinkSocials = Partial<Record<"instagram" | "facebook" | "zomato" | "swiggy" | "phone" | "maps" | "whatsapp" | "website", string>>;
 export type LinkPhoto = { url: string; caption?: string };
 export type LinkButton = { label: string; url: string; icon: string };
-export type LinkOutlet = { name: string; city?: string; address?: string; image_url?: string; map_url?: string; phone?: string; whatsapp?: string; review_url?: string };
+export type LinkOutlet = { name: string; city?: string; address?: string; instagram?: string; image_url?: string; map_url?: string; phone?: string; whatsapp?: string; review_url?: string };
 export type LinkReview = { author: string; rating: number; body: string; date?: string; avatar?: string };
 export type LinkData = {
   id: string; slug: string; name: string; tagline: string | null; logo_url: string | null; theme: string; tags: string[];
@@ -30,12 +30,28 @@ export const BUTTON_ICONS = ["menu", "drink", "map", "mail", "phone", "globe", "
 export const ICON_LABEL: Record<string, string> = { menu: "Food menu", drink: "Drinks", map: "Location", mail: "Contact", phone: "Call", globe: "Website", calendar: "Booking", star: "Reviews", gift: "Offers", bag: "Order", outlets: "Outlets", whatsapp: "WhatsApp", zomato: "Zomato", swiggy: "Swiggy", link: "Link" };
 
 /** wa.me link from any phone number a person types. A 10-digit Indian number gets 91 in front. */
-export function waLink(v: string | undefined | null): string | null {
-  const d = (v ?? "").replace(/\D/g, "");
-  if (!d) return null;
-  return `https://wa.me/${d.length === 10 ? "91" + d : d}`;
+/** Digits of an Indian mobile number from anything a person types: "+91 98765 43210", "098765 43210", "9876543210". Null when it is not 10 digits. */
+export function indianNational(v: string | undefined | null): string | null {
+  let d = (v ?? "").replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
+  else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
+  return /^[6-9]\d{9}$/.test(d) ? d : null;
 }
-export const telLink = (v: string | undefined | null) => { const d = (v ?? "").replace(/[^\d+]/g, ""); return d ? `tel:${d}` : null; };
+
+/** wa.me link. A 10-digit Indian number gets +91 in front; a number that already has another country code is kept. */
+export function waLink(v: string | undefined | null): string | null {
+  const raw = (v ?? "").trim();
+  const d = raw.replace(/\D/g, "");
+  if (!d) return null;
+  const nat = indianNational(raw);
+  return `https://wa.me/${nat ? "91" + nat : d}`;
+}
+export function telLink(v: string | undefined | null): string | null {
+  const raw = (v ?? "").trim();
+  if (!raw.replace(/\D/g, "")) return null;
+  const nat = indianNational(raw);
+  return nat ? `tel:+91${nat}` : `tel:${raw.replace(/[^\d+]/g, "")}`;
+}
 export const safeUrl = (v: string | undefined | null) => { const s = (v ?? "").trim(); return /^https?:\/\//i.test(s) || /^tel:|^mailto:/i.test(s) ? s : null; };
 
 export const DEFAULT_BUTTONS: LinkButton[] = [

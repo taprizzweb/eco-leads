@@ -107,6 +107,7 @@ function OutletsSheet({ outlets, onClose, onClick }: { outlets: LinkOutlet[]; on
             const all: { href: string | null; label: string; I: Ico }[] = [
               { href: safeUrl(o.review_url), label: "Review on Google", I: MessageSquareText },
               { href: safeUrl(o.map_url), label: "Directions", I: MapPin },
+              { href: safeUrl(o.instagram), label: "Instagram", I: Instagram },
               { href: waLink(o.whatsapp), label: "WhatsApp", I: WhatsappIcon },
               { href: telLink(o.phone), label: "Call", I: Phone },
             ];

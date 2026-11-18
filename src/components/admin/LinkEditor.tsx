@@ -7,13 +7,27 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
 import { useToast } from "@/components/dash/Toast";
 import { slugify } from "@/lib/features";
-import { BUTTON_ICONS, ICON_LABEL, LINK_THEMES, type LinkButton, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
+import { BUTTON_ICONS, ICON_LABEL, indianNational, LINK_THEMES, type LinkButton, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
 
 type Row = {
   id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; tags: string[];
   socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; reviews: LinkReview[];
   show_client_reviews: boolean; published: boolean; fee_inr: number; billing_note: string | null;
 };
+
+// An Indian mobile number box: +91 is already there, the person types the 10 digits. Numbers that came in with another country code stay as they are.
+function PhoneField({ label, value, onChange, placeholder = "98765 43210" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const foreign = value.trim().startsWith("+") && !value.trim().startsWith("+91");
+  const nat = foreign ? "" : (indianNational(value) ?? value.replace(/\D/g, "").replace(/^(91|0)(?=\d{10})/, "").slice(0, 10));
+  if (foreign) return <input aria-label={label} className="d-input !min-h-10" inputMode="tel" maxLength={20} value={value} onChange={(e) => onChange(e.target.value)} />;
+  return (
+    <div className="flex">
+      <span className="grid shrink-0 place-items-center rounded-l-xl px-3 text-sm font-medium" style={{ background: "var(--d-bg)", color: "var(--d-sub)", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }}>+91</span>
+      <input aria-label={label} className="d-input !min-h-10 !rounded-l-none" inputMode="numeric" autoComplete="off" value={nat.replace(/(\d{5})(\d{1,5})/, "$1 $2")} placeholder={placeholder}
+        onChange={(e) => { let d = e.target.value.replace(/\D/g, ""); if (d.length > 10) d = d.replace(/^(91|0)/, "").slice(0, 10); onChange(d ? `+91${d}` : ""); }} />
+    </div>
+  );
+}
 
 // Module level on purpose: defined inside the editor it would remount on every keystroke and the field would lose focus.
 function F({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -121,7 +135,11 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
 
         <Sec title="Icons under the name" sub="Instagram, Zomato, Swiggy and the rest. Empty ones are hidden.">
           <div className="grid gap-4 sm:grid-cols-2">{SOCIAL_FIELDS.map(([k, label, ph]) => (
-            <F key={k} label={label}><input className="d-input" inputMode={k === "phone" || k === "whatsapp" ? "tel" : "url"} maxLength={300} value={r.socials[k] ?? ""} onChange={(e) => set("socials", { ...r.socials, [k]: e.target.value })} placeholder={ph} /></F>
+            <F key={k} label={label}>
+              {k === "phone" || k === "whatsapp"
+                ? <PhoneField label={label} value={r.socials[k] ?? ""} onChange={(v) => set("socials", { ...r.socials, [k]: v })} />
+                : <input className="d-input" inputMode="url" maxLength={300} value={r.socials[k] ?? ""} onChange={(e) => set("socials", { ...r.socials, [k]: e.target.value })} placeholder={ph} />}
+            </F>
           ))}</div>
         </Sec>
 
@@ -199,8 +217,10 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
                   <div className="grid gap-2 sm:grid-cols-2">
                     <input aria-label={`Outlet ${i + 1} map link`} className="d-input !min-h-10" inputMode="url" maxLength={400} value={o.map_url ?? ""} onChange={(e) => upd({ map_url: e.target.value })} placeholder="Google Maps link" />
                     <input aria-label={`Outlet ${i + 1} review link`} className="d-input !min-h-10" inputMode="url" maxLength={400} value={o.review_url ?? ""} onChange={(e) => upd({ review_url: e.target.value })} placeholder="Google review link" />
-                    <input aria-label={`Outlet ${i + 1} phone`} className="d-input !min-h-10" inputMode="tel" maxLength={20} value={o.phone ?? ""} onChange={(e) => upd({ phone: e.target.value })} placeholder="Call number" />
-                    <input aria-label={`Outlet ${i + 1} WhatsApp`} className="d-input !min-h-10" inputMode="tel" maxLength={20} value={o.whatsapp ?? ""} onChange={(e) => upd({ whatsapp: e.target.value })} placeholder="WhatsApp number" />
+                    <input aria-label={`Outlet ${i + 1} Instagram`} className="d-input !min-h-10" inputMode="url" maxLength={300} value={o.instagram ?? ""} onChange={(e) => upd({ instagram: e.target.value })} placeholder="Instagram link of this outlet" />
+                    <span className="hidden sm:block" aria-hidden />
+                    <PhoneField label={`Outlet ${i + 1} phone`} value={o.phone ?? ""} onChange={(v) => upd({ phone: v })} placeholder="Call number" />
+                    <PhoneField label={`Outlet ${i + 1} WhatsApp`} value={o.whatsapp ?? ""} onChange={(v) => upd({ whatsapp: v })} placeholder="WhatsApp number" />
                   </div>
                 </div>
               );
