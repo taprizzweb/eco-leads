@@ -859,6 +859,7 @@ export function PeakChart({
           display: "flex", alignItems: "flex-start", gap: px(6.72), background: "rgba(255,255,255,0.13)", cursor: "pointer", color: "#b9cdf2", fontFamily: font, outlineOffset: 2,
         }}
       >
+        <span aria-hidden style={{ position: "absolute", left: "50%", top: "50%", width: "max(100%, 44px)", height: "max(100%, 44px)", transform: "translate(-50%, -50%)" }} />
         <span data-part="period" style={{ ...textBase, position: "relative", display: "block", marginTop: px(10.6), fontSize: px(17.2), fontStretch: "115%", fontWeight: 200, color: "#acc1e7" }}>{current}</span>
         <svg viewBox="0 0 12 7" aria-hidden style={{ flex: "none", marginTop: px(15.9), width: px(12), height: px(7), overflow: "visible", transition: "transform .2s ease", transform: open ? "rotate(180deg)" : "none" }}>
           <path d="M0.8 0.8 L6 6 L11.2 0.8" fill="none" stroke="#9fb7e0" strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
@@ -886,7 +887,7 @@ export function PeakChart({
             aria-selected={p === current}
             onClick={() => choose(p)}
             style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", height: px(36), padding: `0 ${px(12)}`,
+              display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", height: `max(44px, ${px(36)})`, padding: `0 ${px(12)}`,
               border: 0, borderRadius: px(10), background: p === current ? "rgba(255,255,255,0.09)" : "transparent", cursor: "pointer",
               color: p === current ? "#e6eeff" : "#aebcd6", fontFamily: font, fontStretch: "116%", fontSize: px(15.5), textAlign: "left",
             }}

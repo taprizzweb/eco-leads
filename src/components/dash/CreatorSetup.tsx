@@ -77,7 +77,7 @@ export function CreatorSetup({ clientId, businessType, initial }: { clientId: st
       <div>
         <p className="text-sm font-medium" style={{ color: "var(--d-text)" }}>Days with no creators</p>
         <div className="mt-1.5 flex flex-wrap gap-2">
-          {f.blackout.map((d) => <span key={d} className="d-raise flex items-center gap-1 py-1 pr-1 pl-3 text-sm" style={{ color: "var(--d-text)" }}>{new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}<button type="button" aria-label={`Remove ${d}`} className="grid h-8 w-8 place-items-center" style={{ color: "var(--d-muted)" }} onClick={() => set("blackout", f.blackout.filter((x) => x !== d))}><X size={14} /></button></span>)}
+          {f.blackout.map((d) => <span key={d} className="d-raise flex items-center gap-1 py-1 pr-1 pl-3 text-sm" style={{ color: "var(--d-text)" }}>{new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}<button type="button" aria-label={`Remove ${d}`} className="grid h-11 w-11 place-items-center -my-1.5" style={{ color: "var(--d-muted)" }} onClick={() => set("blackout", f.blackout.filter((x) => x !== d))}><X size={14} /></button></span>)}
         </div>
         <div className="mt-2 flex gap-2">
           <label className="sr-only" htmlFor="bd">Add a blocked day</label>

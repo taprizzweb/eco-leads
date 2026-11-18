@@ -70,7 +70,7 @@ function Slider({ photos, backward }: { photos: { url: string; caption?: string;
       {n > 1 && (
         <div className="mt-3 flex justify-center gap-1.5" role="tablist" aria-label="Choose a photo">
           {photos.map((_, k) => (
-            <button key={k} role="tab" aria-selected={k === i} aria-label={`Photo ${k + 1}`} onClick={() => setI(k)} className="grid h-6 w-6 place-items-center">
+            <button key={k} role="tab" aria-selected={k === i} aria-label={`Photo ${k + 1}`} onClick={() => setI(k)} className="grid h-11 w-8 place-items-center">
               <span className="block rounded-full transition-all" style={{ width: k === i ? 8 : 5, height: k === i ? 8 : 5, background: k === i ? "var(--l-text)" : "var(--l-muted)", opacity: k === i ? 1 : 0.55 }} />
             </button>
           ))}
@@ -177,7 +177,7 @@ function OffersSheet({ offers, outlets, onClose, onClick }: { offers: LinkOffer[
         {groups.length > 1 && (
           <div className="-mx-5 mb-3 flex gap-2 overflow-x-auto px-5 pb-1 no-scrollbar" role="tablist" aria-label="Choose an outlet">
             {[{ id: "__all", label: "All" }, ...groups.map((g) => ({ id: g.name, label: g.name || "Every outlet" }))].map((c) => (
-              <button key={c.id} role="tab" aria-selected={pick === c.id} onClick={() => setPick(c.id)} className="h-8 shrink-0 rounded-full px-3.5 text-[12.5px] font-medium" style={pick === c.id ? { background: "#111", color: "#fff" } : { background: "rgba(0,0,0,0.06)", color: "#333" }}>{c.label}</button>
+              <button key={c.id} role="tab" aria-selected={pick === c.id} onClick={() => setPick(c.id)} className="relative h-8 shrink-0 rounded-full px-3.5 text-[12.5px] font-medium after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']" style={pick === c.id ? { background: "#111", color: "#fff" } : { background: "rgba(0,0,0,0.06)", color: "#333" }}>{c.label}</button>
             ))}
           </div>
         )}

@@ -368,7 +368,7 @@ export function PageEditor({
               {f.keywords.map((k) => (
                 <span key={k} className="d-raise flex items-center gap-1 py-1 pr-1 pl-3 text-sm" style={{ color: "var(--d-text)" }}>
                   {k}
-                  <button onClick={() => set("keywords", f.keywords.filter((x) => x !== k))} aria-label={`Remove ${k}`} className="grid h-8 w-8 place-items-center" style={{ color: "var(--d-muted)" }}><X size={14} /></button>
+                  <button onClick={() => set("keywords", f.keywords.filter((x) => x !== k))} aria-label={`Remove ${k}`} className="grid h-11 w-11 place-items-center -my-1.5" style={{ color: "var(--d-muted)" }}><X size={14} /></button>
                 </span>
               ))}
             </div>
