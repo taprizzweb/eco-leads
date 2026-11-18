@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rpcKeyed } from "@/lib/review/serverkey";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ReviewBusy, writeReview } from "@/lib/review/draft";
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
   const questions = resolveQuestions({ questions: setup.questions ?? tpl?.questions, max_questions: setup.max_questions }, client.business_type);
   const answers = buildAnswers(questions, b.answers);
 
-  const [{ data: cfgRaw }, { data: sigs }] = await Promise.all([sb.rpc("review_ai_config", { p_client: client.id }), sb.rpc("guest_recent_sigs", { p_client: client.id })]);
+  const [{ data: cfgRaw }, { data: sigs }] = await Promise.all([rpcKeyed(sb, "review_ai_config", { p_client: client.id }), rpcKeyed(sb, "guest_recent_sigs", { p_client: client.id })]);
   const cfg = toConfig(cfgRaw, client.name);
   const seen = [...((sigs ?? []) as number[][])];
   const out: { text: string; provider: string; similarity: number; ms: number; tries: number; words: number }[] = [];

@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { ReviewBusy, writeReview } from "@/lib/review/draft";
 import { buildAnswers, cleanName, cleanText, resolveQuestions, toConfig } from "@/lib/review/prepare";
 import type { GuestPageData } from "@/lib/types";
+import { rpcKeyed } from "@/lib/review/serverkey";
 
 export const maxDuration = 30;
 
@@ -41,15 +42,15 @@ export async function POST(req: Request) {
   if (!g.live || !g.features.review) return NextResponse.json({ error: "Reviews are not available on this page right now." }, { status: 403 });
   if (g.review?.languages && !g.review.languages.includes(b.language)) return NextResponse.json({ error: "That language is not available here." }, { status: 400 });
 
-  const { data: okBudget } = await sb.rpc("review_budget_ok", { p_client: g.client.id, p_max: 120 });
+  const { data: okBudget } = await rpcKeyed(sb, "review_budget_ok", { p_client: g.client.id, p_max: 120 });
   if (okBudget === false) return NextResponse.json({ error: "We are very busy right now. Please try again in a little while." }, { status: 429 });
 
   const questions = resolveQuestions(g.review, g.client.business_type);
   const answers = buildAnswers(questions, b.answers);
   const name = cleanName(b.name);
   const [{ data: cfgRaw }, { data: sigs }] = await Promise.all([
-    sb.rpc("review_ai_config", { p_client: g.client.id }),
-    sb.rpc("guest_recent_sigs", { p_client: g.client.id }),
+    rpcKeyed(sb, "review_ai_config", { p_client: g.client.id }),
+    rpcKeyed(sb, "guest_recent_sigs", { p_client: g.client.id }),
   ]);
   const cfg = toConfig(cfgRaw, g.client.name);
   let out;
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  const { data: id } = await sb.rpc("guest_save_review", {
+  const { data: id } = await rpcKeyed(sb, "guest_save_review", {
     p_client: g.client.id,
     p_code: g.plate?.code ?? null,
     p_rating: b.rating,
