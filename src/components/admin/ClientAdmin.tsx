@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Plus, Copy, QrCode, Trash2, ExternalLink } from "lucide-react";
+import { Loader2, Plus, Copy, QrCode, Trash2, ExternalLink, TriangleAlert } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { FEATURE_DEFS, PLATE_BASE, diffOverrides, effective, newPlateCode, type FeatureMap } from "@/lib/features";
 import { useToast } from "@/components/dash/Toast";
@@ -32,6 +32,59 @@ function Card({ title, sub, children }: { title: string; sub?: string; children:
       <h2 className="font-semibold">{title}</h2>
       {sub && <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>{sub}</p>}
       <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+// Two steps before a business is deleted: open the panel, then type the exact name and tick the box.
+function DeleteBusiness({ id, name, onDeleted }: { id: string; name: string; onDeleted: () => void }) {
+  const sb = supabaseBrowser();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const match = typed.trim() === name.trim();
+
+  async function remove() {
+    if (!match || !sure) return;
+    setBusy(true);
+    const { error } = await sb.from("clients").delete().eq("id", id);
+    setBusy(false);
+    if (error) return toast("The business was not deleted. Only the Taprizz owner can do this.", true);
+    toast(`${name} was deleted`);
+    onDeleted();
+  }
+
+  return (
+    <section className="d-card p-5" style={{ boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--d-red) 45%, transparent)" }}>
+      <h2 className="flex items-center gap-2 font-semibold" style={{ color: "var(--d-red)" }}><TriangleAlert size={17} /> Delete this business</h2>
+      {!open ? (
+        <>
+          <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>Removes the business and everything that belongs to it. To stop it for a while without losing anything, use <b>Pause client</b> above instead.</p>
+          <button className="d-btn d-btn-s mt-4" onClick={() => setOpen(true)}>Delete this business...</button>
+        </>
+      ) : (
+        <div className="mt-3 space-y-4">
+          <div className="text-sm" style={{ color: "var(--d-sub)" }}>
+            <p className="font-medium" style={{ color: "var(--d-text)" }}>This cannot be undone. These are deleted for good:</p>
+            <ul className="mt-1.5 list-disc space-y-0.5 pl-5">
+              <li>its plates (printed QR codes stop working) and the guest page</li>
+              <li>customers, feedback, complaints, review drafts and pasted reviews</li>
+              <li>offers, events, gallery photos, moments and WhatsApp offer requests</li>
+              <li>access for its owners and staff</li>
+            </ul>
+            <p className="mt-1.5">Its Mini Link, if it has one, stays online as a link-only page.</p>
+          </div>
+          <label className="block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>Type <b>{name}</b> to confirm</span>
+            <input className="d-input mt-1.5" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} aria-label="Type the business name to confirm" placeholder={name} /></label>
+          <label className="flex min-h-10 items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={sure} onChange={(e) => setSure(e.target.checked)} />I understand this deletes everything above and cannot be undone.</label>
+          <div className="flex flex-wrap gap-2">
+            <button className="d-btn !text-white" style={{ background: "var(--d-red)", opacity: match && sure ? 1 : 0.4 }} disabled={!match || !sure || busy} onClick={remove}>{busy && <Loader2 size={15} className="animate-spin" />} Delete forever</button>
+            <button className="d-btn d-btn-s" onClick={() => { setOpen(false); setTyped(""); setSure(false); }}>Cancel</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -251,6 +304,7 @@ export function ClientAdmin({ client, packages, plates: p0, members: m0, invites
             </ul>
           )}
         </Card>
+        {role === "owner" && <DeleteBusiness id={c.id} name={c.name} onDeleted={() => { router.push("/admin/clients"); router.refresh(); }} />}
         <p className="text-xs" style={{ color: "var(--d-muted)" }}><Link href={`/dashboard/${c.slug}`} className="underline underline-offset-4">Open their dashboard as the client</Link></p>
       </div>
     </div>
