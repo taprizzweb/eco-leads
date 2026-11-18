@@ -7,6 +7,7 @@ import type { CardKey, GuestPageData } from "@/lib/types";
 import { CARD_TINTS, getTheme } from "@/lib/themes";
 import { AnimatedIcon } from "./AnimatedIcon";
 import { BRAND, SwiggyIcon, ZomatoIcon } from "./BrandIcons";
+import { Mark } from "@/components/dash/AuthFrame";
 import { Sheet } from "./Sheet";
 import { ReviewFlow } from "./ReviewFlow";
 import { FeedbackForm } from "./FeedbackForm";
@@ -368,11 +369,7 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
         {/* 9. Footer */}
         <footer className="mt-12 flex justify-center">
           <a href="https://taprizz.in" className="inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-xs text-muted ring-1 ring-line" style={{ background: "var(--surface)" }}>
-            <svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true">
-              <circle cx="13" cy="13" r="13" fill="currentColor" opacity="0.85" />
-              <path d="M7.4 14.6c.7-3.6 2.9-6 6.6-6.7" fill="none" stroke="var(--bg)" strokeWidth="2.3" strokeLinecap="round" />
-              <circle cx="16.9" cy="16.6" r="1.9" fill="var(--bg)" />
-            </svg>
+            <Mark size={18} />
             Powered by <span className="font-semibold text-fg">Taprizz</span>
             <ChevronRight size={12} />
           </a>
