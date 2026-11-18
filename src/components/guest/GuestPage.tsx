@@ -206,30 +206,19 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
           </section>
         ) : (
           <>
-            {/* 3. Offers and keywords share one moving strip: the offers first, then the words that describe the place */}
-            {(() => {
-              const offers = data.features.offers_strip ? data.offers : [];
-              const words = data.features.keywords ? client.keywords : [];
-              if (offers.length === 0 && words.length === 0) return null;
-              return (
-                <motion.div {...rise(2)} className="mb-4 py-2.5" style={{ background: "var(--strip)", color: "var(--strip-text)" }}>
-                  <Marquee seconds={Math.max(30, (offers.length + words.length) * 5)} label="Offers and highlights">
-                    {offers.map((o) => (
-                      <span key={o.id} className="flex items-center whitespace-nowrap px-4 text-[12.5px] font-bold uppercase tracking-[0.06em]">
-                        {o.title}{o.details ? <span className="ml-1.5 font-medium normal-case tracking-normal opacity-75">{o.details}</span> : null}
-                        <span className="pl-8 opacity-40">✦</span>
-                      </span>
-                    ))}
-                    {words.map((k) => (
-                      <span key={k} className="flex items-center whitespace-nowrap px-4 text-[12.5px] font-semibold uppercase tracking-[0.06em]">
-                        {k}
-                        <span className="pl-8 opacity-40">✦</span>
-                      </span>
-                    ))}
-                  </Marquee>
-                </motion.div>
-              );
-            })()}
+            {/* 3. Offers strip */}
+            {data.features.offers_strip && data.offers.length > 0 && (
+              <motion.div {...rise(2)} className="mb-4 py-2.5" style={{ background: "var(--strip)", color: "var(--strip-text)" }}>
+                <Marquee seconds={30} label="Current offers">
+                  {data.offers.map((o) => (
+                    <span key={o.id} className="flex items-center whitespace-nowrap px-4 text-[12.5px] font-bold uppercase tracking-[0.06em]">
+                      {o.title}{o.details ? <span className="ml-1.5 font-medium normal-case tracking-normal opacity-75">{o.details}</span> : null}
+                      <span className="pl-8 opacity-40">✦</span>
+                    </span>
+                  ))}
+                </Marquee>
+              </motion.div>
+            )}
 
             {/* 4. Photo gallery: keeps moving on its own like the offers strip when there are 3 or more photos, otherwise swipe */}
             {data.gallery.length > 0 && (() => {
@@ -257,6 +246,19 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
                 <motion.section {...rise(3)} aria-label="Photos" className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3">{figs(false)}</motion.section>
               );
             })()}
+
+            {/* 5. Keyword strip */}
+            {data.features.keywords && client.keywords.length > 0 && (
+              <motion.div {...rise(4)} className="mb-6">
+                <Marquee seconds={40} label="About this place">
+                  {client.keywords.map((k) => (
+                    <span key={k} className="mr-2 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ring-1 ring-line" style={{ background: "var(--pill)", color: "var(--pill-text)" }}>
+                      {k}
+                    </span>
+                  ))}
+                </Marquee>
+              </motion.div>
+            )}
 
             {/* 6. Action cards */}
             <section aria-label="What would you like to do?" className="space-y-3.5 px-4">

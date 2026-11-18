@@ -281,10 +281,13 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         )}
 
         {data.tags.length > 0 && (
-          <motion.div {...rise(2)} className="mt-5">
-            <Marquee seconds={Math.max(30, data.tags.length * 5)} label="About this place">
+          <motion.div {...rise(2)} className="mt-5 py-2.5" style={{ background: "var(--l-pill)", color: "var(--l-pill-text)" }}>
+            <Marquee seconds={Math.max(30, data.tags.length * 6)} label="About this place">
               {data.tags.map((t) => (
-                <span key={t} className="mr-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-medium" style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)", color: "var(--l-text)" }}>{t}</span>
+                <span key={t} className="flex items-center whitespace-nowrap px-4 text-[12.5px] font-bold uppercase tracking-[0.06em]">
+                  {t}
+                  <span className="pl-8 opacity-40">✦</span>
+                </span>
               ))}
             </Marquee>
           </motion.div>
