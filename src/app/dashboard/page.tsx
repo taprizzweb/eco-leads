@@ -14,6 +14,9 @@ export default async function DashboardIndex() {
   // Taprizz team members belong in the admin panel, not in one client's dashboard.
   const { data: teamRole } = await sb.rpc("my_team_role");
   if (teamRole) redirect("/admin");
+  // A chain head (group member) lands on the all-branches page.
+  const { data: groups } = await sb.from("groups").select("slug").order("name");
+  if (groups?.length === 1) redirect(`/group/${groups[0].slug}`);
   const { data: clients } = await sb.from("clients").select("slug, name").order("name");
   if (clients?.length === 1) redirect(`/dashboard/${clients[0].slug}`);
 

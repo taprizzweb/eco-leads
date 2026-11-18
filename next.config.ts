@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
       // Admin and dashboard pages are never stored by a browser or a shared cache.
       { source: "/admin/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
       { source: "/dashboard/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      { source: "/group/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
     ];
   },
 };

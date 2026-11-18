@@ -32,7 +32,7 @@ export async function middleware(req: NextRequest) {
     return r;
   };
 
-  if (path.startsWith("/dashboard") || path.startsWith("/admin")) {
+  if (path.startsWith("/dashboard") || path.startsWith("/admin") || path.startsWith("/group")) {
     if (!user) return redirect("/login");
     // Verified = authenticator (aal2), a WhatsApp code this session, or a trusted device.
     const { data: verified } = await sb.rpc("has_aal2");
@@ -53,4 +53,4 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ["/dashboard/:path*", "/admin/:path*", "/admin", "/login/:path*", "/login", "/auth/reset"] };
+export const config = { matcher: ["/dashboard/:path*", "/group/:path*", "/admin/:path*", "/admin", "/login/:path*", "/login", "/auth/reset"] };

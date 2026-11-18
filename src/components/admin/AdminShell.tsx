@@ -7,6 +7,8 @@ import { LayoutGrid, Users, QrCode, BellRing, Wallet, Layers, Plug, Sparkles, Sc
 import { ToastProvider } from "@/components/dash/Toast";
 import { Mark } from "@/components/dash/AuthFrame";
 import { InstallApp } from "@/components/InstallApp";
+import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
+import { Suspense } from "react";
 
 const KEY = "taprizz-dash-mode";
 type Item = { href: string; label: string; Icon: typeof Users; exact?: boolean; min?: "manager"; badge?: number; also?: string[] };
@@ -76,6 +78,7 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
             {/* Top bar: phone and tablet */}
             <header className="sticky top-0 z-30 border-b backdrop-blur-xl lg:hidden" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 85%, transparent)" }}>
               <div className="flex h-14 items-center gap-2 px-4">
+                <BackButton className={iconBtn} style={iconStyle} />
                 <Mark size={32} />
                 <span className="flex-1 font-semibold" style={{ color: "var(--d-text)" }}>Taprizz Admin</span>
                 <InstallApp compact className={iconBtn} style={iconStyle} />
@@ -90,7 +93,12 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
                 ))}
               </nav>
             </header>
-            <main className="px-4 pt-6 pb-16 lg:px-8"><div className="[overflow-x:clip]">{children}</div></main>
+            <main className="px-4 pt-6 pb-16 lg:px-8">
+              <div className="mb-3 hidden lg:block"><BackButton className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm" style={iconStyle} /></div>
+              <div className="[overflow-x:clip]">{children}</div>
+            </main>
+            <Suspense fallback={null}><RememberPage /></Suspense>
+            <ExitGuard />
           </div>
         </div>
       </ToastProvider>

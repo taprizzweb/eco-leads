@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
+import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
+import { Suspense } from "react";
 
 const KEY = "taprizz-dash-mode";
 
@@ -66,6 +68,7 @@ export function Shell({
       <ToastProvider>
         <header className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 82%, transparent)" }}>
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
+            <BackButton style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }} />
             <span className="flex min-w-0 items-center gap-2.5 rounded-xl py-1.5 pr-3 pl-1.5" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)" }}>
               <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-lg" style={{ background: "#060606" }}>
                 {logoUrl ? (
@@ -117,6 +120,8 @@ export function Shell({
         </header>
 
         <main className="mx-auto max-w-6xl px-4 pt-6 pb-28 [overflow-x:clip] md:pb-12">{children}</main>
+        <Suspense fallback={null}><RememberPage /></Suspense>
+        <ExitGuard />
 
         {/* Phone: bottom bar */}
         <nav aria-label="Dashboard" className="fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 90%, transparent)" }}>
