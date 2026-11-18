@@ -93,7 +93,7 @@ function replyPrompt(a: ReplyInput): string {
 
 /* ------------------------------------------------------------------ providers */
 
-type CallOpts = { max?: number; temp?: number; model?: string };
+type CallOpts = { max?: number; temp?: number; model?: string; deadline?: number };
 type TextCaller = (prompt: string, o?: CallOpts) => Promise<string>;
 
 const callOpenAI: TextCaller = async (prompt, o) => {
@@ -175,20 +175,22 @@ async function run(task: "review_draft" | "review_reply", payload: Record<string
   const name = (process.env.REVIEW_AI_PROVIDER || "template").toLowerCase();
   try {
     if (name === "custom" && process.env.REVIEW_AI_URL) {
-      const t = clean(await withTimeout(callCustom(task, payload), 12000), max);
+      const t = clean(await withTimeout(callCustom(task, payload), Math.max(2000, Math.min(12000, (opts?.deadline ?? Infinity) - Date.now()))), max);
       if (t) return { text: t, provider: "custom" };
     } else if (GENERAL[name] && process.env[GENERAL[name].key]) {
       // A busy or rate-limited model (typical on free plans) is retried once after a short pause, then the next model is tried.
       for (const model of modelChain()) {
         for (let attempt = 0; attempt < 2; attempt++) {
+          const left = (opts?.deadline ?? Infinity) - Date.now();
+          if (left < 2500) return null; // out of time: the guest gets a clear "try again" instead of a hung page
           try {
-            const t = clean(await withTimeout(GENERAL[name].call(prompt, { ...opts, model }), 12000), max);
+            const t = clean(await withTimeout(GENERAL[name].call(prompt, { ...opts, model }), Math.min(12000, left)), max);
             if (t) return { text: t, provider: name };
             break;
           } catch (e) {
             lastProviderError = String((e as Error)?.message ?? e).slice(0, 160);
             console.error(`${task}: provider "${name}"${model ? ` model ${model}` : ""} failed (try ${attempt + 1}): ${lastProviderError}`);
-            if (!retryable(e)) break;
+            if (!retryable(e) || /timeout/i.test(lastProviderError)) break; // a timeout is not retried on the same model
             if (attempt === 0) await sleep(1200);
           }
         }
@@ -352,9 +354,11 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
 export function looksMachineMade(text: string, shape: Shape, cfg: StudioConfig): boolean {
   const t = text.toLowerCase();
   const words = text.trim().split(/\s+/).length;
-  if (words < Math.max(8, shape.words * 0.3)) return true;
+  if (words < Math.max(8, shape.lines * 4)) return true;
   if (/^\s*(i am|i'm|my name is|main hoon|mera naam)\b/.test(t)) return true;
   if (/(#\w+|[\u{1F300}-\u{1FAFF}])/u.test(text)) return true;
+  // rewards, links and phone numbers never belong in a guest's review (policy: nothing is offered for reviews)
+  if (/(https?:\/\/|www\.|\d{6,}|\b(discount|coupon|voucher|cashback|% off|percent off|free gift|in return)\b)/i.test(text)) return true;
   return [...GENERIC_BANNED, ...(cfg.banned ?? [])].some((b) => b.trim() && t.includes(b.toLowerCase()));
 }
 
@@ -376,13 +380,14 @@ export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSig
   const factCount = r.answers.filter((a) => a.values.length).length;
   let best: WrittenReview | null = null;
   const attempts = opts.tries ?? 4;
+  const deadline = Date.now() + 24000; // the API route may run for 30 s at most
   for (let i = 0; i < attempts; i++) {
     const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, factCount, r.language, r.rating);
     const prompt = buildReviewPrompt(cfg, r, shape, i > 0);
     const out = await run("review_draft", {
       business: { name: cfg.business.name, type: cfg.category.label ?? null },
       rating: r.rating, language: r.language, name: r.name, answers: r.answers, extra: r.extra, rules: cfg.rules, shape, prompt,
-    }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 0.9 + Math.random() * 0.3 });
+    }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 0.9 + Math.random() * 0.3, deadline });
     if (!out) break; // no provider, or it failed: no point trying again
     const sig = shingles(out.text);
     const bad = looksMachineMade(out.text, shape, cfg);

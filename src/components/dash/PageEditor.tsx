@@ -136,6 +136,17 @@ export function PageEditor({
     return sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl;
   }
 
+  const menuInput = useRef<HTMLInputElement>(null);
+  async function uploadMenuPdf(file: File) {
+    if (file.type !== "application/pdf") return toast("Please choose a PDF file.", true);
+    if (file.size > 10 * 1024 * 1024) return toast("That PDF is over 10 MB. Compress it and try again.", true);
+    const path = `${client.id}/menu/${crypto.randomUUID()}.pdf`;
+    const { error } = await sb.storage.from("page-assets").upload(path, file, { contentType: "application/pdf" });
+    if (error) return toast("The PDF did not upload. Try again.", true);
+    set("menu_url", sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl);
+    toast("Menu PDF ready. Publish to show it.");
+  }
+
   async function addPhotos(files: FileList | null) {
     if (!files?.length) return;
     const room = photoLimit - gallery.length;
@@ -334,9 +345,14 @@ export function PageEditor({
               <input className="d-input" inputMode="url" value={f.google_review_url} onChange={(e) => { set("google_review_url", e.target.value); if (errors.google_review_url) checkUrl("google_review_url", e.target.value); }} onBlur={(e) => checkUrl("google_review_url", e.target.value)} placeholder="https://g.page/r/..." />
               {errors.google_review_url && <span className="mt-1 block text-sm" style={{ color: "var(--d-red)" }}>{errors.google_review_url}</span>}
             </Field>
-            <Field label="Menu link">
+            <Field label="Menu" hint="Paste the link your table QR opens, or upload your menu as a PDF">
               <input className="d-input" inputMode="url" value={f.menu_url} onChange={(e) => { set("menu_url", e.target.value); if (errors.menu_url) checkUrl("menu_url", e.target.value); }} onBlur={(e) => checkUrl("menu_url", e.target.value)} placeholder="https://" />
               {errors.menu_url && <span className="mt-1 block text-sm" style={{ color: "var(--d-red)" }}>{errors.menu_url}</span>}
+              <input ref={menuInput} type="file" accept="application/pdf" hidden onChange={(e) => { const x = e.target.files?.[0]; e.target.value = ""; if (x) void uploadMenuPdf(x); }} />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" className="d-btn d-btn-s" onClick={() => menuInput.current?.click()}>Upload a PDF menu</button>
+                {f.menu_url && <button type="button" className="d-btn d-btn-s" onClick={() => set("menu_url", "")}>Remove menu</button>}
+              </div>
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
               {SOCIALS.map(([k, label]) => (

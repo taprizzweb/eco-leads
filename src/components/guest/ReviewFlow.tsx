@@ -84,9 +84,10 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
           answers: questions.map((x) => ({ id: x.id, values: a[x.id] ?? [] })),
         }),
       });
+      const t0 = Date.now();
       let res = await send();
-      // A busy writer is retried once on its own, so the guest rarely sees a hiccup.
-      if (res.status === 503) { await new Promise((r) => setTimeout(r, 2500)); res = await send(); }
+      // A busy writer (a fast 503) is retried once on its own, so the guest rarely sees a hiccup. A slow one is not.
+      if (res.status === 503 && Date.now() - t0 < 9000) { await new Promise((r) => setTimeout(r, 2500)); res = await send(); }
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || "We could not write the review right now.");
       setDraft(j.draft);

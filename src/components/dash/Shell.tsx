@@ -47,7 +47,7 @@ export function Shell({
     { href: base, label: "Home", Icon: Home, exact: true },
     { href: `${base}/inbox`, label: "Inbox", Icon: Inbox, badge: openCount },
     { href: `${base}/reviews`, label: "Reviews", Icon: Star },
-    { href: `${base}/content`, label: "Content", Icon: Clapperboard, badge: contentCount },
+    { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft },
     { href: `${base}/plan`, label: "Plan", Icon: Gem },
   ];

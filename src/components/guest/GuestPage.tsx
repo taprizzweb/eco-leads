@@ -25,7 +25,7 @@ const DEFAULT_COPY: Record<CardKey, { title: string; help: string }> = {
   offers: { title: "Check offers", help: "What is running at the store right now" },
   events: { title: "Upcoming events", help: "Nights, workshops and gatherings" },
   membership: { title: "Become a member", help: "Perks for regulars" },
-  creators: { title: "Creators corner", help: "Collaborate with us or get a shoot brief" },
+  creators: { title: "Creators corner", help: "Tag us, follow us, and share your photos" },
 };
 
 // Flows built so far. Cards for later build steps stay hidden until their flow exists,
@@ -69,6 +69,9 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
   // The first tap on an action card asks for the guest's name and number (once per business, on their own phone).
   const [visitor, setVisitor] = useState<Visitor | null>(null);
   const [gate, setGate] = useState(false);
+  // "Welcome back" is for guests this phone already knows, never for someone who just filled the form a moment ago.
+  const [returning, setReturning] = useState(false);
+  const askContact = data.review?.collect_contact !== false;
   const [pending, setPending] = useState<CardKey | null>(null);
   const reduce = useReducedMotion();
   const { client } = data;
@@ -92,13 +95,19 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
     client.socials.swiggy && { href: client.socials.swiggy, label: "Swiggy", Icon: Bike },
   ].filter(Boolean) as { href: string; label: string; Icon: typeof Instagram }[];
 
-  useEffect(() => { setVisitor(loadVisitor(client.id)); }, [client.id]);
+  useEffect(() => {
+    if (!askContact) { setVisitor(null); return; }
+    const v = loadVisitor(client.id);
+    setVisitor(v);
+    setReturning(!!v);
+  }, [client.id, askContact]);
 
   const onCard = (k: CardKey) => {
     if (k === "menu" && client.menu_url) {
       window.open(client.menu_url, "_blank", "noopener");
       return;
     }
+    if (!askContact || k === "creators") { setOpen(k); return; }
     if (!visitor) { setPending(k); setGate(true); return; }
     if (visitor.fromPass) {
       // Taprizz Pass from another place: this business gets the details only now, because the guest started something here.
@@ -147,10 +156,10 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
             </span>
           )}
         </motion.header>
-        {visitor && (
+        {askContact && visitor && returning && (
           <p className="flex items-center gap-2 px-5 pb-1 text-sm text-muted" aria-live="polite">
             <span>Welcome back, <span className="font-semibold text-fg">{visitor.name}</span></span>
-            <button type="button" className="min-h-11 px-1 underline underline-offset-4" onClick={() => { forgetPass(client.id); setVisitor(null); }}>Not you?</button>
+            <button type="button" className="min-h-11 px-1 underline underline-offset-4" onClick={() => { forgetPass(client.id); setVisitor(null); setReturning(false); }}>Not you?</button>
           </p>
         )}
 
@@ -378,7 +387,7 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
         {gate && <VisitorGate clientId={client.id} businessName={client.name} onDone={(v) => { setVisitor(v); setGate(false); setOpen(pending); setPending(null); }} />}
       </Sheet>
       <Sheet open={open === "creators"} onClose={close} title="Creators corner">
-        {open === "creators" && <CreatorsSheet clientId={client.id} businessType={client.business_type} businessName={client.name} onDone={close} />}
+        {open === "creators" && <CreatorsSheet clientId={client.id} businessName={client.name} instagramUrl={client.socials.instagram} onDone={close} />}
       </Sheet>
       <Sheet open={open === "offers"} onClose={close} title="Offers right now">
         <ul className="space-y-3">

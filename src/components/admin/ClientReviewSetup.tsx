@@ -9,7 +9,7 @@ import { useToast } from "@/components/dash/Toast";
 import { Pill } from "./ui";
 import { QuestionsEditor, TranslateBar } from "./QuestionsEditor";
 
-type Setup = { questions?: unknown; max_questions?: number; languages?: Lang[]; low_star_mode?: string; owner_edit_until?: string | null };
+type Setup = { questions?: unknown; max_questions?: number; languages?: Lang[]; low_star_mode?: string; collect_contact?: boolean; owner_edit_until?: string | null };
 type Cat = { id: string; label: string; questions: unknown };
 
 // Per-business review setup: category, how many questions, which questions and chips, languages,
@@ -29,6 +29,7 @@ export function ClientReviewSetup({ clientId, clientName, category, setup, categ
   const [max, setMax] = useState(String(setup.max_questions ?? 6));
   const [langs, setLangs] = useState<Lang[]>(setup.languages?.length ? setup.languages : ["hinglish", "en", "hi"]);
   const [low, setLow] = useState(setup.low_star_mode ?? "private_first");
+  const [collect, setCollect] = useState(setup.collect_contact !== false);
   const [until, setUntil] = useState<string | null>(setup.owner_edit_until ?? null);
   const [busy, setBusy] = useState(false);
   const open = !!until && new Date(until) > new Date();
@@ -38,7 +39,7 @@ export function ClientReviewSetup({ clientId, clientName, category, setup, categ
     const clean = custom ? cleanQuestions(qs) : [];
     if (custom && clean.length === 0) return toast("Add at least one question with a label and chips, or switch back to the category questions.", true);
     const next: Setup = {
-      questions: custom ? clean : undefined, max_questions: maxN, languages: langs.length ? langs : ["en"], low_star_mode: low,
+      questions: custom ? clean : undefined, max_questions: maxN, languages: langs.length ? langs : ["en"], low_star_mode: low, collect_contact: collect,
       owner_edit_until: until, ...patch,
     };
     for (const k of Object.keys(next) as (keyof Setup)[]) if (next[k] === undefined) delete next[k];
@@ -79,6 +80,11 @@ export function ClientReviewSetup({ clientId, clientName, category, setup, categ
           })}
         </div>
       </fieldset>
+
+      <div className="mt-4">
+        <label className="flex min-h-10 items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={collect} onChange={(e) => setCollect(e.target.checked)} />
+          <span><span className="font-medium" style={{ color: "var(--d-text)" }}>Ask guests for their name and number</span><br /><span className="text-xs" style={{ color: "var(--d-muted)" }}>Turn this off for businesses that do not need it (for example a hotel with tourists, or a cafe that sends no offers). Guests then go straight in, and nothing about them is stored. Names and numbers that are collected are deleted automatically after 45 days.</span></span></label>
+      </div>
 
       <label className="mt-4 block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>If a guest gives 1 or 2 stars</span>
         <select className="d-input mt-1.5" value={low} onChange={(e) => setLow(e.target.value)}>

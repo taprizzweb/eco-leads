@@ -55,5 +55,5 @@ export type GuestPageData = {
   events: { title: string; details: string | null; starts_at: string }[];
   reviews: { author: string; rating: number; body: string | null }[];
   links?: { label: string; url: string }[];
-  review?: { questions?: unknown; max_questions?: number; languages?: string[]; low_star_mode?: string };
+  review?: { questions?: unknown; max_questions?: number; languages?: string[]; low_star_mode?: string; collect_contact?: boolean };
 };
