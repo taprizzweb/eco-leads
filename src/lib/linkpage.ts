@@ -1,12 +1,13 @@
 // Mini link pages: the premium one-page site a business puts in its Instagram bio.
 
-export type LinkTheme = "midnight" | "obsidian" | "ocean" | "wine" | "forest" | "plum" | "ivory";
+export type LinkTheme = "midnight" | "graphite" | "obsidian" | "ocean" | "wine" | "forest" | "plum" | "ivory";
 
 type ThemeDef = { label: string; dark: boolean; vars: Record<string, string> };
 
 // Every template defines the same variables, so the page never hard-codes a colour.
 export const LINK_THEMES: Record<LinkTheme, ThemeDef> = {
   midnight: { label: "Midnight Blue", dark: true, vars: { "--l-bg": "#050a1a", "--l-glow": "rgba(64,102,255,0.30)", "--l-surface": "rgba(255,255,255,0.055)", "--l-surface-2": "rgba(255,255,255,0.09)", "--l-line": "rgba(255,255,255,0.10)", "--l-text": "#eef2ff", "--l-muted": "#8f9bc0", "--l-accent": "#7b9bff", "--l-accent-soft": "rgba(123,155,255,0.16)", "--l-pill": "#ffffff", "--l-pill-text": "#0b1020", "--l-sheet": "#0a1128" } },
+  graphite: { label: "Graphite", dark: true, vars: { "--l-bg": "#0f0f10", "--l-glow": "rgba(255,255,255,0.11)", "--l-surface": "rgba(255,255,255,0.05)", "--l-surface-2": "rgba(255,255,255,0.09)", "--l-line": "rgba(255,255,255,0.10)", "--l-text": "#f2f2f2", "--l-muted": "#9b9b9f", "--l-accent": "#d6d6da", "--l-accent-soft": "rgba(255,255,255,0.10)", "--l-pill": "#ffffff", "--l-pill-text": "#111111", "--l-sheet": "#1a1a1b" } },
   obsidian: { label: "Obsidian Gold", dark: true, vars: { "--l-bg": "#09090a", "--l-glow": "rgba(212,175,95,0.22)", "--l-surface": "rgba(255,255,255,0.05)", "--l-surface-2": "rgba(255,255,255,0.09)", "--l-line": "rgba(255,255,255,0.10)", "--l-text": "#f6f1e7", "--l-muted": "#a39b88", "--l-accent": "#d8b25c", "--l-accent-soft": "rgba(216,178,92,0.16)", "--l-pill": "#ffffff", "--l-pill-text": "#0b1020", "--l-sheet": "#121110" } },
   ocean: { label: "Deep Ocean", dark: true, vars: { "--l-bg": "#041418", "--l-glow": "rgba(32,201,190,0.24)", "--l-surface": "rgba(255,255,255,0.055)", "--l-surface-2": "rgba(255,255,255,0.09)", "--l-line": "rgba(255,255,255,0.10)", "--l-text": "#e9fbfa", "--l-muted": "#86b1b2", "--l-accent": "#3fd9cc", "--l-accent-soft": "rgba(63,217,204,0.15)", "--l-pill": "#ffffff", "--l-pill-text": "#0b1020", "--l-sheet": "#07222a" } },
   wine: { label: "Burgundy", dark: true, vars: { "--l-bg": "#14060b", "--l-glow": "rgba(214,59,96,0.26)", "--l-surface": "rgba(255,255,255,0.055)", "--l-surface-2": "rgba(255,255,255,0.09)", "--l-line": "rgba(255,255,255,0.10)", "--l-text": "#fdeef2", "--l-muted": "#b58a96", "--l-accent": "#f0678b", "--l-accent-soft": "rgba(240,103,139,0.16)", "--l-pill": "#ffffff", "--l-pill-text": "#0b1020", "--l-sheet": "#1f0b12" } },
