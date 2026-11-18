@@ -13,6 +13,19 @@ type Pkg = { id: string; name: string; price_inr: number };
 const plus = (days: number) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
 const validUrl = (v: string) => { if (!v) return true; try { const u = new URL(v); return u.protocol === "https:" || u.protocol === "http:"; } catch { return false; } };
 
+// Defined at module level on purpose: inside the form component it would be a new component on every keystroke and the field would lose focus.
+function L({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium" style={{ color: "var(--d-text)" }}>{label}</span>
+      {hint && <span className="ml-2 text-xs" style={{ color: "var(--d-muted)" }}>{hint}</span>}
+      <span className="mt-1.5 block">{children}</span>
+      {error && <span role="alert" className="mt-1 block text-sm" style={{ color: "var(--d-red)" }}>{error}</span>}
+    </label>
+  
+  );
+}
+
 export function NewClientForm({ templates, packages }: { templates: Tpl[]; packages: Pkg[] }) {
   const router = useRouter();
   const toast = useToast();
@@ -59,15 +72,6 @@ export function NewClientForm({ templates, packages }: { templates: Tpl[]; packa
     router.push(`/admin/clients/${c.slug}`);
     router.refresh();
   }
-
-  const L = ({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) => (
-    <label className="block">
-      <span className="text-sm font-medium" style={{ color: "var(--d-text)" }}>{label}</span>
-      {hint && <span className="ml-2 text-xs" style={{ color: "var(--d-muted)" }}>{hint}</span>}
-      <span className="mt-1.5 block">{children}</span>
-      {error && <span role="alert" className="mt-1 block text-sm" style={{ color: "var(--d-red)" }}>{error}</span>}
-    </label>
-  );
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="d-card max-w-3xl space-y-5 p-5" noValidate>

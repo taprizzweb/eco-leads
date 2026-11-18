@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Instagram, Facebook, MapPin, Phone, ChevronRight, Star, UtensilsCrossed, Bike } from "lucide-react";
+import { Instagram, Facebook, MapPin, Phone, ChevronRight, Star } from "lucide-react";
 import type { CardKey, GuestPageData } from "@/lib/types";
 import { CARD_TINTS, getTheme } from "@/lib/themes";
 import { AnimatedIcon } from "./AnimatedIcon";
+import { BRAND, SwiggyIcon, ZomatoIcon } from "./BrandIcons";
 import { Sheet } from "./Sheet";
 import { ReviewFlow } from "./ReviewFlow";
 import { FeedbackForm } from "./FeedbackForm";
@@ -47,10 +48,10 @@ function cardEnabled(k: CardKey, d: GuestPageData): boolean {
   }
 }
 
-function Marquee({ children, seconds, pausable, label }: { children: React.ReactNode; seconds: number; pausable?: boolean; label: string }) {
+function Marquee({ children, seconds, pausable, label, reverse }: { children: React.ReactNode; seconds: number; pausable?: boolean; label: string; reverse?: boolean }) {
   return (
     <div
-      className={`marquee-scroll no-scrollbar overflow-hidden ${pausable ? "marquee-pausable" : ""}`}
+      className={`marquee-scroll no-scrollbar overflow-hidden ${pausable ? "marquee-pausable" : ""} ${reverse ? "marquee-reverse" : ""}`}
       aria-label={label}
       tabIndex={pausable ? 0 : undefined}
     >
@@ -91,9 +92,9 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
     client.socials.facebook && { href: client.socials.facebook, label: "Facebook", Icon: Facebook },
     client.socials.maps && { href: client.socials.maps, label: "Directions", Icon: MapPin },
     client.socials.phone && { href: `tel:${client.socials.phone}`, label: "Call", Icon: Phone },
-    client.socials.zomato && { href: client.socials.zomato, label: "Zomato", Icon: UtensilsCrossed },
-    client.socials.swiggy && { href: client.socials.swiggy, label: "Swiggy", Icon: Bike },
-  ].filter(Boolean) as { href: string; label: string; Icon: typeof Instagram }[];
+    client.socials.zomato && { href: client.socials.zomato, label: "Zomato", Icon: ZomatoIcon, brand: BRAND.zomato },
+    client.socials.swiggy && { href: client.socials.swiggy, label: "Swiggy", Icon: SwiggyIcon, brand: BRAND.swiggy },
+  ].filter(Boolean) as { href: string; label: string; Icon: typeof Instagram; brand?: { bg: string; fg: string } }[];
 
   useEffect(() => {
     if (!askContact) { setVisitor(null); return; }
@@ -166,15 +167,15 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
         {/* 2. Social row */}
         {socials.length > 0 && (
           <motion.nav {...rise(1)} aria-label="Find us" className="no-scrollbar flex gap-2 overflow-x-auto px-5 pb-5">
-            {socials.slice(0, 6).map(({ href, label, Icon }) => (
+            {socials.slice(0, 6).map(({ href, label, Icon, brand }) => (
               <a
                 key={label}
                 href={href}
                 target={href.startsWith("tel:") ? undefined : "_blank"}
                 rel="noopener"
                 aria-label={label}
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-full ring-1 ring-line transition active:scale-90"
-                style={{ background: "var(--surface)" }}
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-90 ${brand ? "" : "ring-1 ring-line"}`}
+                style={brand ? { background: brand.bg, color: brand.fg } : { background: "var(--surface)" }}
               >
                 <Icon size={18} strokeWidth={1.8} />
               </a>
@@ -239,7 +240,7 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
               ));
               return data.gallery.length >= 3 ? (
                 <motion.section {...rise(3)} className="pb-3 pl-4">
-                  <Marquee seconds={Math.max(30, data.gallery.length * 7)} pausable label="Photos">{figs(true)}</Marquee>
+                  <Marquee seconds={Math.max(30, data.gallery.length * 7)} pausable reverse label="Photos">{figs(true)}</Marquee>
                 </motion.section>
               ) : (
                 <motion.section {...rise(3)} aria-label="Photos" className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3">{figs(false)}</motion.section>

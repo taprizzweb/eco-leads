@@ -25,6 +25,17 @@ const AUDIT_TEXT: Record<string, string> = {
   "invites.insert": "Owner invited", "upgrade.requested": "Owner asked for an upgrade",
 };
 
+// Module level on purpose: defined inside the component it would remount on every keystroke and inputs inside would lose focus.
+function Card({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <section className="d-card p-5">
+      <h2 className="font-semibold">{title}</h2>
+      {sub && <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>{sub}</p>}
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
 export function ClientAdmin({ client, packages, plates: p0, members: m0, invites: i0, audit, role }: { client: Client; packages: Pkg[]; plates: Plate[]; members: Member[]; invites: Invite[]; audit: Audit[]; role: "owner" | "manager" | "rep" }) {
   const sb = supabaseBrowser();
   const router = useRouter();
@@ -107,13 +118,6 @@ export function ClientAdmin({ client, packages, plates: p0, members: m0, invites
     toast("Invite removed");
   }
 
-  const Card = ({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) => (
-    <section className="d-card p-5">
-      <h2 className="font-semibold">{title}</h2>
-      {sub && <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>{sub}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
-  );
   const link = (code: string) => `${PLATE_BASE}/e/${code}`;
   const days = c.expires_at ? Math.ceil((new Date(c.expires_at + "T23:59:59+05:30").getTime() - Date.now()) / 864e5) : null;
 

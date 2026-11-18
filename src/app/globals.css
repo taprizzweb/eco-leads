@@ -36,6 +36,8 @@ body {
   width: max-content;
   animation: marquee var(--marquee-duration, 30s) linear infinite;
 }
+/* the photos move the opposite way to the offers strip */
+.marquee-reverse .marquee-track { animation-direction: reverse; }
 .marquee-pausable:hover .marquee-track,
 .marquee-pausable:active .marquee-track,
 .marquee-pausable:focus-within .marquee-track {
