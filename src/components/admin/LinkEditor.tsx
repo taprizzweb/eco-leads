@@ -129,7 +129,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
           <F label="Tags" hint="comma separated"><textarea className="d-input" rows={2} value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder="Specialty Coffee, Pet Friendly, All-Day Dining" /></F>
         </Sec>
 
-        <Sec title="Photos" sub="They keep moving on the page, in the opposite direction to the tags. Three or more look best.">
+        <Sec title="Photos" sub="One photo at a time with dots. It slides on its own, backwards compared with the tags. Three or more look best.">
           <input ref={photoIn} type="file" accept="image/*" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (fs.length) void guard("photos", async () => { const urls: LinkPhoto[] = []; for (const f of fs.slice(0, 30 - r.photos.length)) urls.push({ url: await upload(f, 1200) }); setR((s) => ({ ...s, photos: [...s.photos, ...urls] })); }); }} />
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
             {r.photos.map((p, i) => (
@@ -188,6 +188,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
                     <div className="min-w-0 flex-1 space-y-2">
                       <input aria-label={`Outlet ${i + 1} name`} className="d-input !min-h-10" maxLength={80} value={o.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Town Coffee 1.0" />
                       <input aria-label={`Outlet ${i + 1} address`} className="d-input !min-h-10" maxLength={200} value={o.address ?? ""} onChange={(e) => upd({ address: e.target.value })} placeholder="Address" />
+                      <input aria-label={`Outlet ${i + 1} city`} className="d-input !min-h-10" maxLength={40} value={o.city ?? ""} onChange={(e) => upd({ city: e.target.value })} placeholder="City (for the filter, e.g. Jaipur)" />
                     </div>
                     <div className="flex shrink-0 flex-col">
                       <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Move outlet ${i + 1} up`} disabled={i === 0} onClick={() => set("outlets", move(r.outlets, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={15} /></button>

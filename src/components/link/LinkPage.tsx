@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Bike, CalendarDays, ChevronRight, Coffee, Gift, Globe, Instagram, Facebook, Link2, Mail, MapPin, Phone, ShoppingBag, Star, Store, Utensils, X } from "lucide-react";
+import { Bike, CalendarDays, Coffee, Gift, Globe, Instagram, Facebook, Link2, Mail, MapPin, MessageSquareText, Phone, Share2, ShoppingBag, Star, Store, Utensils, X } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { Mark } from "@/components/dash/AuthFrame";
 import { BRAND, GoogleIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
 import { getLinkTheme, safeUrl, telLink, waLink, type LinkData, type LinkOutlet } from "@/lib/linkpage";
 
@@ -12,10 +13,11 @@ const ICONS: Record<string, Ico> = {
   menu: Utensils, drink: Coffee, map: MapPin, mail: Mail, phone: Phone, globe: Globe, calendar: CalendarDays, star: Star, gift: Gift,
   bag: ShoppingBag, outlets: Store, whatsapp: WhatsappIcon, zomato: Bike, swiggy: Bike, link: Link2,
 };
+const display = { fontFamily: 'var(--font-bebas), "Bebas Neue", Oswald, "Arial Narrow", Impact, sans-serif' } as const;
 
-function Marquee({ children, seconds, reverse, label }: { children: React.ReactNode; seconds: number; reverse?: boolean; label: string }) {
+function Marquee({ children, seconds, label }: { children: React.ReactNode; seconds: number; label: string }) {
   return (
-    <div className={`marquee-scroll marquee-pausable no-scrollbar overflow-hidden ${reverse ? "marquee-reverse" : ""}`} aria-label={label} tabIndex={0}>
+    <div className="marquee-scroll marquee-pausable no-scrollbar overflow-hidden" aria-label={label} tabIndex={0}>
       <div className="marquee-track" style={{ ["--marquee-duration" as string]: `${seconds}s` }}>
         <div className="flex shrink-0">{children}</div>
         <div className="flex shrink-0" aria-hidden>{children}</div>
@@ -24,11 +26,60 @@ function Marquee({ children, seconds, reverse, label }: { children: React.ReactN
   );
 }
 
-const roundBtn = "grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-90";
-const ring = { background: "var(--l-surface)", boxShadow: "inset 0 0 0 1px var(--l-line)", color: "var(--l-text)" } as const;
+/** One photo at a time, with dots. It moves on by itself and also follows a swipe. It runs backwards, opposite to the tag strip. */
+function Slider({ photos }: { photos: { url: string; caption?: string }[] }) {
+  const reduce = useReducedMotion();
+  const [i, setI] = useState(0);
+  const [hold, setHold] = useState(false);
+  const x0 = useRef<number | null>(null);
+  const n = photos.length;
+  const [instant, setInstant] = useState(false);
+  // Going from the first photo back to the last jumps there at once, instead of sliding past every photo in between.
+  const go = useCallback((d: number) => setI((v) => {
+    const next = (v + d + n) % n;
+    if (Math.abs(next - v) > 1) { setInstant(true); setTimeout(() => setInstant(false), 80); }
+    return next;
+  }), [n]);
+  useEffect(() => {
+    if (reduce || hold || n < 2) return;
+    const t = setInterval(() => go(-1), 3200);
+    return () => clearInterval(t);
+  }, [reduce, hold, n, go]);
+  return (
+    <div className="rounded-[26px] px-0 py-4" style={{ background: "var(--l-surface)", boxShadow: "inset 0 0 0 1px var(--l-line)" }}>
+      <div className="relative overflow-hidden touch-pan-y" role="group" aria-roledescription="carousel" aria-label="Photos"
+        onPointerDown={(e) => { x0.current = e.clientX; setHold(true); }}
+        onPointerUp={(e) => { if (x0.current !== null) { const d = e.clientX - x0.current; if (Math.abs(d) > 40) go(d < 0 ? 1 : -1); } x0.current = null; setHold(false); }}
+        onPointerCancel={() => { x0.current = null; setHold(false); }}>
+        <div className={`flex ${instant ? "" : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"}`} style={{ transform: `translateX(calc(17% - ${i} * 66%))` }}>
+          {photos.map((p, k) => (
+            <div key={p.url + k} className="w-[66%] shrink-0 px-[1.5%]" aria-hidden={k !== i}>
+              <div className="aspect-square overflow-hidden rounded-[18px] transition-all duration-700" style={{ opacity: k === i ? 1 : 0.45, transform: k === i ? "scale(1)" : "scale(0.94)", background: "var(--l-bg)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.url} alt={p.caption ?? `Photo ${k + 1}`} loading={k < 3 ? "eager" : "lazy"} decoding="async" draggable={false} className="h-full w-full object-cover" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {n > 1 && (
+        <div className="mt-3 flex justify-center gap-1.5" role="tablist" aria-label="Choose a photo">
+          {photos.map((_, k) => (
+            <button key={k} role="tab" aria-selected={k === i} aria-label={`Photo ${k + 1}`} onClick={() => setI(k)} className="grid h-4 w-4 place-items-center">
+              <span className="block rounded-full transition-all" style={{ width: k === i ? 8 : 5, height: k === i ? 8 : 5, background: k === i ? "var(--l-text)" : "var(--l-muted)", opacity: k === i ? 1 : 0.55 }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function OutletsSheet({ outlets, onClose, onClick }: { outlets: LinkOutlet[]; onClose: () => void; onClick: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
+  const cities = useMemo(() => [...new Set(outlets.map((o) => (o.city ?? "").trim()).filter(Boolean))], [outlets]);
+  const [city, setCity] = useState("");
+  const shown = city ? outlets.filter((o) => (o.city ?? "").trim() === city) : outlets;
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
@@ -41,40 +92,45 @@ function OutletsSheet({ outlets, onClose, onClick }: { outlets: LinkOutlet[]; on
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="Our outlets">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <motion.div ref={panel} initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-[28px] px-5 pt-4 pb-10" style={{ background: "var(--l-sheet)", color: "var(--l-text)", boxShadow: "0 -1px 0 var(--l-line)" }}>
-        <div className="sticky top-0 z-10 -mx-5 mb-2 flex items-center justify-between px-5 pb-3" style={{ background: "var(--l-sheet)" }}>
-          <h2 className="text-[17px] font-semibold tracking-[-0.01em]">Our {outlets.length} {outlets.length === 1 ? "outlet" : "outlets"}</h2>
-          <button onClick={onClose} aria-label="Close" className={roundBtn} style={ring}><X size={18} /></button>
+        className="relative max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-t-[22px] bg-white px-5 pb-10 text-[#111]" style={{ boxShadow: "0 -20px 60px -20px rgba(0,0,0,0.6)" }}>
+        <div className="sticky top-0 z-10 -mx-5 mb-1 flex items-center gap-2 bg-white px-5 py-4">
+          <h2 className="flex-1 text-[17px] font-semibold tracking-[-0.01em]">Our {outlets.length} {outlets.length === 1 ? "outlet" : "outlets"}</h2>
+          {cities.length > 0 && (
+            <select aria-label="City" value={city} onChange={(e) => setCity(e.target.value)} className="h-9 rounded-full border border-black/15 bg-white px-3 text-[13px]">
+              <option value="">All</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+          <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full text-black/70"><X size={20} /></button>
         </div>
         <ul className="space-y-6">
-          {outlets.map((o, i) => {
+          {shown.map((o, i) => {
             const all: { href: string | null; label: string; I: Ico }[] = [
+              { href: safeUrl(o.review_url), label: "Review on Google", I: MessageSquareText },
               { href: safeUrl(o.map_url), label: "Directions", I: MapPin },
               { href: waLink(o.whatsapp), label: "WhatsApp", I: WhatsappIcon },
               { href: telLink(o.phone), label: "Call", I: Phone },
-              { href: safeUrl(o.review_url), label: "Review on Google", I: Star },
             ];
             const acts = all.flatMap((a) => (a.href ? [{ ...a, href: a.href }] : []));
             return (
-              <li key={i} className="space-y-3">
+              <li key={i} className="space-y-2.5">
                 {o.image_url && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={o.image_url} alt={o.name} loading="lazy" className="aspect-[16/10] w-full rounded-[22px] object-cover" style={{ boxShadow: "0 0 0 1px var(--l-line)" }} />
+                  <img src={o.image_url} alt={o.name} loading="lazy" className="aspect-[16/10] w-full rounded-2xl object-cover" />
                 )}
                 <div>
-                  <h3 className="text-[16px] font-semibold">{o.name}</h3>
-                  {o.address && <p className="mt-0.5 text-[13px] leading-snug" style={{ color: "var(--l-muted)" }}>{o.address}</p>}
+                  <h3 className="text-[15px] font-semibold">{o.name}</h3>
+                  {o.address && <p className="mt-0.5 text-[12.5px] leading-snug text-black/55">{o.address}</p>}
                 </div>
                 {acts.length > 0 && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     {acts.map((a) => (
-                      <a key={a.label} href={a.href} target={a.href.startsWith("tel:") ? undefined : "_blank"} rel="noopener" aria-label={`${a.label}: ${o.name}`} onClick={onClick} className={roundBtn} style={{ ...ring, background: "var(--l-accent-soft)", color: "var(--l-accent)" }}>
-                        <a.I size={18} />
+                      <a key={a.label} href={a.href} target={a.href.startsWith("tel:") ? undefined : "_blank"} rel="noopener" aria-label={`${a.label}: ${o.name}`} onClick={onClick} className="grid h-10 w-10 place-items-center rounded-full text-black/70 transition active:scale-90">
+                        <a.I size={19} strokeWidth={1.6} />
                       </a>
                     ))}
                   </div>
                 )}
-                {i < outlets.length - 1 && <div className="pt-3" style={{ borderBottom: "1px solid var(--l-line)" }} />}
+                {i < shown.length - 1 && <div className="pt-3" style={{ borderBottom: "1px solid rgba(0,0,0,0.1)" }} />}
               </li>
             );
           })}
@@ -84,102 +140,102 @@ function OutletsSheet({ outlets, onClose, onClick }: { outlets: LinkOutlet[]; on
   );
 }
 
+const PALETTE = ["#6c5ce7", "#00a3a3", "#e17055", "#0984e3", "#d63384", "#2d9b5e"];
+
 export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean }) {
   const theme = getLinkTheme(data.theme);
   const reduce = useReducedMotion();
   const [outlets, setOutlets] = useState(false);
+  const [note, setNote] = useState("");
   const sb = supabaseBrowser();
   const track = (kind: "view" | "click") => { if (!preview) void sb.rpc("link_track", { p_id: data.id, p_kind: kind }); };
   const viewed = useRef(false);
   useEffect(() => { if (!viewed.current) { viewed.current = true; track("view"); } });
 
+  async function share() {
+    const url = window.location.origin + window.location.pathname;
+    try {
+      if (navigator.share) { await navigator.share({ title: data.name, url }); return; }
+      await navigator.clipboard.writeText(url);
+      setNote("Link copied");
+    } catch { setNote("Could not share. Copy the address from your browser."); }
+    setTimeout(() => setNote(""), 2200);
+  }
+
   const s = data.socials;
   const icons = [
-    s.instagram && { href: s.instagram, label: "Instagram", node: <Instagram size={19} strokeWidth={1.8} />, brand: null },
-    s.facebook && { href: s.facebook, label: "Facebook", node: <Facebook size={19} strokeWidth={1.8} />, brand: null },
-    s.zomato && { href: s.zomato, label: "Zomato", node: <ZomatoIcon size={18} />, brand: BRAND.zomato },
-    s.swiggy && { href: s.swiggy, label: "Swiggy", node: <SwiggyIcon size={19} />, brand: BRAND.swiggy },
-    s.whatsapp && waLink(s.whatsapp) && { href: waLink(s.whatsapp)!, label: "WhatsApp", node: <WhatsappIcon size={19} />, brand: null },
-    s.maps && { href: s.maps, label: "Directions", node: <MapPin size={19} strokeWidth={1.8} />, brand: null },
-    s.phone && telLink(s.phone) && { href: telLink(s.phone)!, label: "Call", node: <Phone size={19} strokeWidth={1.8} />, brand: null },
-    s.website && { href: s.website, label: "Website", node: <Globe size={19} strokeWidth={1.8} />, brand: null },
+    s.instagram && { href: s.instagram, label: "Instagram", node: <Instagram size={22} strokeWidth={1.6} />, brand: null },
+    s.facebook && { href: s.facebook, label: "Facebook", node: <Facebook size={22} strokeWidth={1.6} />, brand: null },
+    s.zomato && { href: s.zomato, label: "Zomato", node: <ZomatoIcon size={17} />, brand: BRAND.zomato },
+    s.swiggy && { href: s.swiggy, label: "Swiggy", node: <SwiggyIcon size={18} />, brand: BRAND.swiggy },
+    s.whatsapp && waLink(s.whatsapp) && { href: waLink(s.whatsapp)!, label: "WhatsApp", node: <WhatsappIcon size={21} />, brand: null },
+    s.maps && { href: s.maps, label: "Directions", node: <MapPin size={22} strokeWidth={1.6} />, brand: null },
+    s.phone && telLink(s.phone) && { href: telLink(s.phone)!, label: "Call", node: <Phone size={22} strokeWidth={1.6} />, brand: null },
+    s.website && { href: s.website, label: "Website", node: <Globe size={22} strokeWidth={1.6} />, brand: null },
   ].filter(Boolean) as { href: string; label: string; node: React.ReactNode; brand: { bg: string; fg: string } | null }[];
 
   const buttons = data.buttons.filter((b) => b.label.trim() && (b.url === "#outlets" ? data.outlets.length > 0 : !!safeUrl(b.url)));
-  const rise = (i: number) => (reduce ? {} : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5, delay: 0.06 + i * 0.07, ease: [0.22, 1, 0.36, 1] as const } });
+  const rise = (i: number) => (reduce ? {} : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] as const } });
+  const topBtn = "grid h-9 w-9 place-items-center rounded-full transition active:scale-90";
 
   return (
     <div className="min-h-dvh [overflow-x:clip]" data-theme={theme.dark ? "dark" : "light"} style={{ ...(theme.vars as React.CSSProperties), background: `radial-gradient(90% 420px at 50% -60px, var(--l-glow), transparent 70%), var(--l-bg)`, color: "var(--l-text)" }}>
-      <main className="mx-auto flex max-w-md flex-col pb-10">
-        {/* profile */}
-        <motion.header {...rise(0)} className="flex flex-col items-center px-6 pt-12 text-center">
-          <span className="grid h-[108px] w-[108px] place-items-center overflow-hidden rounded-full p-[3px]" style={{ background: "linear-gradient(145deg, var(--l-accent), transparent 65%)", boxShadow: "0 18px 50px -18px var(--l-accent)" }}>
-            <span className="grid h-full w-full place-items-center overflow-hidden rounded-full" style={{ background: "var(--l-sheet)" }}>
-              {data.logo_url
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={data.logo_url} alt={`${data.name} logo`} width={102} height={102} className="h-full w-full object-cover" />
-                : <span className="text-4xl font-semibold" style={{ color: "var(--l-accent)" }}>{data.name.slice(0, 1).toUpperCase()}</span>}
-            </span>
+      <main className="relative mx-auto flex max-w-md flex-col pb-8">
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-4">
+          <span className={topBtn} style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)" }} aria-hidden><Mark size={14} /></span>
+          <button type="button" onClick={share} aria-label="Share this page" className={topBtn} style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)", color: "var(--l-text)" }}><Share2 size={16} /></button>
+        </div>
+        <div role="status" aria-live="polite" className="pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center">
+          {note && <span className="rounded-full px-3.5 py-1.5 text-[12px] font-medium" style={{ background: "var(--l-text)", color: "var(--l-bg)" }}>{note}</span>}
+        </div>
+
+        <motion.header {...rise(0)} className="flex flex-col items-center px-6 pt-14 text-center">
+          <span className="grid h-[84px] w-[84px] place-items-center overflow-hidden rounded-full bg-white" style={{ boxShadow: "0 14px 40px -16px var(--l-accent), 0 0 0 1px var(--l-line)" }}>
+            {data.logo_url
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={data.logo_url} alt={`${data.name} logo`} width={84} height={84} className="h-full w-full object-cover" />
+              : <span className="text-3xl font-semibold text-black/80" style={display}>{data.name.slice(0, 1).toUpperCase()}</span>}
           </span>
-          <h1 className="mt-5 text-[26px] leading-tight font-semibold tracking-[0.06em] uppercase">{data.name}</h1>
-          {data.tagline && <p className="mt-1.5 text-[12px] font-medium tracking-[0.18em] uppercase" style={{ color: "var(--l-muted)" }}>{data.tagline}</p>}
+          <h1 className="mt-4 text-[44px] leading-none tracking-[0.02em] uppercase" style={display}>{data.name}</h1>
+          {data.tagline && <p className="mt-1.5 text-[17px] leading-none tracking-[0.03em] uppercase" style={{ ...display, color: "var(--l-muted)" }}>{data.tagline}</p>}
         </motion.header>
 
         {icons.length > 0 && (
-          <motion.nav {...rise(1)} aria-label="Find us" className="mt-6 flex flex-wrap justify-center gap-2.5 px-6">
+          <motion.nav {...rise(1)} aria-label="Find us" className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 px-6">
             {icons.map((i) => (
-              <a key={i.label} href={i.href} target={i.href.startsWith("tel:") ? undefined : "_blank"} rel="noopener" aria-label={i.label} onClick={() => track("click")} className={roundBtn} style={i.brand ? { background: i.brand.bg, color: i.brand.fg } : ring}>{i.node}</a>
+              <a key={i.label} href={i.href} target={i.href.startsWith("tel:") ? undefined : "_blank"} rel="noopener" aria-label={i.label} onClick={() => track("click")}
+                className={i.brand ? "grid h-8 w-8 place-items-center rounded-full transition active:scale-90" : "grid h-8 w-8 place-items-center transition active:scale-90"}
+                style={i.brand ? { background: i.brand.bg, color: i.brand.fg } : { color: "var(--l-text)" }}>{i.node}</a>
             ))}
           </motion.nav>
         )}
 
         {data.tags.length > 0 && (
-          <motion.div {...rise(2)} className="mt-6">
+          <motion.div {...rise(2)} className="mt-5">
             <Marquee seconds={Math.max(30, data.tags.length * 5)} label="About this place">
               {data.tags.map((t) => (
-                <span key={t} className="mr-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-medium" style={{ background: "var(--l-surface)", boxShadow: "inset 0 0 0 1px var(--l-line)", color: "var(--l-text)" }}>{t}</span>
+                <span key={t} className="mr-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[12px] font-medium" style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)", color: "var(--l-text)" }}>{t}</span>
               ))}
             </Marquee>
           </motion.div>
         )}
 
         {data.photos.length > 0 && (
-          <motion.section {...rise(3)} className="mt-6" aria-label="Photos">
-            {data.photos.length >= 3 ? (
-              <Marquee seconds={Math.max(30, data.photos.length * 7)} reverse label="Photos">
-                {data.photos.map((p, i) => (
-                  <figure key={p.url + i} className="mr-3 aspect-[4/5] w-[230px] shrink-0 overflow-hidden rounded-[26px]" style={{ boxShadow: "0 0 0 1px var(--l-line), 0 20px 40px -24px rgba(0,0,0,0.6)", background: "var(--l-surface)" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt={p.caption ?? ""} loading={i < 2 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
-                  </figure>
-                ))}
-              </Marquee>
-            ) : (
-              <div className="flex justify-center gap-3 px-6">
-                {data.photos.map((p, i) => (
-                  <figure key={p.url + i} className="aspect-[4/5] w-[44%] overflow-hidden rounded-[26px]" style={{ boxShadow: "0 0 0 1px var(--l-line)" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt={p.caption ?? ""} className="h-full w-full object-cover" />
-                  </figure>
-                ))}
-              </div>
-            )}
-          </motion.section>
+          <motion.section {...rise(3)} className="mt-4 px-3" aria-label="Photos"><Slider photos={data.photos} /></motion.section>
         )}
 
         {buttons.length > 0 && (
-          <motion.nav {...rise(4)} aria-label="Links" className="mt-7 space-y-2.5 px-5">
+          <motion.nav {...rise(4)} aria-label="Links" className="mt-4 space-y-2.5 px-3">
             {buttons.map((b, i) => {
               const Icon = ICONS[b.icon] ?? Link2;
               const inner = (
                 <>
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl" style={{ background: "var(--l-accent-soft)", color: "var(--l-accent)" }}><Icon size={19} strokeWidth={1.9} /></span>
-                  <span className="flex-1 text-left text-[15px] font-semibold tracking-[0.01em]">{b.label}</span>
-                  <ChevronRight size={18} style={{ color: "var(--l-muted)" }} aria-hidden />
+                  <span className="absolute left-4 grid h-6 w-6 place-items-center" aria-hidden><Icon size={21} strokeWidth={1.7} /></span>
+                  <span className="text-[22px] leading-none tracking-[0.03em] uppercase" style={display}>{b.label}</span>
                 </>
               );
-              const cls = "group flex min-h-[60px] w-full items-center gap-3.5 rounded-[20px] px-3 py-2.5 transition active:scale-[0.985]";
-              const st = { background: "linear-gradient(180deg, var(--l-surface-2), var(--l-surface))", boxShadow: "inset 0 0 0 1px var(--l-line), 0 10px 30px -22px rgba(0,0,0,0.7)", color: "var(--l-text)" } as const;
+              const cls = "relative flex min-h-[52px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]";
+              const st = { background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8)" } as const;
               return b.url === "#outlets"
                 ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click"); setOutlets(true); }}>{inner}</button>
                 : <a key={i} href={b.url} target={b.url.startsWith("tel:") || b.url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener" className={cls} style={st} onClick={() => track("click")}>{inner}</a>;
@@ -188,27 +244,27 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         )}
 
         {data.reviews.length > 0 && (
-          <motion.section {...rise(5)} className="mt-9" aria-label="Guest reviews">
-            <h2 className="mb-3 px-6 text-center text-[11px] font-semibold tracking-[0.22em] uppercase" style={{ color: "var(--l-muted)" }}>What guests say</h2>
+          <motion.section {...rise(5)} className="mt-5" aria-label="Guest reviews">
             <Marquee seconds={Math.max(40, data.reviews.length * 8)} label="Guest reviews">
               {data.reviews.map((r, i) => (
-                <article key={i} className="mr-3 flex w-[260px] shrink-0 flex-col gap-2 rounded-[20px] p-4" style={{ background: "var(--l-surface)", boxShadow: "inset 0 0 0 1px var(--l-line)" }}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[13px] font-semibold">{r.author}</span>
-                    <GoogleIcon size={14} className="shrink-0 opacity-70" />
+                <article key={i} className="mr-3 flex w-[250px] shrink-0 flex-col gap-1.5 rounded-2xl bg-white p-3.5 text-[#111]" style={{ boxShadow: "0 12px 30px -20px rgba(0,0,0,0.8)" }}>
+                  <div className="flex items-center gap-2.5">
+                    {r.avatar
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={r.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                      : <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[13px] font-bold text-white" style={{ background: PALETTE[(r.author.charCodeAt(0) || 0) % PALETTE.length] }}>{r.author.slice(0, 1).toUpperCase()}</span>}
+                    <div className="min-w-0 flex-1 leading-tight"><p className="truncate text-[12.5px] font-semibold">{r.author}</p>{r.date && <p className="text-[10.5px] text-black/50">{r.date}</p>}</div>
+                    <GoogleIcon size={14} className="shrink-0 text-black/45" />
                   </div>
-                  <div className="flex items-center gap-2" aria-label={`${r.rating} out of 5 stars`}>
-                    <span className="flex">{Array.from({ length: 5 }).map((_, k) => <Star key={k} size={13} className={k < r.rating ? "fill-amber-400 text-amber-400" : "opacity-25"} />)}</span>
-                    {r.date && <span className="text-[11px]" style={{ color: "var(--l-muted)" }}>{r.date}</span>}
-                  </div>
-                  <p className="line-clamp-4 text-[13px] leading-relaxed" style={{ color: "var(--l-muted)" }}>{r.body}</p>
+                  <span className="flex" aria-label={`${r.rating} out of 5 stars`}>{Array.from({ length: 5 }).map((_, k) => <Star key={k} size={12} className={k < r.rating ? "fill-amber-400 text-amber-400" : "text-black/20"} />)}</span>
+                  <p className="line-clamp-3 text-[12px] leading-relaxed text-black/60">{r.body}</p>
                 </article>
               ))}
             </Marquee>
           </motion.section>
         )}
 
-        <footer className="mt-10 text-center text-[10px] font-semibold tracking-[0.28em] uppercase" style={{ color: "var(--l-muted)" }}>Powered by Taprizz</footer>
+        <footer className="mt-6 text-center text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}>Powered by Taprizz</footer>
       </main>
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click")} />}
     </div>
