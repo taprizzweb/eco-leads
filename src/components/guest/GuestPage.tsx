@@ -219,27 +219,32 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
               </motion.div>
             )}
 
-            {/* 4. Photo gallery (swipe only, no autoplay) */}
-            {data.gallery.length > 0 && (
-              <motion.section {...rise(3)} aria-label="Photos" className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3">
-                {data.gallery.map((g, i) => (
-                  <figure key={g.url} className="relative aspect-[4/5] w-[62%] shrink-0 snap-start overflow-hidden rounded-[22px] ring-1 ring-line" style={{ background: "var(--surface)" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={g.url} alt={g.caption ?? ""} loading={i === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
-                    {g.caption && (
-                      <figcaption className="absolute top-3 left-3 max-w-[85%] truncate rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white uppercase backdrop-blur-md">
-                        {g.caption}
-                      </figcaption>
-                    )}
-                    {g.label && (
-                      <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-bold tracking-wide whitespace-nowrap text-black uppercase backdrop-blur-md">
-                        {g.label}
-                      </span>
-                    )}
-                  </figure>
-                ))}
-              </motion.section>
-            )}
+            {/* 4. Photo gallery: keeps moving on its own like the offers strip when there are 3 or more photos, otherwise swipe */}
+            {data.gallery.length > 0 && (() => {
+              const figs = (fixed: boolean) => data.gallery.map((g, i) => (
+                <figure key={g.url} className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-[22px] ring-1 ring-line ${fixed ? "mr-3 w-[220px]" : "w-[62%] snap-start"}`} style={{ background: "var(--surface)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={g.url} alt={g.caption ?? ""} loading={i === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
+                  {g.caption && (
+                    <figcaption className="absolute top-3 left-3 max-w-[85%] truncate rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white uppercase backdrop-blur-md">
+                      {g.caption}
+                    </figcaption>
+                  )}
+                  {g.label && (
+                    <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/85 px-2.5 py-1 text-[10px] font-bold tracking-wide whitespace-nowrap text-black uppercase backdrop-blur-md">
+                      {g.label}
+                    </span>
+                  )}
+                </figure>
+              ));
+              return data.gallery.length >= 3 ? (
+                <motion.section {...rise(3)} className="pb-3 pl-4">
+                  <Marquee seconds={Math.max(30, data.gallery.length * 7)} pausable label="Photos">{figs(true)}</Marquee>
+                </motion.section>
+              ) : (
+                <motion.section {...rise(3)} aria-label="Photos" className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3">{figs(false)}</motion.section>
+              );
+            })()}
 
             {/* 5. Keyword strip */}
             {data.features.keywords && client.keywords.length > 0 && (
