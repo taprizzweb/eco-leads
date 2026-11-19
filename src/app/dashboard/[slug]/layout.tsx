@@ -10,10 +10,13 @@ export default async function DashLayout({ children, params }: { children: React
   const { data: teamRole } = await sb.rpc("my_team_role");
   const { data: pendingMoments } = await sb.from("moments").select("group_id, id").eq("client_id", client.id).eq("status", "pending").limit(500);
   const newMoments = new Set((pendingMoments ?? []).map((m) => m.group_id ?? m.id)).size;
-  const { data: hubRow } = await sb.from("clients").select("hub_listed").eq("id", client.id).single();
+  const { data: hubRow } = await sb.from("clients").select("hub_listed, group_id").eq("id", client.id).single();
+  // A branch opened from its chain, or a business opened by the team, needs a way back up from its first page.
+  const { data: grp } = hubRow?.group_id ? await sb.from("groups").select("slug").eq("id", hubRow.group_id).maybeSingle() : { data: null };
+  const upHref = grp?.slug ? `/group/${grp.slug}` : teamRole ? `/admin/clients/${client.slug}` : undefined;
   const { count } = await sb.from("feedback").select("id", { count: "exact", head: true }).eq("client_id", client.id).eq("status", "new");
   return (
-    <Shell slug={client.slug} clientName={client.name} logoUrl={client.logo_url} openCount={count ?? 0} contentCount={newMoments} isTeam={!!teamRole} waOn={client.review_setup?.collect_contact === true} tablesOn={features.table_ordering === true && tablesFit(client.business_type)} jaipurOn={hubRow?.hub_listed === true}>
+    <Shell slug={client.slug} clientName={client.name} logoUrl={client.logo_url} openCount={count ?? 0} contentCount={newMoments} isTeam={!!teamRole} waOn={client.review_setup?.collect_contact === true} tablesOn={features.table_ordering === true && tablesFit(client.business_type)} jaipurOn={hubRow?.hub_listed === true} upHref={upHref}>
       {children}
     </Shell>
   );
