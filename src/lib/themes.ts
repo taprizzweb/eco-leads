@@ -216,7 +216,6 @@ export const CARD_TINTS: Record<string, string> = {
   review: "59, 130, 246", // blue
   complaint: "239, 68, 68", // red
   suggestion: "234, 179, 8", // yellow
-  moment: "34, 197, 94", // green
   offers: "139, 92, 246", // violet
   events: "236, 72, 153", // pink
   membership: "20, 184, 166", // teal

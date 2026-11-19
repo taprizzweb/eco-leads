@@ -9,7 +9,6 @@ const ROWS: { key: string; label: string; show: (v: unknown) => string | boolean
   { key: "offers_card", label: "Check offers card", show: (v) => !!v },
   { key: "whatsapp_capture", label: "WhatsApp contact capture", show: (v) => !!v },
   { key: "review_replies", label: "Google review replies", show: (v) => ({ copy: "Copy a suggested reply", approve: "Approve and post", auto_4_5: "Auto for 4 and 5 stars", managed: "Handled by our team" } as Record<string, string>)[String(v)] ?? false },
-  { key: "moments", label: "Share your moment", show: (v) => !!v },
   { key: "events", label: "Events and membership", show: (v) => !!v },
   { key: "creators", label: "Creators corner", show: (v) => !!v },
   { key: "report", label: "Monthly report", show: (v) => ({ basic: "Basic", full: "Full", full_call: "Full, plus a call" } as Record<string, string>)[String(v)] ?? false },

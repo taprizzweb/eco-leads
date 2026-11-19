@@ -6,7 +6,7 @@ import { MomentsBoard, type Moment } from "@/components/dash/MomentsBoard";
 export default async function ContentPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { sb, client, features } = await loadClient(slug);
-  if (!features.creators && !features.moments) {
+  if (!features.creators) {
     return (
       <div className="d-card mx-auto max-w-lg p-8 text-center">
         <Lock className="mx-auto" style={{ color: "var(--d-muted)" }} />

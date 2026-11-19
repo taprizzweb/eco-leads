@@ -16,14 +16,13 @@ import { VisitorGate } from "./VisitorGate";
 import { forgetPass, loadVisitor, saveVisitor, type Visitor } from "@/lib/visitor";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-const DEFAULT_ORDER: CardKey[] = ["menu", "review", "complaint", "suggestion", "moment", "offers", "events", "membership", "creators"];
+const DEFAULT_ORDER: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events", "membership", "creators"];
 
 const DEFAULT_COPY: Record<CardKey, { title: string; help: string }> = {
   menu: { title: "View menu", help: "Browse what is cooking today" },
   review: { title: "Review us on Google", help: "Three taps, and the draft is yours to edit" },
   complaint: { title: "Raise a complaint", help: "Goes privately to the management" },
   suggestion: { title: "Any suggestions?", help: "One idea can improve the next visit" },
-  moment: { title: "Share your moment", help: "A photo or clip of your visit, 30 seconds" },
   offers: { title: "Check offers", help: "What is running at the store right now" },
   events: { title: "Upcoming events", help: "Nights, workshops and gatherings" },
   membership: { title: "Become a member", help: "Perks for regulars" },
@@ -41,7 +40,6 @@ function cardEnabled(k: CardKey, d: GuestPageData): boolean {
     case "review": return !!f.review && !!d.client.google_review_url;
     case "complaint": return !!f.complaints;
     case "suggestion": return !!f.suggestions;
-    case "moment": return !!f.moments;
     case "offers": return !!f.offers_card && d.offers.length > 0;
     case "events": return !!f.events && d.events.length > 0;
     case "membership": return !!f.membership;

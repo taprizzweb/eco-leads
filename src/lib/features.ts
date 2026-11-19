@@ -16,8 +16,7 @@ export const FEATURE_DEFS: FeatureDef[] = [
   { key: "offers_card", label: "Check offers card", hint: "with claim codes", type: "bool" },
   { key: "events", label: "Events", type: "bool" },
   { key: "membership", label: "Membership", type: "bool" },
-  { key: "moments", label: "Share your moment", type: "bool" },
-  { key: "creators", label: "Creators corner", type: "bool" },
+  { key: "creators", label: "Creators corner", hint: "tag, follow and share photos or clips", type: "bool" },
   { key: "whatsapp_capture", label: "WhatsApp contact capture", type: "bool" },
   {
     key: "review_replies",

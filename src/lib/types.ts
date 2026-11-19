@@ -8,7 +8,6 @@ export type Features = {
   suggestions?: boolean;
   offers_card?: boolean;
   whatsapp_capture?: boolean;
-  moments?: boolean;
   events?: boolean;
   membership?: boolean;
   creators?: boolean;
@@ -20,7 +19,6 @@ export type CardKey =
   | "review"
   | "complaint"
   | "suggestion"
-  | "moment"
   | "offers"
   | "events"
   | "membership"
