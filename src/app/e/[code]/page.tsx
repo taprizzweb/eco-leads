@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { after } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -31,6 +31,8 @@ export default async function Page({ params }: { params: Promise<{ code: string 
   const { code } = await params;
   const data = await load(code);
   if (!data) notFound();
+  // An admin can send a printed plate anywhere (for example when a plan ends), so a plate never goes dead.
+  if (data.plate?.redirect_url && /^https:\/\//.test(data.plate.redirect_url)) redirect(data.plate.redirect_url);
 
   const sb = await supabaseServer();
   after(async () => {

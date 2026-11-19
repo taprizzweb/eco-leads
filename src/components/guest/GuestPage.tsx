@@ -36,7 +36,7 @@ const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers",
 function cardEnabled(k: CardKey, d: GuestPageData): boolean {
   const f = d.features;
   switch (k) {
-    case "menu": return !!f.menu && !!d.client.menu_url;
+    case "menu": return !!d.plate?.menu_url || (!!f.menu && !!d.client.menu_url);
     case "review": return !!f.review && !!d.client.google_review_url;
     case "complaint": return !!f.complaints;
     case "suggestion": return !!f.suggestions;
@@ -103,8 +103,9 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
   }, [client.id, askContact]);
 
   const onCard = (k: CardKey) => {
-    if (k === "menu" && client.menu_url) {
-      window.open(client.menu_url, "_blank", "noopener");
+    const menuLink = data.plate?.menu_url || client.menu_url;
+    if (k === "menu" && menuLink) {
+      window.open(menuLink, "_blank", "noopener");
       return;
     }
     if (!askContact || k === "creators") { setOpen(k); return; }

@@ -11,6 +11,7 @@ export const FEATURE_DEFS: FeatureDef[] = [
   { key: "offers_strip", label: "Offers strip", type: "bool" },
   { key: "keywords", label: "Keyword strip", type: "bool" },
   { key: "photo_limit", label: "Gallery photo limit", type: "number", min: 0, max: 100 },
+  { key: "table_ordering", label: "Table ordering links", hint: "each table plate opens that table's own ordering link", type: "bool" },
   { key: "complaints", label: "Complaint inbox", hint: "with voice notes", type: "bool" },
   { key: "suggestions", label: "Suggestions", type: "bool" },
   { key: "offers_card", label: "Check offers card", hint: "with claim codes", type: "bool" },

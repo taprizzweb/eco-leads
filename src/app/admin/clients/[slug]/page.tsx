@@ -12,7 +12,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
   const base = clients.find((c) => c.slug === slug);
   if (!base) notFound();
   const [plates, members, invites, audit, cats, setupRow, groupsQ] = await Promise.all([
-    sb.from("plates").select("code, label, active").eq("client_id", base.id).order("created_at"),
+    sb.from("plates").select("code, label, active, menu_url, redirect_url").eq("client_id", base.id).order("created_at"),
     sb.rpc("admin_client_members", { p_client: base.id }),
     sb.from("invites").select("id, email, created_at").eq("client_id", base.id).is("claimed_at", null).order("created_at", { ascending: false }),
     sb.from("audit_log").select("id, action, created_at").eq("client_id", base.id).order("created_at", { ascending: false }).limit(12),

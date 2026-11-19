@@ -27,7 +27,7 @@ A guest taps an NFC plate or scans a QR code at the counter, table or reception.
 |---|---|---|
 | Starter | Rs 999 | Review flow, menu, offers strip, keywords, 10 photos, 3 extra link buttons, WhatsApp contact capture, basic monthly report, review replies by copy |
 | Growth | Rs 2,499 | Starter plus complaint and suggestion inbox, offers with claim codes, events, creators corner, 20 photos, 6 link buttons, full report, review replies with approve |
-| Pro | Rs 4,500 | Growth plus membership, 30 photos, 12 link buttons, report with a call, automatic replies for 4 and 5 stars (after Google approval), WhatsApp messages included up to a cap, content help from the Taprizz team |
+| Pro | Rs 4,500 | Growth plus table ordering links (each table plate opens that table's own ordering link, for cafes and restaurants that already take orders from table QR codes), membership, 30 photos, 12 link buttons, report with a call, automatic replies for 4 and 5 stars (after Google approval), WhatsApp messages included up to a cap, content help from the Taprizz team |
 
 Not decided yet: **[TO CONFIRM]** one-time setup fee for plate and NFC stand, annual discount, price of the separate Mini web site for a business, price of the WhatsApp chatbot add-on.
 

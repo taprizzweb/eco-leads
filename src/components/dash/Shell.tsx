@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
@@ -19,6 +19,7 @@ export function Shell({
   contentCount = 0,
   isTeam = false,
   waOn = false,
+  tablesOn = false,
   children,
 }: {
   slug: string;
@@ -28,6 +29,7 @@ export function Shell({
   contentCount?: number;
   isTeam?: boolean;
   waOn?: boolean;
+  tablesOn?: boolean;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -54,6 +56,7 @@ export function Shell({
     { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft },
     ...(waOn ? [{ href: `${base}/offers`, label: "Offers", Icon: Megaphone } as Tab] : []),
+    ...(tablesOn ? [{ href: `${base}/tables`, label: "Tables", Icon: QrCode } as Tab] : []),
     { href: `${base}/plan`, label: "Plan", Icon: Gem },
   ];
   // Phone bottom bar keeps five tabs; Plan sits in the top bar there.

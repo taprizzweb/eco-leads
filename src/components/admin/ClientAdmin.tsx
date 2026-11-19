@@ -12,7 +12,7 @@ import { downloadQr } from "./qr";
 
 type Client = { id: string; slug: string; name: string; package_id: string; status: "active" | "paused"; expires_at: string | null; feature_overrides: FeatureMap };
 type Pkg = { id: string; name: string; price_inr: number; features: FeatureMap };
-type Plate = { code: string; label: string | null; active: boolean };
+type Plate = { code: string; label: string | null; active: boolean; menu_url?: string | null; redirect_url?: string | null };
 type Member = { user_id: string; email: string; role: string };
 type Invite = { id: string; email: string; created_at: string };
 type Audit = { id: number; action: string; created_at: string };
@@ -145,6 +145,27 @@ export function ClientAdmin({ client, packages, plates: p0, members: m0, invites
     toast(active ? "Plate switched on" : "Plate switched off");
   }
 
+  const [redirectTo, setRedirectTo] = useState("");
+  async function saveTableLink(code: string, url: string) {
+    const u = url.trim();
+    if (u && !/^https:\/\/\S+$/.test(u)) return toast("The link must start with https://", true);
+    const { error } = await sb.rpc("set_plate_menu", { p_code: code, p_url: u });
+    if (error) return toast("The table link did not save.", true);
+    setPlates((s) => s.map((p) => (p.code === code ? { ...p, menu_url: u || null } : p)));
+    toast(u ? "Table link saved" : "Table link removed");
+  }
+  async function redirectPlates(url: string | null) {
+    const u = (url ?? "").trim();
+    if (url !== null && !/^https:\/\/\S+$/.test(u)) return toast("Paste a link that starts with https://", true);
+    if (url !== null && !confirm(`Send every plate of ${c.name} to this link? Guests who scan any printed plate will land there until you remove it.`)) return;
+    setBusy("redirect");
+    const { error } = await sb.from("plates").update({ redirect_url: url === null ? null : u }).eq("client_id", c.id);
+    setBusy(null);
+    if (error) return toast("The redirect did not save. Only managers can do this.", true);
+    setPlates((s) => s.map((p) => ({ ...p, redirect_url: url === null ? null : u })));
+    toast(url === null ? "Redirect removed. Plates show the guest page again." : "All plates now open that link");
+  }
+
   async function invite() {
     const e = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast("That email looks incomplete.", true);
@@ -224,6 +245,12 @@ export function ClientAdmin({ client, packages, plates: p0, members: m0, invites
                 <button className="d-btn d-btn-s !min-h-10 !px-3" aria-label={`Download QR for ${p.label ?? p.code}`} onClick={() => downloadQr(p.code, `${c.slug}-${p.label ?? p.code}`).then(() => toast("QR downloaded"))}><QrCode size={15} /></button>
                 <a className="d-btn d-btn-s !min-h-10 !px-3" aria-label="Open the guest page" href={`/e/${p.code}`} target="_blank" rel="noopener"><ExternalLink size={15} /></a>
                 {canManage && <button className="d-btn d-btn-s !min-h-10 !px-3 !text-[13px]" onClick={() => togglePlate(p.code, !p.active)}>{p.active ? "Switch off" : "Switch on"}</button>}
+                {eff.table_ordering === true && (
+                  <label className="block w-full text-xs" style={{ color: "var(--d-muted)" }}>Ordering link for {p.label ?? "this table"} (opens from View menu)
+                    <input key={p.menu_url ?? ""} className="d-input mt-1 !min-h-10 !text-[13px]" inputMode="url" placeholder="https://" defaultValue={p.menu_url ?? ""} onBlur={(e) => { if ((e.target.value.trim() || null) !== (p.menu_url ?? null)) void saveTableLink(p.code, e.target.value); }} />
+                  </label>
+                )}
+                {p.redirect_url && <p className="w-full truncate text-xs" style={{ color: "var(--d-amber)" }}>Redirected to {p.redirect_url}</p>}
               </li>
             ))}
           </ul>
@@ -231,6 +258,17 @@ export function ClientAdmin({ client, packages, plates: p0, members: m0, invites
             <button className="d-btn d-btn-s mt-3" disabled={busy === "plate"} onClick={addPlate}>{busy === "plate" ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Add plate</button>
           ) : (
             <p className="mt-3 text-xs" style={{ color: "var(--d-muted)" }}>Only managers can create plates.</p>
+          )}
+          {canManage && plates.length > 0 && (
+            <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--d-line)" }}>
+              <p className="text-sm font-medium" style={{ color: "var(--d-text)" }}>Send all plates somewhere else</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--d-muted)" }}>For when a client stops paying or closes: every printed plate opens your link instead, so nobody scans a dead code.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <input aria-label="Link to send all plates to" className="d-input min-w-0 flex-1" inputMode="url" placeholder="https://taprizz.in" value={redirectTo} onChange={(e) => setRedirectTo(e.target.value)} />
+                <button className="d-btn d-btn-s" disabled={busy === "redirect" || !redirectTo.trim()} onClick={() => redirectPlates(redirectTo)}>Redirect all plates</button>
+                {plates.some((p) => p.redirect_url) && <button className="d-btn d-btn-s" disabled={busy === "redirect"} onClick={() => redirectPlates(null)}>Remove redirect</button>}
+              </div>
+            </div>
           )}
         </Card>
 

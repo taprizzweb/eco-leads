@@ -11,6 +11,7 @@ export type Features = {
   events?: boolean;
   membership?: boolean;
   creators?: boolean;
+  table_ordering?: boolean;
   custom_links?: number;
 };
 
@@ -26,7 +27,7 @@ export type CardKey =
 
 export type GuestPageData = {
   live: boolean;
-  plate: { code: string; label: string | null } | null;
+  plate: { code: string; label: string | null; redirect_url?: string | null; menu_url?: string | null } | null;
   client: {
     id: string;
     slug: string;
