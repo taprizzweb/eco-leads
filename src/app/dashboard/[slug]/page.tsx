@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquareWarning, Lightbulb, ChevronRight, Plus, PencilLine, CheckCircle2 } from "lucide-react";
+import { MessageSquareWarning, Lightbulb, ChevronRight, Plus, PencilLine, CheckCircle2, ExternalLink } from "lucide-react";
 import { loadClient, timeAgo } from "@/lib/dash";
 import { TapsPeakCard, type PeriodSeries } from "@/components/dash/TapsPeakCard";
 import { QrButton } from "@/components/dash/QrButton";
@@ -82,6 +82,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
         <div className="flex flex-wrap gap-2">
           <Link href={`/dashboard/${slug}/my-page#offers`} className="d-btn d-btn-p"><Plus size={16} /> Add offer</Link>
           <Link href={`/dashboard/${slug}/my-page`} className="d-btn d-btn-s"><PencilLine size={16} /> Edit page</Link>
+          <a href={`/e/${slug}`} target="_blank" rel="noopener" className="d-btn d-btn-s md:hidden"><ExternalLink size={16} /> Guest page</a>
           <QrButton plates={plates.data ?? []} base={base} />
         </div>
       </div>

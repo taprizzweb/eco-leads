@@ -110,7 +110,7 @@ export function Shell({
                   Admin
                 </Link>
               )}
-              <a href={`/e/${slug}`} target="_blank" rel="noopener" title="Open guest page" aria-label="Open guest page" className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
+              <a href={`/e/${slug}`} target="_blank" rel="noopener" title="Open guest page" aria-label="Open guest page" className="hidden h-11 w-11 place-items-center rounded-xl md:grid" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
                 <ExternalLink size={17} />
               </a>
               <button onClick={toggle} title={modeLabel} aria-label={modeLabel} className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
