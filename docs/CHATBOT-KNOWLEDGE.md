@@ -12,7 +12,7 @@ A guest taps an NFC plate or scans a QR code at the counter, table or reception.
 - **Languages.** English, Hinglish and Hindi.
 - **Complaint and suggestion box.** A guest can send feedback privately to the owner, with an optional voice note.
 - **Offers.** The guest can see current offers, and claim one with a code.
-- **Menu, events, photos, membership, "share your moment", creators corner** (photo and tag collaborations), depending on the plan.
+- **Menu, events, photos, membership and the creators corner** (guests tag and follow the business on Instagram and send their own photos or clips with a caption), depending on the plan.
 
 ## 3. What the business owner gets (dashboard)
 - Taps, reviews written, reviews copied to Google, complaints inbox, and a monthly report.
