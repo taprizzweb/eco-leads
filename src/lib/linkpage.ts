@@ -31,8 +31,8 @@ export type LinkData = {
   socials: LinkSocials; photos: LinkPhoto[]; photo_direction?: "forward" | "backward"; buttons: LinkButton[]; outlets: LinkOutlet[]; offers?: LinkOffer[]; reviews: LinkReview[];
 };
 
-export const BUTTON_ICONS = ["menu", "drink", "map", "mail", "phone", "globe", "calendar", "star", "gift", "bag", "outlets", "whatsapp", "zomato", "swiggy", "link"] as const;
-export const ICON_LABEL: Record<string, string> = { menu: "Food menu", drink: "Drinks", map: "Location", mail: "Contact", phone: "Call", globe: "Website", calendar: "Booking", star: "Reviews", gift: "Offers", bag: "Order", outlets: "Outlets", whatsapp: "WhatsApp", zomato: "Zomato", swiggy: "Swiggy", link: "Link" };
+export const BUTTON_ICONS = ["menu", "drink", "map", "mail", "phone", "globe", "calendar", "star", "gift", "bag", "outlets", "whatsapp", "zomato", "swiggy", "district", "link"] as const;
+export const ICON_LABEL: Record<string, string> = { menu: "Food menu", drink: "Drinks", map: "Location", mail: "Contact", phone: "Call", globe: "Website", calendar: "Booking", star: "Reviews", gift: "Offers", bag: "Order", outlets: "Outlets", whatsapp: "WhatsApp", zomato: "Zomato", swiggy: "Swiggy", district: "District", link: "Link" };
 
 /** wa.me link from any phone number a person types. A 10-digit Indian number gets 91 in front. */
 /** Digits of an Indian mobile number from anything a person types: "+91 98765 43210", "098765 43210", "9876543210". Null when it is not 10 digits. */
