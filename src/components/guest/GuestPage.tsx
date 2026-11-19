@@ -3,7 +3,8 @@
 import { OFFER_KINDS } from "@/lib/hub-shared";
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Instagram, Facebook, MapPin, Phone, ChevronRight, Star } from "lucide-react";
+import { Instagram, Facebook, MapPin, Phone, ChevronRight, Star, Store, MessageCircle } from "lucide-react";
+import type { LinkOutlet } from "@/lib/linkpage";
 import type { CardKey, GuestPageData } from "@/lib/types";
 import { CARD_TINTS, getTheme } from "@/lib/themes";
 import { AnimatedIcon } from "./AnimatedIcon";
@@ -65,7 +66,9 @@ function Marquee({ children, seconds, pausable, label, reverse }: { children: Re
 
 export type NearbyOffer = { slug: string; name: string; area: string; category: string | null; kind: string; title: string | null; ends_on: string };
 
-export function GuestPage({ data, code, hubHref, nearby }: { data: GuestPageData; code: string; hubHref?: string | null; nearby?: { area_id: string | null; area: string | null; offers: NearbyOffer[] } | null }) {
+export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data: GuestPageData; code: string; hubHref?: string | null; nearby?: { area_id: string | null; area: string | null; offers: NearbyOffer[] } | null; outlets?: LinkOutlet[] }) {
+  const [outletsOpen, setOutletsOpen] = useState(false);
+  const closeOutlets = useCallback(() => setOutletsOpen(false), []);
   const theme = getTheme(data.client.theme);
   const [open, setOpen] = useState<CardKey | null>(null);
   const close = useCallback(() => setOpen(null), []);
@@ -388,6 +391,13 @@ export function GuestPage({ data, code, hubHref, nearby }: { data: GuestPageData
           </>
         )}
 
+        {outlets.length > 1 && (
+          <button type="button" onClick={() => setOutletsOpen(true)} className="mt-8 flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-sm ring-1 ring-line" style={{ background: "var(--surface)" }}>
+            <span className="flex items-center gap-3"><Store size={18} aria-hidden className="text-muted" /><span><span className="block font-semibold text-fg">Our {outlets.length} outlets</span><span className="block text-xs text-muted">Find the one nearest to you</span></span></span>
+            <ChevronRight size={16} aria-hidden />
+          </button>
+        )}
+
         {hubHref && (
           <a href={hubHref} className="mt-8 flex min-h-12 items-center justify-between gap-3 rounded-2xl px-4 text-sm ring-1 ring-line" style={{ background: "var(--surface)" }}>
             <span><span className="block font-semibold text-fg">More places and offers in Jaipur</span><span className="block text-xs text-muted">See what is on near you</span></span>
@@ -406,6 +416,30 @@ export function GuestPage({ data, code, hubHref, nearby }: { data: GuestPageData
       </main>
 
       {/* Sheets */}
+      <Sheet open={outletsOpen} onClose={closeOutlets} title={`Our ${outlets.length} outlets`}>
+        <ul className="space-y-4">
+          {outlets.map((o, i) => {
+            const safe = (u?: string) => (u && /^https:\/\//.test(u) ? u : null);
+            const wa = o.whatsapp ? o.whatsapp.replace(/\D/g, "") : "";
+            return (
+              <li key={o.name + i} className="overflow-hidden rounded-2xl ring-1 ring-line" style={{ background: "var(--surface-2, var(--surface))" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {safe(o.image_url) && <img src={o.image_url} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />}
+                <div className="p-3.5">
+                  <p className="font-semibold text-fg">{o.name}</p>
+                  {(o.address || o.city) && <p className="mt-0.5 text-xs text-muted">{[o.address?.replace(/[,\s]+$/, ""), o.city].filter(Boolean).join(", ")}</p>}
+                  <div className="mt-2.5 flex gap-2">
+                    {safe(o.map_url) && <a href={o.map_url} target="_blank" rel="noopener" aria-label={`Directions to ${o.name}`} className="grid h-11 w-11 place-items-center rounded-full ring-1 ring-line"><MapPin size={17} /></a>}
+                    {safe(o.instagram) && <a href={o.instagram} target="_blank" rel="noopener" aria-label={`${o.name} on Instagram`} className="grid h-11 w-11 place-items-center rounded-full ring-1 ring-line"><Instagram size={17} /></a>}
+                    {wa.length >= 10 && <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener" aria-label={`WhatsApp ${o.name}`} className="grid h-11 w-11 place-items-center rounded-full ring-1 ring-line"><MessageCircle size={17} /></a>}
+                    {o.phone && <a href={`tel:${o.phone.replace(/[^\d+]/g, "")}`} aria-label={`Call ${o.name}`} className="grid h-11 w-11 place-items-center rounded-full ring-1 ring-line"><Phone size={17} /></a>}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Sheet>
       <Sheet open={open === "review"} onClose={close} title="Review us on Google">
         <ReviewFlow data={data} code={code} visitor={visitor} onPrivateFeedback={data.features.complaints ? () => setOpen("complaint") : undefined} />
       </Sheet>

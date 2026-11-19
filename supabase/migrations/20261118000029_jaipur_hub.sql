@@ -300,3 +300,11 @@ begin
 end $$;
 revoke execute on function public.hub_nearby(text) from public, anon, authenticated;
 grant execute on function public.hub_nearby(text) to anon, authenticated;
+
+-- Outlets on the guest page come from the business's published mini link page. Applied.
+create or replace function public.guest_outlets(p_client uuid) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce((select l.outlets from link_pages l where l.client_id = p_client and l.published and jsonb_typeof(l.outlets) = 'array' and jsonb_array_length(l.outlets) > 0 order by l.updated_at desc limit 1), '[]'::jsonb);
+$$;
+revoke execute on function public.guest_outlets(uuid) from public, anon, authenticated;
+grant execute on function public.guest_outlets(uuid) to anon, authenticated;
