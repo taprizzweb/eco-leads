@@ -5,7 +5,6 @@
 // animation. To use an exact 21st.dev icon instead, drop its component into OVERRIDES below.
 
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "motion/react";
 import {
   BookOpen,
   Star,
@@ -38,10 +37,9 @@ const OVERRIDES: Partial<Record<CardKey | "link", React.ComponentType<{ size?: n
 /** Re-run the draw animation whenever `play` changes. */
 function useDraw(play: number) {
   const ref = useRef<HTMLSpanElement>(null);
-  const reduce = useReducedMotion();
   useEffect(() => {
     const el = ref.current;
-    if (!el || reduce) return;
+    if (!el) return;
     const parts = el.querySelectorAll<SVGGeometryElement>("path, circle, rect, line, polyline, polygon");
     parts.forEach((p, i) => {
       p.setAttribute("pathLength", "1");
@@ -53,7 +51,7 @@ function useDraw(play: number) {
         fill: "both",
       });
     });
-  }, [play, reduce]);
+  }, [play]);
   return ref;
 }
 

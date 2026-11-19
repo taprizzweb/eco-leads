@@ -42,20 +42,20 @@ function Slider({ photos, backward }: { photos: { url: string; caption?: string;
     return next;
   }), [n]);
   useEffect(() => {
-    if (reduce || hold || n < 2) return;
-    const t = setInterval(() => go(backward ? -1 : 1), 3600);
+    if (hold || n < 2) return;
+    const t = setInterval(() => go(backward ? -1 : 1), reduce ? 5000 : 3600);
     return () => clearInterval(t);
   }, [reduce, hold, n, go, backward]);
   // only the clip on screen plays, muted and looping
   const vids = useRef<(HTMLVideoElement | null)[]>([]);
-  useEffect(() => { vids.current.forEach((v, k) => { if (!v) return; if (k === i && !reduce) void v.play().catch((e) => console.warn("Clip could not start:", e?.name)); else v.pause(); }); }, [i, reduce]);
+  useEffect(() => { vids.current.forEach((v, k) => { if (!v) return; if (k === i) void v.play().catch((e) => console.warn("Clip could not start:", e?.name)); else v.pause(); }); }, [i]);
   return (
     <div className="rounded-[26px] px-0 py-4" style={{ background: "var(--l-surface)", boxShadow: "inset 0 0 0 1px var(--l-line)" }}>
       <div className="relative overflow-hidden touch-pan-y" role="group" aria-roledescription="carousel" aria-label="Photos"
         onPointerDown={(e) => { x0.current = e.clientX; setHold(true); }}
         onPointerUp={(e) => { if (x0.current !== null) { const d = e.clientX - x0.current; if (Math.abs(d) > 40) go(d < 0 ? 1 : -1); } x0.current = null; setHold(false); }}
         onPointerCancel={() => { x0.current = null; setHold(false); }}>
-        <div className={`flex ${instant ? "" : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"}`} style={{ transform: `translateX(calc(17% - ${i} * 66%))` }}>
+        <div className={`flex ${instant || reduce ? "" : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"}`} style={{ transform: `translateX(calc(17% - ${i} * 66%))` }}>
           {photos.map((p, k) => (
             <div key={p.url + k} className="w-[66%] shrink-0 px-[1.5%]" aria-hidden={k !== i}>
               <div className="aspect-square overflow-hidden rounded-[18px] transition-all duration-700" style={{ opacity: k === i ? 1 : 0.45, transform: k === i ? "scale(1)" : "scale(0.94)", background: "var(--l-bg)" }}>
@@ -248,7 +248,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
 
   const offers = (data.offers ?? []).filter((o) => o.title.trim());
   const buttons = data.buttons.filter((b) => b.label.trim() && (b.url === "#outlets" ? data.outlets.length > 0 : b.url === "#offers" ? offers.length > 0 : !!safeUrl(b.url)));
-  const rise = (i: number) => (reduce ? {} : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] as const } });
+  const rise = (i: number) => (reduce ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.4, delay: 0.05 + i * 0.05 } } : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] as const } });
   const topBtn = "grid h-9 w-9 place-items-center rounded-full transition active:scale-90";
 
   return (

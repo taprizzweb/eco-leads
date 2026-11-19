@@ -94,16 +94,12 @@ body {
   animation: spin-angle 6s linear infinite;
 }
 
-/* Guests who ask their phone for less motion get a still page. */
+/* Phones in battery saver often ask for less motion. The strips and photos keep moving (they are the content); only the flashy border effects stop. */
 @media (prefers-reduced-motion: reduce) {
-  .marquee-track,
   .rainbow-border,
   .sweep-border,
   .sweep-border::before {
     animation: none !important;
-  }
-  .marquee-scroll {
-    overflow-x: auto;
   }
 }
 

@@ -119,10 +119,10 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
     setOpen(k);
   };
 
-  // Cards and blocks rise in one after another when the page opens (still for reduced motion).
+  // Cards and blocks come in one after another when the page opens. With "less motion" they only fade, they do not rise.
   const rise = (i: number) =>
     reduce
-      ? {}
+      ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.4, delay: 0.05 + i * 0.05 } }
       : {
           initial: { opacity: 0, y: 18 },
           animate: { opacity: 1, y: 0 },
