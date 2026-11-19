@@ -15,11 +15,13 @@ const parentOf = (p: string) => {
 };
 
 /** A back arrow for the installed app, which has no browser bar. Goes to the page before; if there is none, to the page above. */
-export function BackButton({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+export function BackButton({ className = "", style, rootBack }: { className?: string; style?: React.CSSProperties; rootBack?: string }) {
   const path = usePathname();
   const router = useRouter();
-  if (isRootPath(path)) return null;
+  // A root page normally has no back arrow. `rootBack` lets a page that has an owner above it (an admin looking at a chain) still go up.
+  if (isRootPath(path) && !rootBack) return null;
   const back = () => {
+    if (isRootPath(path) && rootBack) { router.push(rootBack); return; }
     const sameSiteBefore = typeof document !== "undefined" && document.referrer && new URL(document.referrer).origin === window.location.origin;
     if (window.history.length > 1 && sameSiteBefore) router.back();
     else router.push(parentOf(path));

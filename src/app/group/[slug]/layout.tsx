@@ -13,11 +13,13 @@ export default async function GroupLayout({ children, params }: { children: Reac
   const { group } = await loadGroup(slug);
   const { data: { user } } = await (await import("@/lib/supabase/server")).supabaseServer().then((s) => s.auth.getUser());
   void user;
+  const sb = await (await import("@/lib/supabase/server")).supabaseServer();
+  const { data: teamRole } = await sb.rpc("my_team_role");
   return (
     <div className="dash min-h-dvh" data-mode="dark">
       <header className="sticky top-0 z-30 border-b backdrop-blur-xl" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 85%, transparent)" }}>
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-          <BackButton style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }} />
+          <BackButton rootBack={teamRole ? "/admin/tools/chains" : undefined} style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }} />
           {group.logo_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={group.logo_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
