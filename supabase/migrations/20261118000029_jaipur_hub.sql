@@ -274,3 +274,29 @@ begin
   end if;
   return new;
 end $$;
+
+-- Nearby offers on a guest page: live offers from other listed businesses (other categories, same area first). Applied.
+create or replace function public.hub_nearby(p_slug text) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare c clients;
+begin
+  select * into c from clients where slug = lower(p_slug) and hub_listed;
+  if c.id is null or not client_is_live(c) then return null; end if;
+  return jsonb_build_object(
+    'area_id', c.hub_area,
+    'area', (select name from hub_areas where id = c.hub_area),
+    'offers', (select coalesce(jsonb_agg(s.x), '[]'::jsonb) from (
+       select jsonb_build_object('slug', o2.slug, 'name', o2.name, 'area', a2.name,
+                'category', (select label from business_templates where id = o2.business_type),
+                'kind', o.kind, 'title', case when o.follow_first then null else o.title end, 'ends_on', o.ends_on) as x
+         from hub_offers o
+         join clients o2 on o2.id = o.client_id
+         join hub_areas a2 on a2.id = o2.hub_area
+        where o.status = 'live' and o.starts_on <= current_date and o.ends_on >= current_date
+          and o2.hub_listed and client_is_live(o2) and o2.id <> c.id
+          and coalesce(o2.business_type, '') <> coalesce(c.business_type, '')
+        order by (o2.hub_area = c.hub_area) desc, o.ends_on
+        limit 6) s));
+end $$;
+revoke execute on function public.hub_nearby(text) from public, anon, authenticated;
+grant execute on function public.hub_nearby(text) to anon, authenticated;
