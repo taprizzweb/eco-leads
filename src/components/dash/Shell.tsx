@@ -131,12 +131,12 @@ export function Shell({
 
         {/* Phone: bottom bar */}
         <nav aria-label="Dashboard" className="fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 90%, transparent)" }}>
-          <div className="grid grid-cols-5">
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${bottomTabs.length}, minmax(0, 1fr))` }}>
             {bottomTabs.map((t) => {
               const { href, label, Icon, badge } = t;
               const on = active(t);
               return (
-                <Link key={href} href={href} aria-current={on ? "page" : undefined} className="relative flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium" style={{ color: on ? "var(--d-text)" : "var(--d-muted)" }}>
+                <Link key={href} href={href} aria-current={on ? "page" : undefined} className={`relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 font-medium ${bottomTabs.length > 5 ? "text-[10px]" : "text-[11px]"}`} style={{ color: on ? "var(--d-text)" : "var(--d-muted)" }}>
                   <Icon size={21} strokeWidth={on ? 2.2 : 1.8} />
                   {label}
                   {!!badge && <span className="absolute top-2 left-1/2 ml-2 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold text-white" style={{ background: "var(--d-red)" }}>{badge}</span>}
