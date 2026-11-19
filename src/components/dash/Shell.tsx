@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
@@ -20,6 +20,7 @@ export function Shell({
   isTeam = false,
   waOn = false,
   tablesOn = false,
+  jaipurOn = false,
   children,
 }: {
   slug: string;
@@ -30,6 +31,7 @@ export function Shell({
   isTeam?: boolean;
   waOn?: boolean;
   tablesOn?: boolean;
+  jaipurOn?: boolean;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -56,6 +58,7 @@ export function Shell({
     { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft },
     ...(waOn ? [{ href: `${base}/offers`, label: "Offers", Icon: Megaphone } as Tab] : []),
+    ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Jaipur", Icon: MapPin } as Tab] : []),
     ...(tablesOn ? [{ href: `${base}/tables`, label: "Tables", Icon: QrCode } as Tab] : []),
     { href: `${base}/plan`, label: "Plan", Icon: Gem },
   ];
