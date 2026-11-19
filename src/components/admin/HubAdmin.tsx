@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Loader2, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { slugify } from "@/lib/features";
 import { OFFER_KINDS } from "@/lib/hub-shared";
@@ -90,6 +90,10 @@ export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0, wit
   const tabs: [typeof tab, string][] = [["offers", `Offers${pending.length ? ` (${pending.length})` : ""}`], ["sponsors", "Sponsored"], ["listed", "Listed jagah"], ["areas", "Areas"]];
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <a className="d-btn d-btn-s" href="/jaipur" target="_blank" rel="noopener"><ExternalLink size={15} /> Live Jaipur page dekho</a>
+        <span className="text-sm" style={M}>Customer ko taprizz.in/jaipur par dikhta hai. Instagram bio, plate ka card aur WhatsApp status se khulta hai.</span>
+      </div>
       <div className="d-seg w-fit max-w-full overflow-x-auto" role="group" aria-label="Jaipur page">
         {tabs.map(([k, l]) => <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </div>
@@ -149,6 +153,7 @@ export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0, wit
           {shown.map((c) => (
             <div key={c.id} className="d-raise flex flex-wrap items-center gap-3 p-3">
               <b className="min-w-0 flex-1 truncate" style={T}>{c.name}</b>
+              {c.hub_listed && <a className="d-btn d-btn-s !min-h-10 !px-3 !text-[13px]" href={`/jaipur/${c.slug}`} target="_blank" rel="noopener" aria-label={`${c.name} ka live page`}><ExternalLink size={14} /> Live</a>}
               <select aria-label={`${c.name} ka area`} className="d-input !w-44 !min-h-10 !text-[13px]" value={c.hub_area ?? ""} disabled={busy === c.id} onChange={(e) => saveClient(c, { hub_area: e.target.value || null, hub_listed: e.target.value ? c.hub_listed : false })}>
                 <option value="">Area chuno</option>{areas.filter((a) => a.active || a.id === c.hub_area).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
               <button type="button" role="switch" aria-checked={c.hub_listed} aria-label={`${c.name} Jaipur page par`} disabled={busy === c.id || !c.hub_area || (!c.hub_listed && !withPlate.includes(c.id))} className="d-btn d-btn-s !min-h-10 !px-4 !text-[13px]" onClick={() => saveClient(c, { hub_listed: !c.hub_listed })}>{c.hub_listed ? "Listed" : withPlate.includes(c.id) ? "List karo" : "Plate nahi"}</button>

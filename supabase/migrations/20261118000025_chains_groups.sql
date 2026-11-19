@@ -1,5 +1,5 @@
 -- Chains: a group head sees and controls every branch of a company from one place.
--- NOT YET APPLIED to the database (waiting for the owner to approve it).
+-- NOT YET APPLIED to the database (waiting for the owner to approve it). Needs 20261118000030_ratings_permanent_45_days.sql first (rating_daily).
 create table if not exists groups (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique check (slug ~ '^[a-z0-9-]{3,40}$'),
@@ -172,8 +172,8 @@ begin
   return jsonb_build_object(
     'branches', cardinality(ids),
     'taps', (select count(*) from taps t where t.client_id = any(ids) and t.created_at >= since),
-    'drafts', (select count(*) from review_drafts d where d.client_id = any(ids) and d.created_at >= since),
-    'copied', (select count(*) from review_drafts d where d.client_id = any(ids) and d.created_at >= since and d.copied),
+    'drafts', (select coalesce(sum(r.n), 0) from rating_daily r where r.client_id = any(ids) and r.day >= since::date),
+    'copied', (select coalesce(sum(r.copied_n), 0) from rating_daily r where r.client_id = any(ids) and r.day >= since::date),
     'feedback_open', (select count(*) from feedback f where f.client_id = any(ids) and f.status = 'new'),
     'customers', (select count(distinct phone) from contacts c where c.client_id = any(ids)),
     'whatsapp_ready', (select count(*) from group_audience_rows(p_group, 'all', 30)),
@@ -194,7 +194,7 @@ begin
   with b as (select cl.id, cl.slug, cl.name, cl.status::text as st from clients cl
               where cl.group_id = p_group and (coalesce(p_search, '') = '' or cl.name ilike '%' || p_search || '%')),
   t as (select x.client_id as cid, count(*) as n from taps x where x.client_id in (select id from b) and x.created_at >= since group by 1),
-  d as (select x.client_id as cid, count(*) as n, count(*) filter (where x.copied) as c from review_drafts x where x.client_id in (select id from b) and x.created_at >= since group by 1),
+  d as (select x.client_id as cid, coalesce(sum(x.n), 0) as n, coalesce(sum(x.copied_n), 0) as c from rating_daily x where x.client_id in (select id from b) and x.day >= since::date group by 1),
   f as (select x.client_id as cid, count(*) as n from feedback x where x.client_id in (select id from b) and x.status = 'new' group by 1),
   c as (select x.client_id as cid, count(*) as n from contacts x where x.client_id in (select id from b) group by 1),
   r as (select x.client_id as cid, round(avg(x.rating)::numeric, 2) as a from google_reviews x where x.client_id in (select id from b) and x.created_at >= since group by 1)

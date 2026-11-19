@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Lock, Trash2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Loader2, Lock, Trash2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { OFFER_KINDS } from "@/lib/hub-shared";
 import { useToast } from "./Toast";
@@ -13,8 +13,8 @@ type Check = { state: "valid" | "used" | "expired" | "unknown" | "redeemed"; tit
 const ist = (offset = 0) => new Date(Date.now() + offset * 864e5).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 const dmy = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 
-export function JaipurBoard({ clientId, listed, areaName, categoryLabel, rank, total, rating, guests, stats, offers, hasInstagram }: {
-  clientId: string; listed: boolean; areaName: string | null; categoryLabel: string | null; rank: number | null; total: number; rating: number; guests: number;
+export function JaipurBoard({ clientId, slug, areaId, listed, areaName, categoryLabel, rank, total, rating, guests, stats, offers, hasInstagram }: {
+  clientId: string; slug: string; areaId: string | null; listed: boolean; areaName: string | null; categoryLabel: string | null; rank: number | null; total: number; rating: number; guests: number;
   stats: { views: number; follows: number; claims: number; redeems: number }; offers: MyOffer[]; hasInstagram: boolean;
 }) {
   const sb = supabaseBrowser();
@@ -82,6 +82,16 @@ export function JaipurBoard({ clientId, listed, areaName, categoryLabel, rank, t
         <div><span className="text-[44px] leading-none font-bold tracking-[-0.045em]" style={{ color: "var(--d-amber)" }}>{rank ? `#${rank}` : "n/a"}</span></div>
         <div className="min-w-0 flex-1"><p className="font-medium" style={{ color: "var(--d-text)" }}>{areaName} {categoryLabel ? `ke ${categoryLabel} mein` : "mein"}{total > 0 ? `, ${total} mein se` : ""}</p>
           <p className="text-sm" style={{ color: "var(--d-muted)" }}>{guests >= 30 ? `Guests ki rating ${rating.toFixed(1)}, ${guests} guests ne di.` : `Abhi ${guests} guests ne rate kiya. 30 ke baad rating dikhegi.`}</p></div>
+      </section>
+
+      <section className="d-card space-y-3 p-5" aria-labelledby="live">
+        <h2 id="live" className="text-base font-semibold" style={{ color: "var(--d-text)" }}>Aapka live page</h2>
+        <p className="text-sm" style={{ color: "var(--d-muted)" }}>Ye wahi page hai jo customer dekhta hai. Link Instagram bio, WhatsApp status ya Google profile mein laga sakte ho. Cafe ki plate par bhi &quot;More places and offers in Jaipur&quot; ka card isi list tak le jata hai.</p>
+        <div className="flex flex-wrap gap-2">
+          <a className="d-btn d-btn-p" href={`/jaipur/${slug}`} target="_blank" rel="noopener"><ExternalLink size={15} /> Live page dekho</a>
+          <a className="d-btn d-btn-s" href={areaId ? `/jaipur?area=${areaId}` : "/jaipur"} target="_blank" rel="noopener"><ExternalLink size={15} /> Jaipur ki list dekho</a>
+          <button type="button" className="d-btn d-btn-s" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/jaipur/${slug}`).then(() => toast("Link copy ho gaya")).catch(() => toast("Copy nahi hua. Link khol kar address bar se le lo.", true))}><Copy size={15} /> Link copy karo</button>
+        </div>
       </section>
 
       <section aria-labelledby="st">

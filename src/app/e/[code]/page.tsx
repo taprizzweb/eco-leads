@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { GuestPage } from "@/components/guest/GuestPage";
 import type { GuestPageData } from "@/lib/types";
+import { HUB_PATH, loadPlace } from "@/lib/hub";
 
 // Plates point to taprizz.in/e/<code>. The code never changes once printed;
 // the admin reassigns which client and table it belongs to.
@@ -39,5 +40,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
     await sb.rpc("guest_log_tap", { p_client: data.client.id, p_code: data.plate?.code ?? null });
   });
 
-  return <GuestPage data={data} code={code} />;
+  // Only businesses that are on the Jaipur page get the link.
+  const onHub = await loadPlace(data.client.slug);
+  return <GuestPage data={data} code={code} hubHref={onHub ? HUB_PATH : null} />;
 }

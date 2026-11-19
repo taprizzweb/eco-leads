@@ -62,7 +62,7 @@ function Marquee({ children, seconds, pausable, label, reverse }: { children: Re
   );
 }
 
-export function GuestPage({ data, code }: { data: GuestPageData; code: string }) {
+export function GuestPage({ data, code, hubHref }: { data: GuestPageData; code: string; hubHref?: string | null }) {
   const theme = getTheme(data.client.theme);
   const [open, setOpen] = useState<CardKey | null>(null);
   const close = useCallback(() => setOpen(null), []);
@@ -363,6 +363,13 @@ export function GuestPage({ data, code }: { data: GuestPageData; code: string })
               </section>
             )}
           </>
+        )}
+
+        {hubHref && (
+          <a href={hubHref} className="mt-8 flex min-h-12 items-center justify-between gap-3 rounded-2xl px-4 text-sm ring-1 ring-line" style={{ background: "var(--surface)" }}>
+            <span><span className="block font-semibold text-fg">More places and offers in Jaipur</span><span className="block text-xs text-muted">See what is on near you</span></span>
+            <ChevronRight size={16} aria-hidden />
+          </a>
         )}
 
         {/* 9. Footer */}

@@ -6,7 +6,7 @@ export default async function JaipurPage({ params }: { params: Promise<{ slug: s
   const { sb, client } = await loadClient(slug);
   const { data: row } = await sb.from("clients").select("hub_listed, hub_area, business_type").eq("id", client.id).single();
   const listed = row?.hub_listed === true;
-  if (!listed) return <JaipurBoard clientId={client.id} listed={false} areaName={null} categoryLabel={null} rank={null} total={0} rating={0} guests={0} stats={{ views: 0, follows: 0, claims: 0, redeems: 0 }} offers={[]} hasInstagram={false} />;
+  if (!listed) return <JaipurBoard clientId={client.id} slug={client.slug} areaId={null} listed={false} areaName={null} categoryLabel={null} rank={null} total={0} rating={0} guests={0} stats={{ views: 0, follows: 0, claims: 0, redeems: 0 }} offers={[]} hasInstagram={false} />;
   const since = new Date(Date.now() - 30 * 864e5).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const [{ data: offers }, { data: place }, area, cat] = await Promise.all([
     sb.from("hub_offers").select("id, kind, title, details, starts_on, ends_on, follow_first, status, admin_note").eq("client_id", client.id).order("created_at", { ascending: false }).limit(30),
@@ -21,7 +21,7 @@ export default async function JaipurPage({ params }: { params: Promise<{ slug: s
   const insta = typeof client.socials?.instagram === "string" && /^https:\/\//.test(client.socials.instagram);
   return (
     <JaipurBoard
-      clientId={client.id} listed areaName={(area.data as { name: string } | null)?.name ?? null} categoryLabel={(cat.data as { label: string } | null)?.label ?? null}
+      clientId={client.id} slug={client.slug} areaId={row?.hub_area ?? null} listed areaName={(area.data as { name: string } | null)?.name ?? null} categoryLabel={(cat.data as { label: string } | null)?.label ?? null}
       rank={p?.rank ?? null} total={p?.total ?? 0} rating={Number(p?.rating ?? 0)} guests={p?.guests ?? 0}
       stats={{ views: sum("view"), follows: sum("follow"), claims: sum("claim"), redeems: sum("redeem") }}
       offers={(offers ?? []) as MyOffer[]} hasInstagram={insta}
