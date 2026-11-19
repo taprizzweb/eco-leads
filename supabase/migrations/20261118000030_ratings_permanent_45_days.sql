@@ -77,6 +77,42 @@ end $$;
 revoke execute on function public.guest_review_status(uuid, text, text) from public;
 grant execute on function public.guest_review_status(uuid, text, text) to anon, authenticated;
 
+-- Complaints and suggestions: the numbers stay for good, the text goes after the days set for each business (default 14).
+alter table clients add column if not exists feedback_keep_days int not null default 14 check (feedback_keep_days between 1 and 365);
+create table if not exists feedback_daily (
+  client_id uuid not null references clients on delete cascade,
+  day date not null,
+  kind feedback_kind not null,
+  received int not null default 0,
+  resolved int not null default 0,
+  primary key (client_id, day, kind)
+);
+alter table feedback_daily enable row level security;
+drop policy if exists feedback_daily_read on feedback_daily;
+create policy feedback_daily_read on feedback_daily for select to authenticated using (is_member(client_id));
+insert into feedback_daily (client_id, day, kind, received, resolved)
+select client_id, (created_at at time zone 'Asia/Kolkata')::date, kind, count(*), count(*) filter (where status = 'resolved')
+  from feedback group by 1, 2, 3
+on conflict (client_id, day, kind) do nothing;
+create or replace function public.feedback_count_ins() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into feedback_daily (client_id, day, kind, received) values (new.client_id, (new.created_at at time zone 'Asia/Kolkata')::date, new.kind, 1)
+  on conflict (client_id, day, kind) do update set received = feedback_daily.received + 1;
+  return new;
+end $$;
+create or replace function public.feedback_count_resolved() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into feedback_daily (client_id, day, kind, resolved) values (new.client_id, (new.created_at at time zone 'Asia/Kolkata')::date, new.kind, 1)
+  on conflict (client_id, day, kind) do update set resolved = feedback_daily.resolved + 1;
+  return new;
+end $$;
+revoke execute on function public.feedback_count_ins() from public, anon, authenticated;
+revoke execute on function public.feedback_count_resolved() from public, anon, authenticated;
+drop trigger if exists feedback_count_ins_t on feedback;
+create trigger feedback_count_ins_t after insert on feedback for each row execute function public.feedback_count_ins();
+drop trigger if exists feedback_count_resolved_t on feedback;
+create trigger feedback_count_resolved_t after update of status on feedback for each row when (new.status = 'resolved' and old.status <> 'resolved') execute function public.feedback_count_resolved();
+
 create or replace function public.purge_old_contacts() returns integer
 language plpgsql security definer set search_path = public as $$
 declare days int; n int; m int;
@@ -88,6 +124,7 @@ begin
   delete from review_drafts where created_at < now() - make_interval(days => days);
   get diagnostics m = row_count;
   delete from hub_claims where created_at < now() - make_interval(days => days);
+  delete from feedback f using clients c where c.id = f.client_id and f.created_at < now() - make_interval(days => c.feedback_keep_days);
   return n + m;
 end $$;
 revoke all on function public.purge_old_contacts() from public, anon, authenticated;
