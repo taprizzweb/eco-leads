@@ -77,3 +77,7 @@ export function newPlateCode(len = 6) {
 }
 
 export const PLATE_BASE = process.env.NEXT_PUBLIC_PLATE_BASE_URL || "https://taprizz.in";
+
+/** Table ordering links only make sense where guests order at a table or in a room. Gyms, salons and clinics never see the Tables tab. */
+export const TABLE_TYPES = ["cafe", "hotel", "resort"];
+export const tablesFit = (businessType: string | null | undefined) => !businessType || TABLE_TYPES.includes(businessType);
