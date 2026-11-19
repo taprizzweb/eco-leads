@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/AppNav";
 // Sign-in look shared by every account type: business owners and their staff,
 // the Taprizz admin, and Taprizz employees. Styled after the HextaUI
 // "Modern Stunning Sign In" card (src/components/ui/modern-stunning-sign-in.tsx).
@@ -32,6 +33,7 @@ const PLACES = [
 export function AuthFrame({ title, sub, children, foot }: { title: string; sub: string; children: React.ReactNode; foot?: React.ReactNode }) {
   return (
     <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-[#121212] px-4 py-10 text-gray-300">
+      <div className="absolute top-3 left-3 z-20"><BackButton className="grid h-11 w-11 place-items-center rounded-xl text-gray-300" style={{ background: "#ffffff10" }} /></div>
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center rounded-3xl bg-gradient-to-r from-[#ffffff10] to-[#121212] p-8 shadow-2xl backdrop-blur-sm">
         <div className="mb-6 rounded-full shadow-lg">
           <Mark size={56} />

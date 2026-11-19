@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, MapPin, Phone, Star, Instagram } from "lucide-react";
-import { HUB_NAME, HUB_PATH, MIN_GUESTS, loadPlace } from "@/lib/hub";
+import { MapPin, Phone, Star, Instagram } from "lucide-react";
+import { HUB_NAME, MIN_GUESTS, loadPlace } from "@/lib/hub";
+import { HubBack } from "@/components/hub/HubBack";
 import { OfferUnlock } from "@/components/hub/OfferUnlock";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -22,7 +22,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
   const top = enough && p.rank != null && p.rank <= 10;
   return (
     <div className="space-y-5">
-      <Link href={HUB_PATH} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold" style={{ color: "var(--d-text)" }}><ArrowLeft size={16} aria-hidden /> Wapas</Link>
+      <HubBack />
 
       <section className="d-raise flex min-h-[190px] flex-col justify-end gap-2 p-5" style={{ borderRadius: 24, background: "radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--d-amber) 18%, transparent), transparent 65%), var(--d-raise)" }}>
         {top && (

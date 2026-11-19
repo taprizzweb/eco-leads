@@ -6,16 +6,18 @@ import { HubAdmin, type AdminOffer, type AdminSponsor, type AdminClient, type Ad
 export default async function JaipurAdminPage() {
   const { sb, role } = await requireTeam();
   if (!atLeast(role, "manager")) notFound();
-  const [offers, sponsors, clients, areas] = await Promise.all([
+  const [offers, sponsors, clients, areas, plates] = await Promise.all([
     sb.from("hub_offers").select("id, client_id, kind, title, details, starts_on, ends_on, follow_first, status, admin_note, created_at, clients(name)").order("created_at", { ascending: false }).limit(200),
     sb.from("hub_sponsors").select("id, offer_id, area, starts_on, ends_on, hub_offers(title, clients(name))").order("created_at", { ascending: false }).limit(100),
     sb.from("clients").select("id, name, slug, hub_listed, hub_area").order("name").limit(500),
     sb.from("hub_areas").select("id, name, sort, active").order("sort").order("name"),
+    sb.from("plates").select("client_id").eq("active", true).not("client_id", "is", null).limit(5000),
   ]);
+  const withPlate = [...new Set((plates.data ?? []).map((p) => p.client_id as string))];
   return (
     <>
       <PageHead title="Jaipur page" sub="Kaun listed hai, kaun si offers chalengi, aur sponsored jagah. Ranking apne aap banti hai, usse yahan se badla nahi ja sakta." />
-      <HubAdmin offers={(offers.data ?? []) as unknown as AdminOffer[]} sponsors={(sponsors.data ?? []) as unknown as AdminSponsor[]} clients={(clients.data ?? []) as AdminClient[]} areas={(areas.data ?? []) as AdminArea[]} />
+      <HubAdmin offers={(offers.data ?? []) as unknown as AdminOffer[]} sponsors={(sponsors.data ?? []) as unknown as AdminSponsor[]} clients={(clients.data ?? []) as AdminClient[]} areas={(areas.data ?? []) as AdminArea[]} withPlate={withPlate} />
     </>
   );
 }

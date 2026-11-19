@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackToClose } from "@/lib/sheet-back";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Bike, CalendarDays, Coffee, Gift, Globe, Instagram, Facebook, Link2, Mail, MapPin, MessageSquareText, Phone, Share2, ShoppingBag, Star, Store, Utensils, X } from "lucide-react";
@@ -82,6 +83,7 @@ function Slider({ photos, backward }: { photos: { url: string; caption?: string;
 
 function OutletsSheet({ outlets, onClose, onClick }: { outlets: LinkOutlet[]; onClose: () => void; onClick: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
+  useBackToClose(true, onClose);
   const cities = useMemo(() => [...new Set(outlets.map((o) => (o.city ?? "").trim()).filter(Boolean))], [outlets]);
   const [city, setCity] = useState("");
   const shown = city ? outlets.filter((o) => (o.city ?? "").trim() === city) : outlets;
@@ -148,6 +150,7 @@ function OutletsSheet({ outlets, onClose, onClick }: { outlets: LinkOutlet[]; on
 
 function OffersSheet({ offers, outlets, onClose, onClick }: { offers: LinkOffer[]; outlets: LinkOutlet[]; onClose: () => void; onClick: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
+  useBackToClose(true, onClose);
   // Offers are grouped by outlet, in the order of the outlets list. Offers for every outlet come first.
   const groups = useMemo(() => {
     const names = [...new Set(offers.map((o) => (o.outlet ?? "").trim()))];

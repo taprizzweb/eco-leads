@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { HUB_NAME, HUB_PATH, MIN_GUESTS, OFFER_KINDS, endsLabel, loadHub } from "@/lib/hub";
 import { AreaPicker } from "@/components/hub/AreaPicker";
+import { HubMark } from "@/components/hub/HubBack";
 
 export default async function HubPage({ searchParams }: { searchParams: Promise<{ area?: string; cat?: string }> }) {
   const sp = await searchParams;
@@ -16,6 +17,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
 
   return (
     <div className="space-y-6">
+      <HubMark />
       <div>
         <h1 className="text-[30px] leading-[1.08] font-bold tracking-[-0.045em]" style={{ color: "var(--d-text)" }}>{areaName} ke sabse acche{catLabel ? ` ${catLabel}` : " jagah"}</h1>
         <p className="mt-2 text-[15px]" style={{ color: "var(--d-muted)" }}>Asli guests ki rating se. Paise dene se number nahi badalta.</p>

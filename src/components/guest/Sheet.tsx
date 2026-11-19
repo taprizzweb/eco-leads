@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useBackToClose } from "@/lib/sheet-back";
 
 // Bottom sheet used for every guest flow. Traps focus, closes on Escape, restores focus.
 export function Sheet({
@@ -18,6 +19,7 @@ export function Sheet({
 }) {
   const reduce = useReducedMotion();
   const panel = useRef<HTMLDivElement>(null);
+  useBackToClose(open, onClose);
 
   useEffect(() => {
     if (!open) return;

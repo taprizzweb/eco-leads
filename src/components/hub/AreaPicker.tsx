@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, MapPin, Search, X } from "lucide-react";
 import type { HubArea } from "@/lib/hub-shared";
 import { HUB_PATH } from "@/lib/hub-shared";
+import { closeSheetsThen, useBackToClose } from "@/lib/sheet-back";
 
 // "All of Jaipur" comes first, then every area. The page is rebuilt on the server for the chosen area, so the link can be shared.
 export function AreaPicker({ areas, area, cat }: { areas: HubArea[]; area: string; cat: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  useBackToClose(open, () => setOpen(false));
   const current = areas.find((a) => a.id === area)?.name ?? "Poora Jaipur";
   const shown = useMemo(() => areas.filter((a) => a.name.toLowerCase().includes(q.trim().toLowerCase())), [areas, q]);
   const go = (id: string) => {
@@ -18,7 +20,7 @@ export function AreaPicker({ areas, area, cat }: { areas: HubArea[]; area: strin
     if (id) p.set("area", id);
     if (cat) p.set("cat", cat);
     setOpen(false); setQ("");
-    router.push(`${HUB_PATH}${p.size ? `?${p}` : ""}`);
+    closeSheetsThen(() => router.push(`${HUB_PATH}${p.size ? `?${p}` : ""}`));
   };
   const opt = (id: string, label: string) => (
     <button key={id || "all"} type="button" role="radio" aria-checked={id === area} onClick={() => go(id)}

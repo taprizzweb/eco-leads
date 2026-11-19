@@ -17,7 +17,7 @@ const dmy = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-
 const T = { color: "var(--d-text)" } as const;
 const M = { color: "var(--d-muted)" } as const;
 
-export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0 }: { offers: AdminOffer[]; sponsors: AdminSponsor[]; clients: AdminClient[]; areas: AdminArea[] }) {
+export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0, withPlate }: { offers: AdminOffer[]; sponsors: AdminSponsor[]; clients: AdminClient[]; areas: AdminArea[]; withPlate: string[] }) {
   const sb = supabaseBrowser();
   const toast = useToast();
   const [tab, setTab] = useState<"offers" | "sponsors" | "listed" | "areas">("offers");
@@ -64,6 +64,7 @@ export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0 }: {
   async function saveClient(c: AdminClient, patch: Partial<AdminClient>) {
     const next = { ...c, ...patch };
     if (next.hub_listed && !next.hub_area) return toast("Listing ke liye pehle area chuno.", true);
+    if (next.hub_listed && !c.hub_listed && !withPlate.includes(c.id)) return toast("Pehle is business ka plate lagao. Bina setup ke listing nahi hoti.", true);
     setBusy(c.id);
     const { error } = await sb.from("clients").update({ hub_listed: next.hub_listed, hub_area: next.hub_area }).eq("id", c.id);
     setBusy(null);
@@ -150,7 +151,7 @@ export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0 }: {
               <b className="min-w-0 flex-1 truncate" style={T}>{c.name}</b>
               <select aria-label={`${c.name} ka area`} className="d-input !w-44 !min-h-10 !text-[13px]" value={c.hub_area ?? ""} disabled={busy === c.id} onChange={(e) => saveClient(c, { hub_area: e.target.value || null, hub_listed: e.target.value ? c.hub_listed : false })}>
                 <option value="">Area chuno</option>{areas.filter((a) => a.active || a.id === c.hub_area).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-              <button type="button" role="switch" aria-checked={c.hub_listed} aria-label={`${c.name} Jaipur page par`} disabled={busy === c.id || !c.hub_area} className="d-btn d-btn-s !min-h-10 !px-4 !text-[13px]" onClick={() => saveClient(c, { hub_listed: !c.hub_listed })}>{c.hub_listed ? "Listed" : "List karo"}</button>
+              <button type="button" role="switch" aria-checked={c.hub_listed} aria-label={`${c.name} Jaipur page par`} disabled={busy === c.id || !c.hub_area || (!c.hub_listed && !withPlate.includes(c.id))} className="d-btn d-btn-s !min-h-10 !px-4 !text-[13px]" onClick={() => saveClient(c, { hub_listed: !c.hub_listed })}>{c.hub_listed ? "Listed" : withPlate.includes(c.id) ? "List karo" : "Plate nahi"}</button>
             </div>
           ))}
           {shown.length === 0 && <div className="d-card p-8 text-center text-sm" style={M}>Koi business nahi mila.</div>}

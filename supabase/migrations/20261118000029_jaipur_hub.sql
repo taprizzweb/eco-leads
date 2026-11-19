@@ -261,3 +261,16 @@ revoke execute on function public.hub_home(text, text), public.hub_place(text), 
   public.hub_offer_create(uuid, text, text, text, date, date, boolean), public.hub_check_code(uuid, text), public.hub_redeem(uuid, text) from public, anon, authenticated;
 grant execute on function public.hub_home(text, text), public.hub_place(text), public.hub_claim(uuid, text), public.hub_track(uuid, text) to anon, authenticated;
 grant execute on function public.hub_offer_create(uuid, text, text, text, date, date, boolean), public.hub_check_code(uuid, text), public.hub_redeem(uuid, text) to authenticated;
+
+-- Only a business that has set up a plate can be listed (so a listing cannot be bought on its own).
+create or replace function public.guard_client_hub_fields() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not is_team('rep') and (new.hub_listed is distinct from old.hub_listed or new.hub_area is distinct from old.hub_area or new.group_id is distinct from old.group_id) then
+    raise exception 'Only the Taprizz team can change this';
+  end if;
+  if new.hub_listed and not coalesce(old.hub_listed, false) and not exists (select 1 from plates p where p.client_id = new.id and p.active) then
+    raise exception 'A business needs an active plate before it can be listed';
+  end if;
+  return new;
+end $$;
