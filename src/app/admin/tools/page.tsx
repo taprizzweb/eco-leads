@@ -10,7 +10,7 @@ export default async function ToolsPage() {
   const { count } = await sb.from("wa_requests").select("id", { count: "exact", head: true }).eq("status", "pending");
   const { count: hubPending } = await sb.from("hub_offers").select("id", { count: "exact", head: true }).eq("status", "pending");
   const tools = [
-    { href: "/admin/tools/jaipur", title: "Jaipur page", text: "The public Jaipur guide: who is listed, special offers to approve, sponsored spots and areas.", Icon: MapPin, badge: hubPending ?? 0 },
+    { href: "/admin/tools/jaipur", title: "Gulabi Nagar page", text: "The public Jaipur guide: who is listed, special offers to approve, sponsored spots and areas.", Icon: MapPin, badge: hubPending ?? 0 },
     { href: "/admin/tools/chains", title: "Chains", text: "A company with many branches in one dashboard: make a group, add its branches, and give its head a login.", Icon: Building2, badge: 0 },
     { href: "/admin/tools/links", title: "Mini Links", text: "A premium one-page site for a business to put in its Instagram bio: photos, menus, outlets, Zomato, Swiggy and reviews.", Icon: Link2, badge: 0 },
     { href: "/admin/ai-studio", title: "AI Agent", text: "The review writer: connection, writing rules, categories and questions, and a playground to test it.", Icon: Bot, badge: 0 },

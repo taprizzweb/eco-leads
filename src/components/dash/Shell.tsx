@@ -64,7 +64,7 @@ export function Shell({
     { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft },
     ...(waOn ? [{ href: `${base}/offers`, label: "Offers", Icon: Megaphone } as Tab] : []),
-    ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Jaipur", Icon: MapPin } as Tab] : []),
+    ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Gulabi", Icon: MapPin } as Tab] : []),
     ...(callsOn ? [{ href: `${base}/calls`, label: "Calls", Icon: BellRing, badge: callsOpen } as Tab] : []),
     ...(tablesOn ? [{ href: `${base}/tables`, label: "Tables", Icon: QrCode } as Tab] : []),
     { href: `${base}/plan`, label: "Plan", Icon: Gem },

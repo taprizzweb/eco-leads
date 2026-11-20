@@ -31,8 +31,8 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
     return (
       <div className="d-card mx-auto max-w-lg p-8 text-center">
         <Lock className="mx-auto" style={{ color: "var(--d-muted)" }} />
-        <h1 className="mt-4 text-xl font-semibold">Aap abhi Jaipur page par nahi hain</h1>
-        <p className="mt-2" style={{ color: "var(--d-muted)" }}>Taprizz team se kahiye ki aapki dukaan Jaipur ke guide mein jodein. Phir yahan se aap khaas offers laga sakte ho aur counter par code check kar sakte ho.</p>
+        <h1 className="mt-4 text-xl font-semibold">Aap abhi Gulabi Nagar page par nahi hain</h1>
+        <p className="mt-2" style={{ color: "var(--d-muted)" }}>Taprizz team se kahiye ki aapki dukaan Gulabi Nagar ke guide mein jodein. Phir yahan se aap khaas offers laga sakte ho aur counter par code check kar sakte ho.</p>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
     setBusy(null);
     if (error) return setErr(/45 days/.test(error.message) ? "Offer zyada se zyada 45 din chal sakti hai." : /3 offers/.test(error.message) ? "Aapki 3 offers pehle se khuli hain. Ek khatam hone ka intezaar karo." : /past/.test(error.message) ? "Shuru ki tareekh aaj ya baad ki rakho." : "Offer save nahi hui. Dobara try karo.");
     setF({ ...f, title: "", details: "" });
-    toast("Offer team ko bhej di. Approve hote hi Jaipur page par dikhegi.");
+    toast("Offer team ko bhej di. Approve hote hi Gulabi Nagar page par dikhegi.");
     router.refresh();
   }
   async function remove(o: MyOffer) {
@@ -74,7 +74,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.04em]">Jaipur page</h1>
+        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.04em]">Gulabi Nagar page</h1>
         <p className="mt-1" style={{ color: "var(--d-muted)" }}>{areaName ?? "Jaipur"}{categoryLabel ? `, ${categoryLabel}` : ""}. Yahan se khaas offer lagao aur counter par customer ka code check karo.</p>
       </div>
 
@@ -89,7 +89,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
         <p className="text-sm" style={{ color: "var(--d-muted)" }}>Ye wahi page hai jo customer dekhta hai. Link Instagram bio, WhatsApp status ya Google profile mein laga sakte ho. Cafe ki plate par bhi &quot;More places and offers in Jaipur&quot; ka card isi list tak le jata hai.</p>
         <div className="flex flex-wrap gap-2">
           <a className="d-btn d-btn-p" href={`/jaipur/${slug}`} target="_blank" rel="noopener"><ExternalLink size={15} /> Live page dekho</a>
-          <a className="d-btn d-btn-s" href={areaId ? `/jaipur?area=${areaId}` : "/jaipur"} target="_blank" rel="noopener"><ExternalLink size={15} /> Jaipur ki list dekho</a>
+          <a className="d-btn d-btn-s" href={areaId ? `/jaipur?area=${areaId}` : "/jaipur"} target="_blank" rel="noopener"><ExternalLink size={15} /> Gulabi Nagar ki list dekho</a>
           <button type="button" className="d-btn d-btn-s" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/jaipur/${slug}`).then(() => toast("Link copy ho gaya")).catch(() => toast("Copy nahi hua. Link khol kar address bar se le lo.", true))}><Copy size={15} /> Link copy karo</button>
         </div>
       </section>
@@ -97,7 +97,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
       <section aria-labelledby="st">
         <h2 id="st" className="mb-3 text-base font-semibold" style={lt}>Pichhle 30 din</h2>
         <div className="grid grid-cols-2 gap-3">
-          {stat(stats.views, "log ne aapki offer dekhi", "Jaipur page par")}
+          {stat(stats.views, "log ne aapki offer dekhi", "Gulabi Nagar page par")}
           {stat(stats.follows, "log Instagram par gaye", "Offer kholne ke liye")}
           {stat(stats.claims, "logon ne offer li", "Unhe code mila")}
           {stat(stats.redeems, "dukaan par aaye", "Counter par code dikhaya")}

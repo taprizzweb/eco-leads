@@ -3,7 +3,7 @@ import { HUB_NAME, HUB_PATH } from "@/lib/hub";
 import { Mark } from "@/components/dash/AuthFrame";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: HUB_NAME, description: "Jaipur ke sabse acche cafes, salons, gyms aur hotels. Asli guests ki rating, aur aaj ki khaas offers." };
+export const metadata = { title: HUB_NAME, description: "Gulabi Nagar: Jaipur ke sabse acche cafes, salons, gyms aur hotels. Asli guests ki rating, aur aaj ki khaas offers." };
 
 export default function HubLayout({ children }: { children: React.ReactNode }) {
   return (

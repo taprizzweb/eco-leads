@@ -16,7 +16,7 @@ export default async function JaipurAdminPage() {
   const withPlate = [...new Set((plates.data ?? []).map((p) => p.client_id as string))];
   return (
     <>
-      <PageHead title="Jaipur page" sub="Kaun listed hai, kaun si offers chalengi, aur sponsored jagah. Ranking apne aap banti hai, usse yahan se badla nahi ja sakta." />
+      <PageHead title="Gulabi Nagar page" sub="Kaun listed hai, kaun si offers chalengi, aur sponsored jagah. Ranking apne aap banti hai, usse yahan se badla nahi ja sakta." />
       <HubAdmin offers={(offers.data ?? []) as unknown as AdminOffer[]} sponsors={(sponsors.data ?? []) as unknown as AdminSponsor[]} clients={(clients.data ?? []) as AdminClient[]} areas={(areas.data ?? []) as AdminArea[]} withPlate={withPlate} />
     </>
   );

@@ -420,7 +420,7 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
 
         {hubHref && (
           <a href={hubHref} className="mt-8 flex min-h-12 items-center justify-between gap-3 rounded-2xl px-4 text-sm ring-1 ring-line" style={{ background: "var(--surface)" }}>
-            <span><span className="block font-semibold text-fg">More places and offers in Jaipur</span><span className="block text-xs text-muted">See what is on near you</span></span>
+            <span><span className="block font-semibold text-fg">More places and offers on Gulabi Nagar</span><span className="block text-xs text-muted">See what is on near you</span></span>
             <ChevronRight size={16} aria-hidden />
           </a>
         )}

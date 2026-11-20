@@ -1,6 +1,6 @@
 // Pure values and helpers used by both server and client code.
 // One place to rename the product. Everything on the public pages reads this.
-export const HUB_NAME = "Jaipur Ki Raay";
+export const HUB_NAME = "Gulabi Nagar";
 export const HUB_PATH = "/jaipur";
 export const MIN_GUESTS = 30;
 
