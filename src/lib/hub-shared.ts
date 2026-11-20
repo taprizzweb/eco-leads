@@ -14,6 +14,8 @@ export type HubCategory = { id: string; label: string };
 export type HubPlace = { slug: string; name: string; area: string; category: string | null; rating: number; guests: number; rank: number; has_offer: boolean };
 export type HubSponsor = { offer_id: string; kind: string; ends_on: string; slug: string; name: string; area: string };
 export type HubHome = { areas: HubArea[]; categories: HubCategory[]; sponsors: HubSponsor[]; places: HubPlace[] };
+export type HubChainTile = { slug: string; name: string; logo_url: string | null; branches: number };
+export type HubChainFull = { name: string; slug: string; logo_url: string | null; branches: { slug: string; name: string; area: string; category: string | null; rating: number; guests: number; has_offer: boolean }[] };
 export type HubOffer = { id: string; kind: string; ends_on: string; follow_first: boolean; title: string | null };
 export type HubPlaceFull = {
   name: string; slug: string; tagline: string | null; logo_url: string | null; area: string; category: string | null;

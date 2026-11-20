@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { MapPin, Phone, Star, Instagram } from "lucide-react";
-import { HUB_NAME, MIN_GUESTS, loadPlace } from "@/lib/hub";
+import Link from "next/link";
+import { HUB_NAME, HUB_PATH, MIN_GUESTS, loadPlace, loadPlaceChain } from "@/lib/hub";
 import { HubBack } from "@/components/hub/HubBack";
 import { OfferUnlock } from "@/components/hub/OfferUnlock";
 
@@ -13,7 +14,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 const safeUrl = (u: string | null) => (u && /^https:\/\//.test(u) ? u : null);
 
 export default async function PlacePage({ params }: { params: Promise<{ slug: string }> }) {
-  const p = await loadPlace((await params).slug);
+  const slug = (await params).slug;
+  const [p, chain] = await Promise.all([loadPlace(slug), loadPlaceChain(slug)]);
   if (!p) notFound();
   const insta = safeUrl(p.instagram);
   const maps = safeUrl(p.maps) ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${p.area} Jaipur`)}`;
@@ -41,6 +43,13 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
         <section aria-label="Offers" className="space-y-3">
           {p.offers.map((o) => <OfferUnlock key={o.id} offer={o} instagram={insta} />)}
         </section>
+      )}
+
+      {chain && (
+        <Link href={`${HUB_PATH}/company/${chain.slug}`} className="d-raise flex min-h-12 items-center justify-between gap-3 px-4 py-3 text-sm" style={{ borderRadius: 16, color: "var(--d-text)" }}>
+          <span><b className="block font-semibold">{chain.name}</b><span className="block text-xs" style={{ color: "var(--d-muted)" }}>Dekho saari {chain.branches} branches</span></span>
+          <span aria-hidden>›</span>
+        </Link>
       )}
 
       <div className="grid gap-2.5">

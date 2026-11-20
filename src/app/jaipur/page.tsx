@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Star } from "lucide-react";
-import { HUB_NAME, HUB_PATH, MIN_GUESTS, OFFER_KINDS, endsLabel, loadHub } from "@/lib/hub";
+import { HUB_NAME, HUB_PATH, MIN_GUESTS, OFFER_KINDS, endsLabel, loadChains, loadHub } from "@/lib/hub";
 import { AreaPicker } from "@/components/hub/AreaPicker";
 import { HubMark } from "@/components/hub/HubBack";
 
@@ -8,7 +8,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const area0 = /^[a-z0-9-]{2,40}$/.test(sp.area ?? "") ? sp.area! : "";
   const cat0 = /^[a-z0-9_-]{2,40}$/.test(sp.cat ?? "") ? sp.cat! : "";
-  const hub = await loadHub(area0, cat0);
+  const [hub, chains] = await Promise.all([loadHub(area0, cat0), loadChains(area0, cat0)]);
   const area = hub.areas.some((a) => a.id === area0) ? area0 : "";
   const areaName = hub.areas.find((a) => a.id === area)?.name ?? "Jaipur";
   const catLabel = hub.categories.find((c) => c.id === cat0)?.label;
@@ -41,6 +41,24 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
                   <p className="text-[19px] leading-tight font-semibold tracking-[-0.02em]" style={{ color: "var(--d-text)" }}>{s.name}</p>
                   <p className="mt-1 text-xs" style={{ color: "var(--d-muted)" }}>{s.area} · {endsLabel(s.ends_on)}</p>
                 </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {chains.length > 0 && (
+        <section aria-labelledby="co">
+          <h2 id="co" className="mb-3 text-base font-semibold" style={{ color: "var(--d-text)" }}>Companies, sab branches ek jagah</h2>
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {chains.map((c) => (
+              <Link key={c.slug} href={`${HUB_PATH}/company/${c.slug}`} className="d-raise flex w-[112px] shrink-0 flex-col items-center gap-2 p-3 text-center" style={{ borderRadius: 18 }}>
+                {c.logo_url
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={c.logo_url} alt="" loading="lazy" className="h-16 w-16 rounded-full object-cover" />
+                  : <span className="grid h-16 w-16 place-items-center rounded-full text-xl font-bold" style={{ background: "var(--d-surface)", color: "var(--d-text)" }}>{c.name.slice(0, 1)}</span>}
+                <b className="line-clamp-2 text-[13px] leading-tight font-semibold" style={{ color: "var(--d-text)" }}>{c.name}</b>
+                <span className="text-[11px]" style={{ color: "var(--d-muted)" }}>{c.branches} branches</span>
               </Link>
             ))}
           </div>
