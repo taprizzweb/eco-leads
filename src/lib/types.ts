@@ -12,6 +12,7 @@ export type Features = {
   membership?: boolean;
   creators?: boolean;
   table_ordering?: boolean;
+  call_server?: boolean;
   custom_links?: number;
 };
 

@@ -11,7 +11,7 @@ import { AnimatedIcon } from "./AnimatedIcon";
 import { BRAND, SwiggyIcon, ZomatoIcon } from "./BrandIcons";
 import { Mark } from "@/components/dash/AuthFrame";
 import { Sheet } from "./Sheet";
-import { NewPill, PostersSheet, StaffSheet, WifiSheet } from "./GuestExtras";
+import { CallServerButton, NewPill, PostersSheet, StaffSheet, WifiSheet } from "./GuestExtras";
 import { useExitPrompt } from "@/lib/sheet-back";
 import { ReviewFlow } from "./ReviewFlow";
 import { FeedbackForm } from "./FeedbackForm";
@@ -478,6 +478,7 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
       <Sheet open={postersOpen} onClose={closePosters} title="What is new">
         {postersOpen && <PostersSheet posters={data.extras?.posters ?? []} />}
       </Sheet>
+      {data.live && !!data.features.call_server && !!data.plate?.label && <CallServerButton clientId={client.id} code={data.plate.code} table={data.plate.label} />}
       {data.live && !!data.extras?.posters.length && !postersOpen && !open && !gate && !outletsOpen && <NewPill onOpen={() => setPostersOpen(true)} />}
       <Sheet open={gate} onClose={() => { setGate(false); setPending(null); }} title="Before we start">
         {gate && <VisitorGate clientId={client.id} businessName={client.name} onDone={(v) => { setVisitor(v); setGate(false); setOpen(pending); setPending(null); }} />}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Loader2, ThumbsUp, TriangleAlert } from "lucide-react";
+import { BellRing, Check, Copy, Loader2, ThumbsUp, TriangleAlert } from "lucide-react";
 import QRCode from "qrcode";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { FeedbackForm } from "./FeedbackForm";
@@ -152,6 +152,30 @@ export function PostersSheet({ posters }: { posters: { id: string; image_url: st
           {posters.map((p, n) => <span key={p.id} className={`h-2 rounded-full transition-all ${n === i ? "w-6 bg-red-500" : "w-2 bg-current opacity-25"}`} />)}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Bell on a table plate. One tap tells the staff which table needs them. */
+export function CallServerButton({ clientId, code, table }: { clientId: string; code: string; table: string }) {
+  const [state, setState] = useState<"idle" | "busy" | "sent" | "error">("idle");
+  async function call() {
+    if (state === "busy" || state === "sent") return;
+    setState("busy");
+    const { error } = await supabaseBrowser().rpc("guest_call_server", { p_client: clientId, p_code: code });
+    setState(error ? "error" : "sent");
+    setTimeout(() => setState("idle"), error ? 3500 : 12000);
+  }
+  return (
+    <div className="fixed right-4 bottom-5 z-30 flex flex-col items-end gap-2">
+      {(state === "sent" || state === "error") && (
+        <p role="status" className="max-w-[220px] rounded-2xl px-3.5 py-2 text-[13px] font-medium shadow-lg ring-1 ring-line" style={{ background: "var(--surface)", color: "var(--text)" }}>
+          {state === "sent" ? `Someone is on the way to ${table}.` : "That did not go through. Please wave to the staff."}
+        </p>
+      )}
+      <button type="button" onClick={call} aria-label={`Call a server to ${table}`} className="grid h-14 w-14 place-items-center rounded-full text-white shadow-[0_10px_30px_-8px_rgba(225,29,72,0.8)] active:scale-95" style={{ background: "linear-gradient(180deg, #fb7185, #e11d48)" }}>
+        {state === "busy" ? <Loader2 className="animate-spin" size={22} /> : state === "sent" ? <Check size={24} /> : <BellRing size={24} />}
+      </button>
     </div>
   );
 }
