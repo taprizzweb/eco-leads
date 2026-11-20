@@ -16,12 +16,15 @@ export function FeedbackForm({
   clientId,
   code,
   visitor,
+  subject,
   onDone,
 }: {
   kind: "complaint" | "suggestion";
   clientId: string;
   code: string | null;
   visitor?: Visitor | null;
+  /** Who it is about, for example a staff member. It is put in front of the message the owner reads. */
+  subject?: string;
   onDone: () => void;
 }) {
   const [body, setBody] = useState("");
@@ -109,7 +112,7 @@ export function FeedbackForm({
         p_client: clientId,
         p_code: code,
         p_kind: kind,
-        p_body: body.trim(),
+        p_body: (subject ? `[About ${subject}] ` : "") + body.trim(),
         p_media: paths,
         p_name: name.trim() || null,
         p_phone: phone.trim() || null,

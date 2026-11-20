@@ -6,9 +6,11 @@ const stack: (() => void)[] = [];
 let pushed = false;
 let selfPop = false;
 let listening = false;
+let exitFn: (() => void) | null = null;
 
 function onPop() {
   if (selfPop) { selfPop = false; return; }   // we went back ourselves after a normal close
+  if (stack.length === 0 && exitFn) { const f = exitFn; exitFn = null; f(); return; }   // Back from the page itself: offer the stars once, never trap
   pushed = false;
   stack[stack.length - 1]?.();                // the person pressed Back: close the top sheet
 }
@@ -40,4 +42,21 @@ export function closeSheetsThen(fn: () => void) {
   selfPop = true;
   window.addEventListener("popstate", () => fn(), { once: true });
   window.history.back();
+}
+
+/**
+ * Back from the guest page itself shows the review stars once instead of leaving. It is a nudge, not a trap:
+ * the prompt closes with its X or with Back, and the next Back leaves as normal.
+ */
+export function useExitPrompt(enabled: boolean, onPrompt: () => void) {
+  const ref = useRef(onPrompt);
+  useEffect(() => { ref.current = onPrompt; });
+  useEffect(() => {
+    if (!enabled) return;
+    const fn = () => ref.current();
+    if (!listening) { window.addEventListener("popstate", onPop); listening = true; }
+    window.history.pushState({ tzExit: true }, "");
+    exitFn = fn;
+    return () => { if (exitFn === fn) exitFn = null; };
+  }, [enabled]);
 }

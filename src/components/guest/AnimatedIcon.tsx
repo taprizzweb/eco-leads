@@ -15,6 +15,9 @@ import {
   Crown,
   Clapperboard,
   Link2,
+  HeartHandshake,
+  Wifi,
+  Instagram,
   type LucideIcon,
 } from "lucide-react";
 import type { CardKey } from "@/lib/types";
@@ -28,6 +31,9 @@ const ICONS: Record<CardKey | "link", LucideIcon> = {
   events: CalendarCheck,
   membership: Crown,
   creators: Clapperboard,
+  staff: HeartHandshake,
+  wifi: Wifi,
+  instagram: Instagram,
   link: Link2,
 };
 

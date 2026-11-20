@@ -11,6 +11,8 @@ import { AnimatedIcon } from "./AnimatedIcon";
 import { BRAND, SwiggyIcon, ZomatoIcon } from "./BrandIcons";
 import { Mark } from "@/components/dash/AuthFrame";
 import { Sheet } from "./Sheet";
+import { NewPill, PostersSheet, StaffSheet, WifiSheet } from "./GuestExtras";
+import { useExitPrompt } from "@/lib/sheet-back";
 import { ReviewFlow } from "./ReviewFlow";
 import { FeedbackForm } from "./FeedbackForm";
 import { CreatorsSheet } from "./CreatorsSheet";
@@ -18,7 +20,7 @@ import { VisitorGate } from "./VisitorGate";
 import { forgetPass, loadVisitor, saveVisitor, type Visitor } from "@/lib/visitor";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-const DEFAULT_ORDER: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events", "membership", "creators"];
+const DEFAULT_ORDER: CardKey[] = ["menu", "review", "complaint", "suggestion", "staff", "offers", "events", "membership", "creators", "wifi", "instagram"];
 
 const DEFAULT_COPY: Record<CardKey, { title: string; help: string }> = {
   menu: { title: "View menu", help: "Browse what is cooking today" },
@@ -29,11 +31,14 @@ const DEFAULT_COPY: Record<CardKey, { title: string; help: string }> = {
   events: { title: "Upcoming events", help: "Nights, workshops and gatherings" },
   membership: { title: "Become a member", help: "Perks for regulars" },
   creators: { title: "Creators corner", help: "Tag us, follow us, and share your photos" },
+  staff: { title: "Thank or report staff", help: "Appreciate great service or tell us what went wrong" },
+  wifi: { title: "Connect to Wi-Fi", help: "Scan the code or copy the password" },
+  instagram: { title: "Follow us on Instagram", help: "Stay updated on our latest events and happenings" },
 };
 
 // Flows built so far. Cards for later build steps stay hidden until their flow exists,
 // so a guest never taps into a dead end.
-const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events", "creators"];
+const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events", "creators", "staff", "wifi", "instagram"];
 
 function cardEnabled(k: CardKey, d: GuestPageData): boolean {
   const f = d.features;
@@ -46,6 +51,9 @@ function cardEnabled(k: CardKey, d: GuestPageData): boolean {
     case "events": return !!f.events && d.events.length > 0;
     case "membership": return !!f.membership;
     case "creators": return !!f.creators;
+    case "staff": return !!d.extras?.staff.length;
+    case "wifi": return !!d.client.socials.wifi_name;
+    case "instagram": return !!d.client.socials.instagram;
   }
 }
 
@@ -81,6 +89,15 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
   const [pending, setPending] = useState<CardKey | null>(null);
   const reduce = useReducedMotion();
   const { client } = data;
+  const [postersOpen, setPostersOpen] = useState(false);
+  const closePosters = useCallback(() => setPostersOpen(false), []);
+  // Back from the page shows the review stars once. Skipped when the guest already started a review or the page cannot take reviews.
+  const exitKey = `tz_exit_${client.id}`;
+  const canNudge = data.live && !!data.features.review && !!client.google_review_url;
+  useExitPrompt(canNudge, () => {
+    try { if (sessionStorage.getItem(exitKey)) { window.history.back(); return; } sessionStorage.setItem(exitKey, "1"); } catch {}
+    setOpen("review");   // straight to the stars; the name and number form is not put in front of someone who is leaving
+  });
 
   const copyFor = (k: CardKey) => ({
     ...DEFAULT_COPY[k],
@@ -114,7 +131,8 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
       window.open(menuLink, "_blank", "noopener");
       return;
     }
-    if (!askContact || k === "creators") { setOpen(k); return; }
+    if (k === "instagram" && client.socials.instagram) { window.open(client.socials.instagram, "_blank", "noopener"); return; }
+    if (!askContact || k === "creators" || k === "wifi" || k === "staff") { setOpen(k); return; }
     if (!visitor) { setPending(k); setGate(true); return; }
     if (visitor.fromPass) {
       // Taprizz Pass from another place: this business gets the details only now, because the guest started something here.
@@ -124,6 +142,8 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
     }
     setOpen(k);
   };
+
+  useEffect(() => { if (open === "review") { try { sessionStorage.setItem(exitKey, "1"); } catch {} } }, [open, exitKey]);
 
   // Cards and blocks come in one after another when the page opens. With "less motion" they only fade, they do not rise.
   const rise = (i: number) =>
@@ -449,6 +469,16 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
       <Sheet open={open === "suggestion"} onClose={close} title="Any suggestions?">
         <FeedbackForm kind="suggestion" clientId={client.id} code={data.plate?.code ?? null} onDone={close} />
       </Sheet>
+      <Sheet open={open === "wifi"} onClose={close} title="Connect to Wi-Fi">
+        {open === "wifi" && client.socials.wifi_name && <WifiSheet name={client.socials.wifi_name} password={client.socials.wifi_password ?? ""} />}
+      </Sheet>
+      <Sheet open={open === "staff"} onClose={close} title="Our team">
+        {open === "staff" && <StaffSheet staff={data.extras?.staff ?? []} clientId={client.id} code={data.plate?.code ?? null} visitor={visitor} canReport={!!data.features.complaints} onDone={close} />}
+      </Sheet>
+      <Sheet open={postersOpen} onClose={closePosters} title="What is new">
+        {postersOpen && <PostersSheet posters={data.extras?.posters ?? []} />}
+      </Sheet>
+      {data.live && !!data.extras?.posters.length && !postersOpen && !open && !gate && !outletsOpen && <NewPill onOpen={() => setPostersOpen(true)} />}
       <Sheet open={gate} onClose={() => { setGate(false); setPending(null); }} title="Before we start">
         {gate && <VisitorGate clientId={client.id} businessName={client.name} onDone={(v) => { setVisitor(v); setGate(false); setOpen(pending); setPending(null); }} />}
       </Sheet>

@@ -44,5 +44,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
   const onHub = await loadPlace(data.client.slug);
   const { data: near } = onHub ? await sb.rpc("hub_nearby", { p_slug: data.client.slug }) : { data: null };
   const { data: outlets } = await sb.rpc("guest_outlets", { p_client: data.client.id });
+  const { data: extras } = await sb.rpc("guest_extras", { p_client: data.client.id });
+  data.extras = (extras ?? { staff: [], posters: [] }) as GuestPageData["extras"];
   return <GuestPage data={data} code={code} hubHref={onHub ? HUB_PATH : null} nearby={(near ?? null) as never} outlets={(Array.isArray(outlets) ? outlets : []) as never} />;
 }

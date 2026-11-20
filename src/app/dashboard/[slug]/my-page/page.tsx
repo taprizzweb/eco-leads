@@ -1,4 +1,5 @@
 import { loadClient } from "@/lib/dash";
+import Link from "next/link";
 import { PageEditor } from "@/components/dash/PageEditor";
 
 export default async function MyPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -12,6 +13,8 @@ export default async function MyPage({ params }: { params: Promise<{ slug: strin
     client.business_type ? sb.from("business_templates").select("review_chips, card_copy, keywords, tagline").eq("id", client.business_type).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   return (
+    <>
+    <Link href={`/dashboard/${slug}/team`} className="d-btn d-btn-s mb-4 inline-flex">Staff and new posters</Link>
     <PageEditor
       client={client}
       features={features}
@@ -21,5 +24,6 @@ export default async function MyPage({ params }: { params: Promise<{ slug: strin
       initialEvents={events.data ?? []}
       initialLinks={links.data ?? []}
     />
+    </>
   );
 }

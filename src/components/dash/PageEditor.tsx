@@ -361,6 +361,14 @@ export function PageEditor({
                 </Field>
               ))}
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Wi-Fi name" hint="Guests see a Wi-Fi card with a QR code. Leave empty to hide it.">
+                <input className="d-input" autoComplete="off" value={f.socials.wifi_name ?? ""} onChange={(e) => set("socials", { ...f.socials, wifi_name: e.target.value })} placeholder="Network name" />
+              </Field>
+              <Field label="Wi-Fi password" hint="Anyone who opens your page can see it. Use a guest network.">
+                <input className="d-input" autoComplete="off" value={f.socials.wifi_password ?? ""} onChange={(e) => set("socials", { ...f.socials, wifi_password: e.target.value })} placeholder="Password" />
+              </Field>
+            </div>
           </Section>
 
           <Section title="Keywords" sub="Short words about your place. They slide under your photos.">

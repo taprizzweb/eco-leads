@@ -220,4 +220,7 @@ export const CARD_TINTS: Record<string, string> = {
   events: "236, 72, 153", // pink
   membership: "20, 184, 166", // teal
   creators: "249, 115, 22", // orange
+  staff: "244, 63, 94", // rose
+  wifi: "14, 165, 233", // sky
+  instagram: "217, 70, 239", // fuchsia
 };

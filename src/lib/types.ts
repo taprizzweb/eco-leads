@@ -23,7 +23,10 @@ export type CardKey =
   | "offers"
   | "events"
   | "membership"
-  | "creators";
+  | "creators"
+  | "staff"
+  | "wifi"
+  | "instagram";
 
 export type GuestPageData = {
   live: boolean;
@@ -38,7 +41,7 @@ export type GuestPageData = {
     google_review_url: string | null;
     menu_url: string | null;
     business_type: string | null;
-    socials: Partial<Record<"instagram" | "facebook" | "maps" | "phone" | "zomato" | "swiggy", string>>;
+    socials: Partial<Record<"instagram" | "facebook" | "maps" | "phone" | "zomato" | "swiggy" | "wifi_name" | "wifi_password", string>>;
     keywords: string[];
     review_chips: string[];
     card_config: {
@@ -54,5 +57,6 @@ export type GuestPageData = {
   events: { title: string; details: string | null; starts_at: string }[];
   reviews: { author: string; rating: number; body: string | null }[];
   links?: { label: string; url: string }[];
+  extras?: { staff: { id: string; name: string; photo_url: string | null }[]; posters: { id: string; image_url: string; caption: string | null }[] };
   review?: { questions?: unknown; max_questions?: number; languages?: string[]; low_star_mode?: string; collect_contact?: boolean };
 };
