@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BellRing, Check, Minus, Phone, Plus, Printer, Search, Trash2, Volume2, VolumeX, X, MessageCircle, Radio, Receipt, ChefHat } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useToast } from "@/components/dash/Toast";
-import { CHANNELS, REQUEST_LABEL, beep, inr, itemsSubtotal, totals, waLink, type Channel, type Extra, type Line, type MenuItem, type Order, type Request } from "@/lib/pos";
+import { CHANNELS, MANUAL_CHANNELS, REQUEST_LABEL, beep, inr, itemsSubtotal, totals, waLink, type Channel, type Extra, type Line, type MenuItem, type Order, type Request } from "@/lib/pos";
 
 const OPEN = ["new", "preparing", "ready", "served"] as const;
 const COLS: { key: (typeof OPEN)[number]; title: string }[] = [
@@ -305,7 +305,7 @@ function ManualOrder({ clientId, menu, onClose, onCreated }: { clientId: string;
   const sb = supabaseBrowser();
   const toast = useToast();
   const [channel, setChannel] = useState<Channel>("dine_in");
-  const [table, setTable] = useState(""); const [ref, setRef] = useState(""); const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [note, setNote] = useState("");
+  const [table, setTable] = useState(""); const ref = ""; const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [note, setNote] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [q, setQ] = useState(""); const [busy, setBusy] = useState(false);
   const shown = menu.filter((m) => m.available && m.name.toLowerCase().includes(q.toLowerCase())).slice(0, 30);
@@ -323,11 +323,10 @@ function ManualOrder({ clientId, menu, onClose, onCreated }: { clientId: string;
       <div className="d-card max-h-[94dvh] w-full max-w-2xl overflow-y-auto p-4 sm:p-5" style={{ background: "var(--d-bg)" }}>
         <div className="flex items-center"><h2 className="text-lg font-semibold">New order</h2><button type="button" className="d-btn d-btn-s ml-auto" onClick={onClose} aria-label="Close"><X size={16} /></button></div>
         <div className="d-seg mt-3 flex-wrap" role="group" aria-label="Where is it from">
-          {(Object.keys(CHANNELS) as Channel[]).map((c) => <button key={c} type="button" aria-pressed={channel === c} onClick={() => setChannel(c)}>{CHANNELS[c].label}</button>)}
+          {MANUAL_CHANNELS.map((c) => <button key={c} type="button" aria-pressed={channel === c} onClick={() => setChannel(c)}>{CHANNELS[c].label}</button>)}
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {channel === "dine_in" && <input aria-label="Table" placeholder="Table (for example Table 4)" className="d-input rounded-lg px-2.5 py-2" value={table} onChange={(e) => setTable(e.target.value)} />}
-          {(channel === "zomato" || channel === "swiggy") && <input aria-label="Order id" placeholder={`${CHANNELS[channel].label} order id`} className="d-input rounded-lg px-2.5 py-2" value={ref} onChange={(e) => setRef(e.target.value)} />}
           <input aria-label="Guest name" placeholder="Guest name (optional)" className="d-input rounded-lg px-2.5 py-2" value={name} onChange={(e) => setName(e.target.value)} />
           <input aria-label="Guest mobile" placeholder="Mobile (optional)" inputMode="tel" className="d-input rounded-lg px-2.5 py-2" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>

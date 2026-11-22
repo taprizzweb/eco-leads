@@ -8,7 +8,7 @@ import { getTheme } from "@/lib/themes";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { loadVisitor, saveVisitor, type Visitor } from "@/lib/visitor";
 import { useExitPrompt } from "@/lib/sheet-back";
-import { inr, totals } from "@/lib/pos";
+import { inr, isTablePlate, totals } from "@/lib/pos";
 import { Sheet } from "@/components/guest/Sheet";
 import { ReviewFlow } from "@/components/guest/ReviewFlow";
 import { FeedbackForm } from "@/components/guest/FeedbackForm";
@@ -17,7 +17,7 @@ import { glassInput, pillPrimary, pillSoft } from "@/components/guest/ui";
 type Addon = { name: string; price: number };
 type Item = { id: string; category_id: string | null; name: string; description: string | null; price: number; veg: boolean; image_url: string | null; available: boolean; addons: Addon[]; bestseller: boolean };
 export type MenuData = {
-  accepting: boolean; gst_rate: number; gst_inclusive: boolean;
+  accepting: boolean; counter_orders?: boolean; gst_rate: number; gst_inclusive: boolean;
   geo: { required: boolean; lat: number | null; lng: number | null; radius: number };
   categories: { id: string; name: string }[]; items: Item[];
 };
@@ -34,6 +34,7 @@ export function MenuApp({ data, menu, code }: { data: GuestPageData; menu: MenuD
   const theme = getTheme(client.theme);
   const sb = useMemo(() => supabaseBrowser(), []);
   const tableLabel = plate?.label ?? "your table";
+  const viewOnly = menu.counter_orders === false && !isTablePlate(plate?.label);   // a Counter plate with ordering switched off
   const orderKey = `tz_order_${client.id}`;
   const reviewedKey = `tz_reviewed_${client.id}`;
 
@@ -174,6 +175,9 @@ export function MenuApp({ data, menu, code }: { data: GuestPageData; menu: MenuD
           </>)}
         </header>
 
+        {viewOnly && (
+          <p role="status" className="mx-4 mt-4 rounded-2xl px-4 py-3 text-sm ring-1 ring-line" style={{ background: "var(--surface)" }}>Ordering is from the tables. Scan the QR on your table to order, or ask the staff here.</p>
+        )}
         {!menu.accepting && (
           <p role="status" className="mx-4 mt-4 rounded-2xl px-4 py-3 text-sm ring-1 ring-line" style={{ background: "var(--surface)" }}>We are not taking online orders right now. You can still look around the menu, or ask the staff.</p>
         )}
@@ -206,7 +210,7 @@ export function MenuApp({ data, menu, code }: { data: GuestPageData; menu: MenuD
                           <div className={i.image_url ? "absolute inset-x-3 -bottom-3" : "w-full px-3"}>
                             {!i.available ? <span className="flex min-h-10 items-center justify-center rounded-xl bg-bg text-[13px] font-semibold text-muted ring-1 ring-line">Sold out</span>
                               : n === 0 ? (
-                                <button type="button" onClick={() => onAdd(i)} disabled={!menu.accepting} className="flex min-h-10 w-full items-center justify-center rounded-xl bg-bg text-[14px] font-extrabold tracking-wide text-emerald-500 uppercase shadow-[0_4px_14px_-4px_rgba(0,0,0,0.5)] ring-1 ring-line active:scale-95 disabled:opacity-50" aria-label={`Add ${i.name}`}>Add{i.addons.length ? <span className="ml-0.5 text-[10px] align-super">+</span> : null}</button>
+                                <button type="button" onClick={() => onAdd(i)} disabled={!menu.accepting || viewOnly} className="flex min-h-10 w-full items-center justify-center rounded-xl bg-bg text-[14px] font-extrabold tracking-wide text-emerald-500 uppercase shadow-[0_4px_14px_-4px_rgba(0,0,0,0.5)] ring-1 ring-line active:scale-95 disabled:opacity-50" aria-label={`Add ${i.name}`}>Add{i.addons.length ? <span className="ml-0.5 text-[10px] align-super">+</span> : null}</button>
                               ) : (
                                 <div className="flex min-h-10 items-center justify-between rounded-xl bg-emerald-500 px-1 text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,0.5)]">
                                   <button type="button" onClick={() => minusItem(i.id)} className="grid h-10 w-10 place-items-center" aria-label={`Less ${i.name}`}><Minus size={16} /></button>

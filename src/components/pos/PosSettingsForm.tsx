@@ -40,6 +40,8 @@ export function PosSettingsForm({ initial }: { initial: PosSettings }) {
       <section className={card}>
         <h2 className="font-semibold">Orders</h2>
         <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="h-5 w-5" checked={s.accepting} onChange={(e) => set("accepting", e.target.checked)} /> Taking orders (switch off during a rush or when the kitchen is closed)</label>
+        <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="h-5 w-5" checked={s.counter_orders} onChange={(e) => set("counter_orders", e.target.checked)} /> Guests can also order from plates that are not tables, like Counter</label>
+        <p className="text-xs" style={{ color: "var(--d-muted)" }}>Every table plate gets your menu by itself, with its table number. If this is off, a Counter plate shows the menu to look at, but ordering is only from tables.</p>
       </section>
       <section className={card}>
         <h2 className="font-semibold">GST</h2>

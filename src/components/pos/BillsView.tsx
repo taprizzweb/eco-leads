@@ -27,7 +27,7 @@ export function BillsView({ slug, range, orders }: { slug: string; range: string
         <button type="button" className="d-btn d-btn-s ml-auto" onClick={csv} disabled={!orders.length}><Download size={15} /> Download CSV</button>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[["Sales", inr(sales)], ["Bills", String(done.length)], ["GST collected", inr(gst)], ["Zomato + Swiggy", inr(by("zomato") + by("swiggy"))]].map(([k, v]) => (
+        {[["Sales", inr(sales)], ["Bills", String(done.length)], ["GST collected", inr(gst)], ["Takeaway", inr(by("takeaway"))]].map(([k, v]) => (
           <div key={k} className="d-card p-3.5"><p className="text-xs" style={{ color: "var(--d-muted)" }}>{k}</p><p className="mt-1 text-[22px] font-semibold">{v}</p></div>
         ))}
       </div>

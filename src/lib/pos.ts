@@ -16,7 +16,7 @@ export type MenuCat = { id: string; name: string; sort: number; active: boolean 
 export type MenuItem = { id: string; category_id: string | null; name: string; description: string | null; price: number; veg: boolean; image_url: string | null; available: boolean; bestseller: boolean; addons: { name: string; price: number }[]; sort: number };
 export type PosSettings = {
   client_id: string; accepting: boolean; gst_rate: number; gst_inclusive: boolean; gstin: string | null; legal_name: string | null; address: string | null; bill_footer: string | null;
-  geo_lat: number | null; geo_lng: number | null; geo_radius_m: number; geo_required: boolean;
+  geo_lat: number | null; geo_lng: number | null; geo_radius_m: number; geo_required: boolean; counter_orders: boolean;
 };
 
 export const CHANNELS: Record<Channel, { label: string; color: string }> = {
@@ -26,6 +26,11 @@ export const CHANNELS: Record<Channel, { label: string; color: string }> = {
   swiggy: { label: "Swiggy", color: "#fc8019" },
   other: { label: "Other", color: "#8b5cf6" },
 };
+/** Table, room, booth and seat plates (or any label with a number) are tables. A plate like "Counter" is not. */
+export const isTablePlate = (label: string | null | undefined) => /(table|room|booth|seat|cabin|\d)/i.test(label ?? "");
+/** Where a person at the counter can enter an order from. Online delivery apps are not part of this panel. */
+export const MANUAL_CHANNELS: Channel[] = ["dine_in", "takeaway"];
+
 export const REQUEST_LABEL: Record<Request["kind"], string> = { waiter: "Call waiter", bill: "Wants the bill", clean: "Clean the table", other: "Needs help" };
 
 const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
