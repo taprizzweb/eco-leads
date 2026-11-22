@@ -219,6 +219,13 @@ const modelChain = (): (string | undefined)[] => {
 const retryable = (e: unknown) => /\b(429|408|500|502|503|504)\b|timeout|fetch failed/i.test(String((e as Error)?.message ?? e));
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Models used when a provider is only the backup. Set GEMINI_MODEL / ANTHROPIC_MODEL to choose another. */
+const BACKUP_MODELS: Record<string, (string | undefined)[]> = {
+  gemini: [process.env.GEMINI_MODEL || "gemini-flash-lite-latest", "gemini-flash-latest"],
+  anthropic: [process.env.ANTHROPIC_MODEL || "claude-haiku-5-5"],
+  openai: [process.env.OPENAI_MODEL || "gpt-4o-mini"],
+};
+
 export let lastProviderError = "";
 
 async function run(task: "review_draft" | "review_reply", payload: Record<string, unknown>, prompt: string, max: number, opts?: CallOpts): Promise<{ text: string; provider: string } | null> {
@@ -228,20 +235,26 @@ async function run(task: "review_draft" | "review_reply", payload: Record<string
       const t = clean(await withTimeout(callCustom(task, payload), Math.max(2000, Math.min(12000, (opts?.deadline ?? Infinity) - Date.now()))), max);
       if (t) return { text: t, provider: "custom" };
     } else if (GENERAL[name] && process.env[GENERAL[name].key]) {
-      // A busy or rate-limited model (typical on free plans) is retried once after a short pause, then the next model is tried.
-      for (const model of modelChain()) {
-        for (let attempt = 0; attempt < 2; attempt++) {
-          const left = (opts?.deadline ?? Infinity) - Date.now();
-          if (left < 2500) return null; // out of time: the guest gets a clear "try again" instead of a hung page
-          try {
-            const t = clean(await withTimeout(GENERAL[name].call(prompt, { ...opts, model }), Math.min(12000, left)), max);
-            if (t) return { text: t, provider: name };
-            break;
-          } catch (e) {
-            lastProviderError = String((e as Error)?.message ?? e).slice(0, 160);
-            console.error(`${task}: provider "${name}"${model ? ` model ${model}` : ""} failed (try ${attempt + 1}): ${lastProviderError}`);
-            if (!retryable(e) || /timeout/i.test(lastProviderError)) break; // a timeout is not retried on the same model
-            if (attempt === 0) await sleep(1200);
+      // The chosen provider first (a busy or rate-limited model is retried once, then the next model is tried).
+      // If it still fails, every other provider that has a key set (Gemini, Claude) is tried in turn as a backup.
+      const backups = Object.keys(GENERAL).filter((n) => n !== name && process.env[GENERAL[n].key] && (n !== "openai" || !process.env.REVIEW_AI_BASE_URL));
+      for (const prov of [name, ...backups]) {
+        const primary = prov === name;
+        const models: (string | undefined)[] = primary ? modelChain() : BACKUP_MODELS[prov] ?? [undefined];
+        for (const model of models) {
+          for (let attempt = 0; attempt < (primary ? 2 : 1); attempt++) {
+            const left = (opts?.deadline ?? Infinity) - Date.now();
+            if (left < 2500) return null; // out of time: the guest gets a plain review instead of a hung page
+            try {
+              const t = clean(await withTimeout(GENERAL[prov].call(prompt, { ...opts, model }), Math.min(12000, left)), max);
+              if (t) return { text: t, provider: prov };
+              break;
+            } catch (e) {
+              lastProviderError = String((e as Error)?.message ?? e).slice(0, 160);
+              console.error(`${task}: provider "${prov}"${model ? ` model ${model}` : ""}${primary ? "" : " (backup)"} failed (try ${attempt + 1}): ${lastProviderError}`);
+              if (!retryable(e) || /timeout/i.test(lastProviderError)) break; // a timeout is not retried on the same model
+              if (primary && attempt === 0) await sleep(1200);
+            }
           }
         }
       }
