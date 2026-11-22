@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { GuestPage } from "@/components/guest/GuestPage";
 import type { GuestPageData } from "@/lib/types";
 import { HUB_PATH, loadPlace } from "@/lib/hub";
+import { HUB_ENABLED } from "@/lib/hub-shared";
 
 // Plates point to taprizz.in/e/<code>. The code never changes once printed;
 // the admin reassigns which client and table it belongs to.
@@ -41,7 +42,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
   });
 
   // Only businesses that are on the Gulabi Nagar page get the link.
-  const onHub = await loadPlace(data.client.slug);
+  const onHub = HUB_ENABLED ? await loadPlace(data.client.slug) : null;
   const { data: near } = onHub ? await sb.rpc("hub_nearby", { p_slug: data.client.slug }) : { data: null };
   const { data: outlets } = await sb.rpc("guest_outlets", { p_client: data.client.id });
   const { data: extras } = await sb.rpc("guest_extras", { p_client: data.client.id });

@@ -1,8 +1,11 @@
+import { redirect } from "next/navigation";
 import { loadClient } from "@/lib/dash";
+import { HUB_ENABLED } from "@/lib/hub-shared";
 import { JaipurBoard, type MyOffer } from "@/components/dash/JaipurBoard";
 
 export default async function JaipurPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (!HUB_ENABLED) redirect(`/dashboard/${slug}`);
   const { sb, client } = await loadClient(slug);
   const { data: row } = await sb.from("clients").select("hub_listed, hub_area, business_type").eq("id", client.id).single();
   const listed = row?.hub_listed === true;

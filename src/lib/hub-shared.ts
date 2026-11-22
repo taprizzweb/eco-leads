@@ -2,6 +2,8 @@
 // One place to rename the product. Everything on the public pages reads this.
 export const HUB_NAME = "Gulabi Nagar";
 export const HUB_PATH = "/jaipur";
+/** Gulabi Nagar is paused: nothing is deleted, but guests, owners and the public pages do not see it. Set to true to bring it back. */
+export const HUB_ENABLED = false;
 export const MIN_GUESTS = 30;
 
 export const OFFER_KINDS: Record<string, string> = {

@@ -1,6 +1,7 @@
 import { loadClient } from "@/lib/dash";
 import { Shell } from "@/components/dash/Shell";
 import { tablesFit } from "@/lib/features";
+import { HUB_ENABLED } from "@/lib/hub-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function DashLayout({ children, params }: { children: React
   const callsOn = features.call_server === true && tablesFit(client.business_type);
   const { count: callsOpen } = callsOn ? await sb.from("server_calls").select("id", { count: "exact", head: true }).eq("client_id", client.id).eq("status", "new") : { count: 0 };
   return (
-    <Shell slug={client.slug} clientName={client.name} logoUrl={client.logo_url} openCount={count ?? 0} contentCount={newMoments} isTeam={!!teamRole} waOn={client.review_setup?.collect_contact === true} tablesOn={(features.table_ordering === true || features.pos === true) && tablesFit(client.business_type)} jaipurOn={hubRow?.hub_listed === true} upHref={upHref} callsOn={callsOn} callsOpen={callsOpen ?? 0} posOn={features.pos === true}>
+    <Shell slug={client.slug} clientName={client.name} logoUrl={client.logo_url} openCount={count ?? 0} contentCount={newMoments} isTeam={!!teamRole} waOn={client.review_setup?.collect_contact === true} tablesOn={(features.table_ordering === true || features.pos === true) && tablesFit(client.business_type)} jaipurOn={HUB_ENABLED && hubRow?.hub_listed === true} upHref={upHref} callsOn={callsOn} callsOpen={callsOpen ?? 0} posOn={features.pos === true}>
       {children}
     </Shell>
   );
