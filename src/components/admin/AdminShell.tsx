@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/dash/Toast";
 import { Mark } from "@/components/dash/AuthFrame";
 import { InstallApp } from "@/components/InstallApp";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
+import { NavFeedback } from "@/components/NavFeedback";
 import { Suspense } from "react";
 
 const KEY = "taprizz-dash-mode";
@@ -45,6 +46,7 @@ export function AdminShell({ role, email, alerts, children }: { role: "owner" | 
   return (
     <div className="dash min-h-dvh" data-mode={mode}>
       <ToastProvider>
+        <Suspense fallback={null}><NavFeedback /></Suspense>
         <div className="mx-auto flex max-w-[1400px]">
           {/* Sidebar: laptop */}
           <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r px-3 py-5 lg:flex" style={{ borderColor: "var(--d-line)" }}>

@@ -7,6 +7,7 @@ import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star,
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
+import { NavFeedback } from "@/components/NavFeedback";
 import { Suspense } from "react";
 
 const KEY = "taprizz-dash-mode";
@@ -79,6 +80,7 @@ export function Shell({
   return (
     <div className="dash min-h-dvh" data-mode={mode}>
       <ToastProvider>
+        <Suspense fallback={null}><NavFeedback /></Suspense>
         <header className="sticky top-0 z-40 border-b backdrop-blur-xl" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 82%, transparent)" }}>
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
             <BackButton rootBack={upHref} style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }} />

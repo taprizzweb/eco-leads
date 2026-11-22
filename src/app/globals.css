@@ -197,3 +197,23 @@ body {
 .dash [role="switch"] { position: relative; }
 .dash [role="switch"]::after { content: ""; position: absolute; inset: -9px -6px; }
 }
+
+
+/* ---- Pressing feels like pressing, and waiting is visible ---- */
+html { touch-action: manipulation; }
+.dash a, .dash button, .d-btn, .d-raise { -webkit-tap-highlight-color: transparent; }
+.dash a:not(.no-press), .dash button:not(.no-press) { transition: transform .12s ease, filter .12s ease, opacity .15s ease; }
+.dash a:not(.no-press):active, .dash button:not(.no-press):not(:disabled):active { transform: scale(.965); filter: brightness(1.25); }
+.dash a[data-pending] { opacity: .7; position: relative; pointer-events: none; }
+.dash a[data-pending]::after {
+  content: ""; position: absolute; right: 12px; top: 50%; width: 14px; height: 14px; margin-top: -7px;
+  border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: nav-spin .7s linear infinite;
+}
+@keyframes nav-spin { to { transform: rotate(360deg); } }
+.nav-bar { position: fixed; left: 0; top: 0; z-index: 100; height: 3px; width: 100%; transform: scaleX(0); transform-origin: left; opacity: 0; pointer-events: none;
+  background: linear-gradient(90deg, #8b5cf6, #f2b544); box-shadow: 0 0 10px rgba(242,181,68,.7); }
+.nav-bar-on { opacity: 1; animation: nav-grow 8s cubic-bezier(.1,.7,.2,1) forwards; }
+@keyframes nav-grow { 0% { transform: scaleX(0); } 30% { transform: scaleX(.55); } 100% { transform: scaleX(.94); } }
+.skel { border-radius: 14px; background: linear-gradient(90deg, var(--d-surface) 25%, color-mix(in srgb, var(--d-surface) 60%, var(--d-text) 8%) 50%, var(--d-surface) 75%); background-size: 200% 100%; animation: skel 1.2s linear infinite; }
+@keyframes skel { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .nav-bar-on { animation: none; transform: scaleX(.8); } .skel { animation: none; } }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { loadGroup } from "@/lib/group";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
+import { NavFeedback } from "@/components/NavFeedback";
 import { Mark } from "@/components/dash/AuthFrame";
 import { GroupTabs } from "@/components/group/GroupTabs";
 
@@ -17,6 +18,7 @@ export default async function GroupLayout({ children, params }: { children: Reac
   const { data: teamRole } = await sb.rpc("my_team_role");
   return (
     <div className="dash min-h-dvh" data-mode="dark">
+      <Suspense fallback={null}><NavFeedback /></Suspense>
       <header className="sticky top-0 z-30 border-b backdrop-blur-xl" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 85%, transparent)" }}>
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
           <BackButton rootBack={teamRole ? "/admin/tools/chains" : undefined} style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }} />

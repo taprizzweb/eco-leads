@@ -10,9 +10,9 @@ const headers = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
 
-// Mini links live on their own host. Today: link-taprizz.vercel.app/<name>. After the domain is bought: link.taprizz.in/<name>.
+// Mini links live on their own host. Today: link-taprizz.vercel.app/<name>. After the domain is bought: links.tapres.in/<name> (any host starting with link. or links. works).
 // On those hosts a one-word path is a mini link name; the same page also still opens at /l/<name> on every host.
-const LINK_HOSTS = ["link\\..+", "link-taprizz\\.vercel\\.app"];
+const LINK_HOSTS = ["links?\\..+", "link-taprizz\\.vercel\\.app"];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
