@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 
 // The phone's Back button should close an open sheet first, not leave the page.
 // One history entry is shared by every open sheet. It is added when the first sheet opens and removed when the last one closes.
+// Next.js reloads the whole page when Back lands on a history entry it did not make itself. Our extra entries carry
+// Next's own marker so Back only closes the sheet instead of reloading the page.
+export const keepNext = (extra: Record<string, unknown>) => ({ ...(typeof window !== "undefined" && window.history.state ? window.history.state : {}), __NA: true, ...extra });
 const stack: (() => void)[] = [];
 let pushed = false;
 let selfPop = false;
@@ -23,7 +26,7 @@ export function useBackToClose(open: boolean, onClose: () => void) {
     const fn = () => ref.current();
     stack.push(fn);
     if (!listening) { window.addEventListener("popstate", onPop); listening = true; }
-    if (!pushed) { window.history.pushState({ tzSheet: true }, ""); pushed = true; }
+    if (!pushed) { window.history.pushState(keepNext({ tzSheet: true }), ""); pushed = true; }
     return () => {
       const i = stack.indexOf(fn);
       if (i >= 0) stack.splice(i, 1);
@@ -55,7 +58,7 @@ export function useExitPrompt(enabled: boolean, onPrompt: () => void, rearm = 0)
     if (!enabled) return;
     const fn = () => ref.current();
     if (!listening) { window.addEventListener("popstate", onPop); listening = true; }
-    window.history.pushState({ tzExit: true }, "");
+    window.history.pushState(keepNext({ tzExit: true }), "");
     exitFn = fn;
     return () => { if (exitFn === fn) exitFn = null; };
   }, [enabled, rearm]);

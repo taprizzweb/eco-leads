@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { keepNext } from "@/lib/sheet-back";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
@@ -44,12 +45,12 @@ export function ExitGuard() {
   useEffect(() => {
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
     if (!standalone || !isRootPath(path)) return;
-    window.history.pushState({ tzGuard: true }, "");
+    window.history.pushState(keepNext({ tzGuard: true }), "");
     const onPop = () => {
       const now = Date.now();
       if (now - last.current < 2000) { window.history.go(-1); return; }
       last.current = now;
-      window.history.pushState({ tzGuard: true }, "");
+      window.history.pushState(keepNext({ tzGuard: true }), "");
       setHint(true);
       setTimeout(() => setHint(false), 2000);
     };
