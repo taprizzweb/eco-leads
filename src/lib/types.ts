@@ -13,6 +13,7 @@ export type Features = {
   creators?: boolean;
   table_ordering?: boolean;
   call_server?: boolean;
+  pos?: boolean;
   custom_links?: number;
 };
 

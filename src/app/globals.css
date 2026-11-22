@@ -217,3 +217,14 @@ html { touch-action: manipulation; }
 .skel { border-radius: 14px; background: linear-gradient(90deg, var(--d-surface) 25%, color-mix(in srgb, var(--d-surface) 60%, var(--d-text) 8%) 50%, var(--d-surface) 75%); background-size: 200% 100%; animation: skel 1.2s linear infinite; }
 @keyframes skel { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .nav-bar-on { animation: none; transform: scaleX(.8); } .skel { animation: none; } }
+
+/* Food orders: inputs that sit in a row next to other controls keep their own width */
+.d-input.w-20 { width: 5rem; }
+.d-input.w-24 { width: 6rem; }
+.d-input.w-28 { width: 7rem; }
+.d-input.flex-1 { width: auto; }
+
+/* Order placed: the tick pops in */
+@keyframes tick-pop { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+.tick-pop { animation: tick-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) { .tick-pop { animation: none; } }

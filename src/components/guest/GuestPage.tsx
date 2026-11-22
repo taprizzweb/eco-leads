@@ -43,7 +43,7 @@ const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers",
 function cardEnabled(k: CardKey, d: GuestPageData): boolean {
   const f = d.features;
   switch (k) {
-    case "menu": return !!d.plate?.menu_url || (!!f.menu && !!d.client.menu_url);
+    case "menu": return !!d.plate?.menu_url || (!!f.menu && !!d.client.menu_url) || (!!f.pos && !!d.plate);
     case "review": return !!f.review && !!d.client.google_review_url;
     case "complaint": return !!f.complaints;
     case "suggestion": return !!f.suggestions;
@@ -95,7 +95,7 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
   const exitKey = `tz_exit_${client.id}`;
   const canNudge = data.live && !!data.features.review && !!client.google_review_url;
   useExitPrompt(canNudge, () => {
-    try { if (sessionStorage.getItem(exitKey)) { window.history.back(); return; } sessionStorage.setItem(exitKey, "1"); } catch {}
+    try { if (sessionStorage.getItem(exitKey) || localStorage.getItem(`tz_reviewed_${client.id}`)) { window.history.back(); return; } sessionStorage.setItem(exitKey, "1"); } catch {}
     setOpen("review");   // straight to the stars; the name and number form is not put in front of someone who is leaving
   });
 
@@ -126,6 +126,7 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
   }, [client.id, askContact]);
 
   const onCard = (k: CardKey) => {
+    if (k === "menu" && data.features.pos && data.plate) { window.location.href = `/m/${code}`; return; }
     const menuLink = data.plate?.menu_url || client.menu_url;
     if (k === "menu" && menuLink) {
       window.open(menuLink, "_blank", "noopener");

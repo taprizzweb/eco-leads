@@ -48,7 +48,7 @@ export function closeSheetsThen(fn: () => void) {
  * Back from the guest page itself shows the review stars once instead of leaving. It is a nudge, not a trap:
  * the prompt closes with its X or with Back, and the next Back leaves as normal.
  */
-export function useExitPrompt(enabled: boolean, onPrompt: () => void) {
+export function useExitPrompt(enabled: boolean, onPrompt: () => void, rearm = 0) {
   const ref = useRef(onPrompt);
   useEffect(() => { ref.current = onPrompt; });
   useEffect(() => {
@@ -58,5 +58,5 @@ export function useExitPrompt(enabled: boolean, onPrompt: () => void) {
     window.history.pushState({ tzExit: true }, "");
     exitFn = fn;
     return () => { if (exitFn === fn) exitFn = null; };
-  }, [enabled]);
+  }, [enabled, rearm]);
 }

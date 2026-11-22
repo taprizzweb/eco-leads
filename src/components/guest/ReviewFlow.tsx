@@ -31,6 +31,10 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [continueAnyway, setContinueAnyway] = useState(false);
+  // Remembered on this phone once the guest has opened Google with their review, so the next tap says so instead of starting again.
+  const reviewedKey = `tz_reviewed_${data.client.id}`;
+  const [already, setAlready] = useState(false);
+  useEffect(() => { try { if (localStorage.getItem(reviewedKey)) setAlready(true); } catch { /* fine */ } }, [reviewedKey]);
 
   useEffect(() => {
     try { const s = localStorage.getItem("tz_lang") as Lang | null; if (s && langs.some((l) => l.id === s)) setLang(s); } catch { /* fine */ }
@@ -106,7 +110,19 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   async function copyAndOpen() {
     try { await navigator.clipboard.writeText(draft); setCopied(true); } catch { /* the guest can still select the text */ }
     if (draftId) fetch("/api/review-draft/copied", { method: "POST", body: JSON.stringify({ id: draftId }) }).catch(() => {});
+    try { localStorage.setItem(reviewedKey, String(Date.now())); } catch { /* fine */ }
     if (googleUrl) window.open(googleUrl, "_blank", "noopener");
+  }
+
+  if (already) {
+    return (
+      <div className="py-6 text-center" role="status">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-500/15 text-emerald-500"><Check size={30} /></span>
+        <p className="mt-4 text-lg font-semibold">Review already done</p>
+        <p className="mt-1 text-sm text-muted">Thank you for reviewing {data.client.name}. It means a lot to us.</p>
+        <button type="button" className="mt-5 min-h-11 text-sm text-muted underline underline-offset-4" onClick={() => { try { localStorage.removeItem(reviewedKey); } catch { /* fine */ } setAlready(false); }}>Someone else on this phone? Review again</button>
+      </div>
+    );
   }
 
   return (

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing, UtensilsCrossed } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
@@ -25,6 +25,7 @@ export function Shell({
   upHref,
   callsOn = false,
   callsOpen = 0,
+  posOn = false,
   children,
 }: {
   slug: string;
@@ -39,6 +40,7 @@ export function Shell({
   upHref?: string;
   callsOn?: boolean;
   callsOpen?: number;
+  posOn?: boolean;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -68,6 +70,7 @@ export function Shell({
     ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Gulabi", Icon: MapPin } as Tab] : []),
     ...(callsOn ? [{ href: `${base}/calls`, label: "Calls", Icon: BellRing, badge: callsOpen } as Tab] : []),
     ...(tablesOn ? [{ href: `${base}/tables`, label: "Tables", Icon: QrCode } as Tab] : []),
+    ...(posOn ? [{ href: `/pos/${slug}`, label: "Food orders", Icon: UtensilsCrossed } as Tab] : []),
     { href: `${base}/plan`, label: "Plan", Icon: Gem },
   ];
   // Phone bottom bar keeps five tabs; Plan sits in the top bar there.
