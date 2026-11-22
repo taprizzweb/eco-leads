@@ -441,7 +441,7 @@ export function repairDraft(text: string, cfg: StudioConfig): string {
  * sentences are cut out; if too little is left, the guest is asked to try again. A draft that breaks a rule is never returned.
  * Without a connected AI it falls back to plain sentences.
  */
-export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSigs: number[][], opts: { tries?: number } = {}): Promise<WrittenReview> {
+export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSigs: number[][], opts: { tries?: number; strict?: boolean } = {}): Promise<WrittenReview> {
   const factCount = r.answers.filter((a) => a.values.length).length;
   let best: WrittenReview | null = null;
   const broken: { text: string; provider: string; shape: Shape }[] = [];
@@ -472,9 +472,10 @@ export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSig
       return { draft: fixed, provider: b.provider, sig: shingles(fixed), similarity: 0.5, tries: attempts };
     }
   }
-  // A connected AI that is busy must never be answered with the plain template: ask the guest to try again instead.
-  const st = aiStatus();
-  if (st.provider !== "template" && st.ready) throw new ReviewBusy(broken.length ? "the writer's answers broke the rules" : lastProviderError);
+  // The admin test page asks for strict mode so it shows the real AI error instead of a template.
+  if (opts.strict && aiStatus().provider !== "template" && aiStatus().ready) throw new ReviewBusy(broken.length ? "the writer's answers broke the rules" : lastProviderError);
+  // The AI is busy, out of quota or rate limited: the guest still gets a plain review built from their own picks, editable, instead of an empty box.
+  // The failure stays in the logs ("failed (try ...)") so it can be fixed at the AI provider.
   const t = templateFromAnswers(r, cfg.business.name);
   return { draft: t, provider: "template", sig: shingles(t), similarity: 0, tries: 0 };
 }

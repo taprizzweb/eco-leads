@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   for (let i = 0; i < b.count; i++) {
     const t0 = Date.now();
     let r;
-    try { r = await writeReview(cfg, { rating: b.rating, language: b.language, name: cleanName(b.name), answers, extra: cleanText(b.extra, 300) }, seen, { tries: 2 }); } catch (e) {
+    try { r = await writeReview(cfg, { rating: b.rating, language: b.language, name: cleanName(b.name), answers, extra: cleanText(b.extra, 300) }, seen, { tries: 2, strict: true }); } catch (e) {
       if (e instanceof ReviewBusy) return NextResponse.json({ error: `The AI did not answer${e.message ? ` (${e.message})` : ""}. A free model is often rate-limited: try a paid or Gemini model, or add REVIEW_AI_FALLBACK_MODELS.` }, { status: 502 });
       throw e;
     }
