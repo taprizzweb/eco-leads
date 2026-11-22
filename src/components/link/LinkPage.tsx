@@ -6,7 +6,8 @@ import { motion, useReducedMotion } from "motion/react";
 import { Bike, CalendarDays, Coffee, Gift, Globe, Instagram, Facebook, Link2, Mail, MapPin, MessageSquareText, Phone, Share2, ShoppingBag, Star, Store, Utensils, X } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Mark } from "@/components/dash/AuthFrame";
-import { BRAND, DistrictIcon, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
+import { BRAND, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
+import { brandFor } from "./brands";
 import { getLinkTheme, isVideo, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
@@ -239,7 +240,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const s = data.socials;
   const icons = [
     s.instagram && { href: s.instagram, label: "Instagram", node: <InstagramIcon size={24} />, brand: null },
-    s.facebook && { href: s.facebook, label: "Facebook", node: <Facebook size={22} strokeWidth={1.6} />, brand: null },
+    s.facebook && { href: s.facebook, label: "Facebook", node: brandFor(s.facebook, "Facebook") ?? <Facebook size={22} strokeWidth={1.6} />, brand: null },
     s.zomato && { href: s.zomato, label: "Zomato", node: <ZomatoIcon size={17} />, brand: BRAND.zomato },
     s.swiggy && { href: s.swiggy, label: "Swiggy", node: <SwiggyIcon size={18} />, brand: BRAND.swiggy },
     s.whatsapp && waLink(s.whatsapp) && { href: waLink(s.whatsapp)!, label: "WhatsApp", node: <WhatsappIcon size={21} />, brand: null },
@@ -306,18 +307,9 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.nav {...rise(4)} aria-label="Links" className="mt-4 space-y-2.5 px-3">
             {buttons.map((b, i) => {
               const Icon = ICONS[b.icon] ?? Link2;
-              // Zomato and Swiggy show their own logos, not a generic icon
-              // a button named District (or pointing at district.in) gets the purple District mark even if its icon is still "Link"
-              const kind = /district/i.test(b.label) || /district\.in/i.test(b.url) ? "district" : /instagram/i.test(b.label) || /instagram\.com/i.test(b.url) ? "instagram" : b.icon;
-              const glyph = kind === "instagram"
-                ? <InstagramIcon size={28} />
-                : kind === "district"
-                ? <span className="grid h-7 w-7 place-items-center rounded-lg" style={{ background: BRAND.district.bg, color: BRAND.district.fg }}><DistrictIcon size={17} /></span>
-                : b.icon === "zomato"
-                ? <span className="grid h-6 w-9 place-items-center rounded-md" style={{ background: BRAND.zomato.bg, color: BRAND.zomato.fg }}><ZomatoIcon size={15} /></span>
-                : b.icon === "swiggy"
-                  ? <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: BRAND.swiggy.bg, color: BRAND.swiggy.fg }}><SwiggyIcon size={17} /></span>
-                  : <Icon size={21} strokeWidth={1.7} />;
+              // Every link shows the logo of the app it points to (Facebook, YouTube, LinkedIn, X, Instagram...). Unknown ones keep the generic icon.
+              const logo = brandFor(b.url, b.label);
+              const glyph = logo ?? <Icon size={21} strokeWidth={1.7} />;
               const inner = (
                 <>
                   <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{glyph}</span>
