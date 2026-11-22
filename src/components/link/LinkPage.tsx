@@ -220,6 +220,8 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const [offersOpen, setOffersOpen] = useState(false);
   const [note, setNote] = useState("");
   const sb = supabaseBrowser();
+  // A review opens the business on Google Maps: its first outlet's map link, else the page's own Maps link.
+  const reviewHref = safeUrl(data.outlets?.find((o) => safeUrl(o.map_url))?.map_url) ?? safeUrl(data.socials.maps);
   const track = (kind: "view" | "click") => { if (!preview) void sb.rpc("link_track", { p_id: data.id, p_kind: kind }); };
   const viewed = useRef(false);
   useEffect(() => { if (!viewed.current) { viewed.current = true; track("view"); } });
@@ -335,7 +337,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.section {...rise(5)} className="mt-5" aria-label="Guest reviews">
             <Marquee seconds={Math.max(40, data.reviews.length * 8)} label="Guest reviews">
               {data.reviews.map((r, i) => (
-                <article key={i} className="mr-3 flex w-[250px] shrink-0 flex-col gap-1.5 rounded-2xl bg-white p-3.5 text-[#111]" style={{ boxShadow: "0 12px 30px -20px rgba(0,0,0,0.8)" }}>
+                <ReviewCard key={i} href={reviewHref} onClick={() => track("click")}>
                   <div className="flex items-center gap-2.5">
                     {r.avatar
                       // eslint-disable-next-line @next/next/no-img-element
@@ -346,7 +348,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
                   </div>
                   <span className="flex" aria-label={`${r.rating} out of 5 stars`}>{Array.from({ length: 5 }).map((_, k) => <Star key={k} size={12} className={k < r.rating ? "fill-amber-400 text-amber-400" : "text-black/20"} />)}</span>
                   <p className="line-clamp-3 text-[12px] leading-relaxed text-black/60">{r.body}</p>
-                </article>
+                </ReviewCard>
               ))}
             </Marquee>
           </motion.section>
@@ -358,4 +360,12 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click")} />}
     </div>
   );
+}
+
+function ReviewCard({ href, onClick, children }: { href: string | null; onClick: () => void; children: React.ReactNode }) {
+  const cls = "mr-3 flex w-[250px] shrink-0 flex-col gap-1.5 rounded-2xl bg-white p-3.5 text-left text-[#111]";
+  const st = { boxShadow: "0 12px 30px -20px rgba(0,0,0,0.8)" } as const;
+  return href
+    ? <a href={href} target="_blank" rel="noopener" onClick={onClick} aria-label="See this place and its reviews on Google Maps" className={`${cls} transition active:scale-[0.98]`} style={st}>{children}</a>
+    : <article className={cls} style={st}>{children}</article>;
 }
