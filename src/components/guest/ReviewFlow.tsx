@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Star, Copy, Check, Loader2, ArrowLeft, RefreshCw, HeartHandshake } from "lucide-react";
+import { Star, Copy, Check, Loader2, ArrowLeft, RefreshCw, HeartHandshake, Smile } from "lucide-react";
 import type { GuestPageData } from "@/lib/types";
 import { LANGS, localize, resolveQuestions, type Lang } from "@/lib/review/questions";
 import type { Visitor } from "@/lib/visitor";
@@ -34,11 +34,24 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   // Remembered on this phone once the guest has opened Google with their review, so the next tap says so instead of starting again.
   const reviewedKey = `tz_reviewed_${data.client.id}`;
   const [already, setAlready] = useState(false);
+  // Once Google has been opened, the guest coming back to this page is thanked instead of seeing the stars again.
+  const [opened, setOpened] = useState(false);
+  const [posted, setPosted] = useState(false);
   useEffect(() => { try { if (localStorage.getItem(reviewedKey)) setAlready(true); } catch { /* fine */ } }, [reviewedKey]);
 
   useEffect(() => {
     try { const s = localStorage.getItem("tz_lang") as Lang | null; if (s && langs.some((l) => l.id === s)) setLang(s); } catch { /* fine */ }
   }, [langs]);
+  useEffect(() => {
+    if (!opened) return;
+    let left = document.visibilityState === "hidden";
+    const onVis = () => { if (document.visibilityState === "hidden") left = true; else if (left) setPosted(true); };
+    const onShow = () => { if (left) setPosted(true); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pageshow", onShow);
+    window.addEventListener("focus", onShow);
+    return () => { document.removeEventListener("visibilitychange", onVis); window.removeEventListener("pageshow", onShow); window.removeEventListener("focus", onShow); };
+  }, [opened]);
   const pickLang = (l: Lang) => { setLang(l); try { localStorage.setItem("tz_lang", l); } catch { /* fine */ } };
 
   const q = questions[qi];
@@ -110,17 +123,25 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   async function copyAndOpen() {
     try { await navigator.clipboard.writeText(draft); setCopied(true); } catch { /* the guest can still select the text */ }
     if (draftId) fetch("/api/review-draft/copied", { method: "POST", body: JSON.stringify({ id: draftId }) }).catch(() => {});
+    markReviewed();
+    if (googleUrl) window.open(googleUrl, "_blank", "noopener");
+  }
+  function markReviewed() {
     try { localStorage.setItem(reviewedKey, String(Date.now())); } catch { /* fine */ }
+    setOpened(true);
+  }
+  function openGoogleDirect() {
+    markReviewed();
     if (googleUrl) window.open(googleUrl, "_blank", "noopener");
   }
 
-  if (already) {
+  if (posted || already) {
     return (
       <div className="py-6 text-center" role="status">
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-500/15 text-emerald-500"><Check size={30} /></span>
-        <p className="mt-4 text-lg font-semibold">Review already done</p>
-        <p className="mt-1 text-sm text-muted">Thank you for reviewing {data.client.name}. It means a lot to us.</p>
-        <button type="button" className="mt-5 min-h-11 text-sm text-muted underline underline-offset-4" onClick={() => { try { localStorage.removeItem(reviewedKey); } catch { /* fine */ } setAlready(false); }}>Someone else on this phone? Review again</button>
+        <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-500/15 text-emerald-500"><Smile size={38} /></span>
+        <p className="mt-4 text-lg font-semibold">{posted ? "Thank you for posting your review" : "Review already done"}</p>
+        <p className="mt-1 text-sm text-muted">{posted ? `It means a lot to everyone at ${data.client.name}.` : `Thank you for reviewing ${data.client.name}. It means a lot to us.`}</p>
+        <button type="button" className="mt-5 min-h-11 text-sm text-muted underline underline-offset-4" onClick={() => { try { localStorage.removeItem(reviewedKey); } catch { /* fine */ } setAlready(false); setPosted(false); setOpened(false); }}>Someone else on this phone? Review again</button>
       </div>
     );
   }
@@ -181,21 +202,26 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
           <label htmlFor="draft" className="block text-sm text-muted">Your review. Change anything you like.</label>
           {error && <p role="alert" className="text-sm text-amber-400">{error}</p>}
           <textarea id="draft" value={draft} onChange={(e) => setDraft(e.target.value)} rows={6} className={`${glassInput} rounded-2xl leading-relaxed`} />
-          <button onClick={copyAndOpen} disabled={!googleUrl || !draft.trim()} className={pillPrimary}>
-            {copied ? <Check size={18} /> : <Copy size={18} />} Copy review and open Google
-          </button>
+          {googleUrl && !draft.trim() && (
+            <button type="button" onClick={openGoogleDirect} className={pillPrimary}>Open Google and write your review</button>
+          )}
+          {!!draft.trim() && (
+            <button onClick={copyAndOpen} disabled={!googleUrl} className={pillPrimary}>
+              {copied ? <Check size={18} /> : <Copy size={18} />} Copy review and open Google
+            </button>
+          )}
           {tries < MAX_TRIES && (
             <div className="space-y-2">
               <input className={glassInput} maxLength={300} value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="Want to add something in your own words? (optional)" aria-label="Add something in your own words" />
               <button onClick={() => write()} disabled={loading} className={pillSoft}>{loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {extra.trim() ? "Rewrite with this" : "Write another version"}</button>
             </div>
           )}
-          <p className="text-center text-xs text-muted">Your review is copied. Paste it in the Google box and post.</p>
+          {!!draft.trim() && <p className="text-center text-xs text-muted">Your review is copied. Paste it in the Google box and post.</p>}
         </section>
       )}
 
-      {step !== "draft" && googleUrl && (
-        <a href={googleUrl} target="_blank" rel="noopener" className="block min-h-11 py-3 text-center text-sm text-muted underline underline-offset-4">Skip and write on Google directly</a>
+      {googleUrl && (step !== "draft" || !!draft.trim()) && (
+        <button type="button" onClick={openGoogleDirect} className="block min-h-11 w-full py-3 text-center text-sm text-muted underline underline-offset-4">Skip and write on Google directly</button>
       )}
     </div>
   );

@@ -27,7 +27,7 @@ type Status = "new" | "preparing" | "ready" | "served" | "completed" | "cancelle
 
 const STEPS: { key: Status; label: string }[] = [{ key: "new", label: "Received" }, { key: "preparing", label: "Preparing" }, { key: "ready", label: "Ready" }, { key: "served", label: "Served" }];
 const unit = (l: { item: Item; addons: Addon[] }) => l.item.price + l.addons.reduce((a, x) => a + x.price, 0);
-const MAX_AGAIN = 2;   // after the first time, the stars come back on Back this many times
+const MAX_AGAIN = 0;   // the stars open once, by themselves. Back does not bring them again.
 
 export function MenuApp({ data, menu, code }: { data: GuestPageData; menu: MenuData; code: string }) {
   const { client, plate } = data;
@@ -117,12 +117,17 @@ export function MenuApp({ data, menu, code }: { data: GuestPageData; menu: MenuD
     if (!placed || !justPlaced.current) return;
     justPlaced.current = false;
     const t1 = setTimeout(() => setArmed(true), 600);
-    const t2 = setTimeout(() => { if (reviewable && !reviewed()) setStars(true); }, 2200);
+    const t2 = setTimeout(() => {
+      if (reviewable && !reviewed()) {
+        setStars(true);
+        try { sessionStorage.setItem(`tz_exit_${client.id}`, "1"); } catch { /* fine */ }   // the page behind does not show the stars a second time
+      }
+    }, 2200);
     return () => { clearTimeout(t1); clearTimeout(t2); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placed]);
   useEffect(() => { if (placed && !justPlaced.current) setArmed(true); }, [placed]);
-  useExitPrompt(armed && reviewable, () => {
+  useExitPrompt(armed && reviewable && MAX_AGAIN > 0, () => {
     if (reviewed() || againUsed.current >= MAX_AGAIN) { window.history.back(); return; }
     againUsed.current += 1;
     viaBack.current = true;
