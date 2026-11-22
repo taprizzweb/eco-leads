@@ -82,3 +82,7 @@ export const PLATE_BASE = process.env.NEXT_PUBLIC_PLATE_BASE_URL || "https://tap
 /** Table ordering links only make sense where guests order at a table or in a room. Gyms, salons and clinics never see the Tables tab. */
 export const TABLE_TYPES = ["cafe", "hotel", "resort"];
 export const tablesFit = (businessType: string | null | undefined) => !businessType || TABLE_TYPES.includes(businessType);
+
+/** Where mini links are shown to people. Set NEXT_PUBLIC_LINK_BASE_URL to https://link.taprizz.in once that domain is connected. */
+export const LINK_BASE = (process.env.NEXT_PUBLIC_LINK_BASE_URL || "https://link-taprizz.vercel.app").replace(/\/+$/, "");
+export const linkUrl = (slug: string) => `${LINK_BASE}/${slug}`;

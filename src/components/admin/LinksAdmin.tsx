@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Copy, ExternalLink, Loader2, Plus, Search } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useToast } from "@/components/dash/Toast";
-import { slugify } from "@/lib/features";
+import { slugify, LINK_BASE, linkUrl } from "@/lib/features";
 import { DEFAULT_BUTTONS, LINK_THEMES, type LinkTheme } from "@/lib/linkpage";
 import { Pill } from "./ui";
 
@@ -27,7 +27,6 @@ export function LinksAdmin({ links, clients }: { links: LinkRow[]; clients: Clie
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const list = useMemo(() => links.filter((l) => l.name.toLowerCase().includes(q.trim().toLowerCase())), [links, q]);
-  const base = typeof window !== "undefined" ? window.location.origin : "";
 
   async function create() {
     setErr("");
@@ -60,7 +59,7 @@ export function LinksAdmin({ links, clients }: { links: LinkRow[]; clients: Clie
     router.push(`/admin/tools/links/${data.id}`);
   }
 
-  async function copy(l: LinkRow) { try { await navigator.clipboard.writeText(`${base}/l/${l.slug}`); toast("Link copied"); } catch { toast("Could not copy the link.", true); } }
+  async function copy(l: LinkRow) { try { await navigator.clipboard.writeText(linkUrl(l.slug)); toast("Link copied"); } catch { toast("Could not copy the link.", true); } }
 
   return (
     <div className="space-y-4">
@@ -87,7 +86,7 @@ export function LinksAdmin({ links, clients }: { links: LinkRow[]; clients: Clie
           ) : (
             <label className="block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>Business name</span><input className="d-input mt-1.5" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Town Coffee" /></label>
           )}
-          <label className="block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>Page link</span><span className="ml-2 text-xs" style={{ color: "var(--d-muted)" }}>{base}/l/{slugify(slug || (mode === "new" ? name : clients.find((c) => c.id === clientId)?.slug ?? "")) || "name"}</span>
+          <label className="block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>Page link</span><span className="ml-2 text-xs" style={{ color: "var(--d-muted)" }}>{LINK_BASE}/{slugify(slug || (mode === "new" ? name : clients.find((c) => c.id === clientId)?.slug ?? "")) || "name"}</span>
             <input className="d-input mt-1.5" maxLength={40} value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="leave empty to use the name" /></label>
           <fieldset><legend className="mb-1.5 text-sm font-medium" style={{ color: "var(--d-text)" }}>Template</legend>
             <div className="flex flex-wrap gap-2">{(Object.keys(LINK_THEMES) as LinkTheme[]).map((t) => (
@@ -111,7 +110,7 @@ export function LinksAdmin({ links, clients }: { links: LinkRow[]; clients: Clie
                 : <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-lg font-bold" style={{ background: "var(--d-bg)", color: "var(--d-text)" }}>{l.name.slice(0, 1).toUpperCase()}</span>}
               <div className="min-w-0 flex-1">
                 <Link href={`/admin/tools/links/${l.id}`} className="block truncate py-1 font-semibold hover:underline">{l.name}</Link>
-                <p className="truncate text-xs" style={{ color: "var(--d-muted)" }}>/l/{l.slug} · {l.views} views · {l.clicks} taps{l.fee_inr ? ` · Rs ${l.fee_inr.toLocaleString("en-IN")}` : " · free"}</p>
+                <p className="truncate text-xs" style={{ color: "var(--d-muted)" }}>{LINK_BASE.replace(/^https?:\/\//, "")}/{l.slug} · {l.views} views · {l.clicks} taps{l.fee_inr ? ` · Rs ${l.fee_inr.toLocaleString("en-IN")}` : " · free"}</p>
                 <div className="mt-1 flex gap-1.5">{l.published ? <Pill tone="green">Live</Pill> : <Pill tone="amber">Draft</Pill>}{l.client_id ? <Pill tone="blue">Registered</Pill> : <Pill tone="gray">Link only</Pill>}</div>
               </div>
               <button className="d-btn d-btn-s !px-3" aria-label={`Copy link for ${l.name}`} onClick={() => copy(l)}><Copy size={15} /></button>

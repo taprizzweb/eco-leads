@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Loader2, Plus, Trash2 } from "lucide-rea
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
 import { useToast } from "@/components/dash/Toast";
-import { slugify } from "@/lib/features";
+import { slugify, LINK_BASE } from "@/lib/features";
 import { BUTTON_ICONS, ICON_LABEL, indianNational, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, type LinkButton, type LinkOffer, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
 
 type Row = {
@@ -115,7 +115,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
       <div className="space-y-4">
         <Sec title="Page" sub={clientName ? `Linked to the registered business ${clientName}.` : "A link-only business. It is not registered in Taprizz."}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <F label="Page link" hint={`/l/${slugify(r.slug) || "name"}`}><input className="d-input" maxLength={40} value={r.slug} onChange={(e) => set("slug", e.target.value.toLowerCase())} /></F>
+            <F label="Page link" hint={`${LINK_BASE.replace(/^https?:\/\//, "")}/${slugify(r.slug) || "name"}`}><input className="d-input" maxLength={40} value={r.slug} onChange={(e) => set("slug", e.target.value.toLowerCase())} /></F>
             <F label="Status"><select className="d-input" value={r.published ? "live" : "draft"} onChange={(e) => set("published", e.target.value === "live")}><option value="live">Live</option><option value="draft">Draft (hidden)</option></select></F>
             <F label="Fee for this page" hint="Rs, 0 means free"><input className="d-input" type="number" min={0} value={r.fee_inr} onChange={(e) => set("fee_inr", Number(e.target.value))} /></F>
             <F label="Billing note"><input className="d-input" maxLength={200} value={r.billing_note ?? ""} onChange={(e) => set("billing_note", e.target.value)} placeholder="Paid till March, free as a service..." /></F>
