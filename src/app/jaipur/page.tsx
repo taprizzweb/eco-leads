@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
-import { HUB_NAME, HUB_PATH, MIN_GUESTS, OFFER_KINDS, endsLabel, loadChains, loadHub } from "@/lib/hub";
+import { HUB_NAME, HUB_PATH, OFFER_KINDS, endsLabel, loadCards, loadChains, loadHub } from "@/lib/hub";
+import { PlaceCard } from "@/components/hub/PlaceCard";
 import { AreaPicker } from "@/components/hub/AreaPicker";
 import { HubMark } from "@/components/hub/HubBack";
 import { NearMe } from "@/components/hub/NearMe";
@@ -9,7 +9,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const area0 = /^[a-z0-9-]{2,40}$/.test(sp.area ?? "") ? sp.area! : "";
   const cat0 = /^[a-z0-9_-]{2,40}$/.test(sp.cat ?? "") ? sp.cat! : "";
-  const [hub, chains] = await Promise.all([loadHub(area0, cat0), loadChains(area0, cat0)]);
+  const [hub, chains, cards] = await Promise.all([loadHub(area0, cat0), loadChains(area0, cat0), loadCards(area0, cat0)]);
   const area = hub.areas.some((a) => a.id === area0) ? area0 : "";
   const areaName = hub.areas.find((a) => a.id === area)?.name ?? "Jaipur";
   const catLabel = hub.categories.find((c) => c.id === cat0)?.label;
@@ -37,16 +37,18 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
       {hub.sponsors.length > 0 && (
         <section aria-labelledby="sp">
           <div className="mb-3 flex items-center gap-2"><h2 id="sp" className="text-base font-semibold" style={{ color: "var(--d-text)" }}>Featured offers</h2><span className="d-chip" style={{ ["--c" as string]: "var(--d-amber)" }}>Sponsored</span></div>
-          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-            {hub.sponsors.map((s) => (
-              <Link key={s.offer_id} href={`${HUB_PATH}/${s.slug}`} className="d-raise flex min-h-[148px] w-[250px] shrink-0 snap-start flex-col justify-between p-4" style={{ background: "radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--d-amber) 16%, transparent), transparent 60%), var(--d-raise)", borderRadius: 18 }}>
-                <span className="d-chip w-fit" style={{ ["--c" as string]: "var(--d-amber)" }}>{OFFER_KINDS[s.kind] ?? "Special offer"}</span>
-                <div>
-                  <p className="text-[19px] leading-tight font-semibold tracking-[-0.02em]" style={{ color: "var(--d-text)" }}>{s.name}</p>
-                  <p className="mt-1 text-xs" style={{ color: "var(--d-muted)" }}>{s.area} · {endsLabel(s.ends_on)}</p>
-                </div>
-              </Link>
-            ))}
+          <div className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {hub.sponsors.map((s) => {
+              const card = cards.find((c) => c.slug === s.slug);
+              return card
+                ? <div key={s.offer_id} className="snap-start"><PlaceCard size="mid" p={{ ...card, offer: { kind: s.kind, ends_on: s.ends_on, follow_first: true, title: card.offer?.title ?? null } }} /></div>
+                : (
+                  <Link key={s.offer_id} href={`${HUB_PATH}/${s.slug}`} className="d-raise mr-3 flex min-h-[148px] w-[250px] shrink-0 snap-start flex-col justify-between p-4" style={{ background: "radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--d-amber) 16%, transparent), transparent 60%), var(--d-raise)", borderRadius: 18 }}>
+                    <span className="d-chip w-fit" style={{ ["--c" as string]: "var(--d-amber)" }}>{OFFER_KINDS[s.kind] ?? "Special offer"}</span>
+                    <div><p className="text-[19px] leading-tight font-semibold tracking-[-0.02em]" style={{ color: "var(--d-text)" }}>{s.name}</p><p className="mt-1 text-xs" style={{ color: "var(--d-muted)" }}>{s.area} · {endsLabel(s.ends_on)}</p></div>
+                  </Link>
+                );
+            })}
           </div>
         </section>
       )}
@@ -71,24 +73,11 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
 
       <section aria-labelledby="top">
         <h2 id="top" className="mb-3 text-base font-semibold" style={{ color: "var(--d-text)" }}>Top rated</h2>
-        {hub.places.length === 0 ? (
+        {cards.length === 0 ? (
           <div className="d-card p-8 text-center text-sm" style={{ color: "var(--d-muted)" }}>No places listed here yet. More are coming soon.</div>
         ) : (
-          <ol className="space-y-2.5">
-            {hub.places.map((p) => (
-              <li key={p.slug}>
-                <Link href={`${HUB_PATH}/${p.slug}`} className="d-raise flex items-center gap-3 p-3.5">
-                  <span className="w-9 shrink-0 text-center text-[26px] font-bold tracking-[-0.04em]" style={{ color: p.rank <= 3 ? "var(--d-amber)" : "var(--d-text)" }}>{p.rank}</span>
-                  <span className="min-w-0 flex-1">
-                    <b className="block truncate font-semibold" style={{ color: "var(--d-text)" }}>{p.name}</b>
-                    <span className="block truncate text-xs" style={{ color: "var(--d-muted)" }}>{p.area}{p.category ? ` · ${p.category}` : ""}{p.has_offer ? " · offer running" : ""}</span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-1 text-sm font-semibold" style={{ color: "var(--d-amber)" }}>
-                    <Star size={14} fill="currentColor" aria-hidden />{p.guests >= MIN_GUESTS ? p.rating.toFixed(1) : <span className="d-chip" style={{ ["--c" as string]: "var(--d-muted)" }}>New</span>}
-                  </span>
-                </Link>
-              </li>
-            ))}
+          <ol className="space-y-5">
+            {cards.map((p) => <li key={p.slug}><PlaceCard p={p} /></li>)}
           </ol>
         )}
       </section>

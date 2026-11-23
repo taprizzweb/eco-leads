@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { supabaseServer } from "@/lib/supabase/server";
+import type { NearPlace } from "@/components/hub/PlaceCard";
 import type { HubChainFull, HubChainTile, HubHome, HubPlaceFull } from "@/lib/hub-shared";
 
 export * from "@/lib/hub-shared";
@@ -17,6 +18,12 @@ export const loadPlace = cache(async (slug: string): Promise<HubPlaceFull | null
   return (data ?? null) as HubPlaceFull | null;
 });
 
+
+export const loadCards = cache(async (area: string, cat: string): Promise<NearPlace[]> => {
+  const sb = await supabaseServer();
+  const { data } = await sb.rpc("hub_cards", { p_area: area || null, p_cat: cat || null });
+  return (Array.isArray(data) ? data : []) as NearPlace[];
+});
 
 export const loadChains = cache(async (area: string, cat: string): Promise<HubChainTile[]> => {
   const sb = await supabaseServer();

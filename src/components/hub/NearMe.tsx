@@ -8,7 +8,7 @@ import { PlaceCard, type NearPlace } from "./PlaceCard";
 type State = "idle" | "asking" | "loading" | "done" | "denied";
 
 /** "Places near you": asks for the phone's location once, then lists everything listed within 5 km, nearest first. */
-export function NearMe({ radius = 5 }: { radius?: number }) {
+export function NearMe({ radius = 10 }: { radius?: number }) {
   const [state, setState] = useState<State>("idle");
   const [places, setPlaces] = useState<NearPlace[]>([]);
 
@@ -23,9 +23,13 @@ export function NearMe({ radius = 5 }: { radius?: number }) {
     }, () => setState("denied"), { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
   }, [radius]);
 
-  // If the person has already allowed location for this site, there is nothing to ask: show the places at once.
+  // The page asks for the location by itself as it opens (the browser shows its allow popup). If it was refused, the button below asks again.
   useEffect(() => {
-    navigator.permissions?.query({ name: "geolocation" as PermissionName }).then((r) => { if (r.state === "granted") find(); }).catch(() => {});
+    let live = true;
+    const go = () => { if (live) find(); };
+    if (navigator.permissions?.query) navigator.permissions.query({ name: "geolocation" as PermissionName }).then((r) => { if (r.state !== "denied") go(); else setState("denied"); }).catch(go);
+    else go();
+    return () => { live = false; };
   }, [find]);
 
   return (
