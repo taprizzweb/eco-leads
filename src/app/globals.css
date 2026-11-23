@@ -238,3 +238,19 @@ html { touch-action: manipulation; }
 /* the old strips no longer stay paused after a tap on a phone */
 .marquee-pausable:focus-within .marquee-track { animation-play-state: running; }
 @media (hover: none) { .marquee-pausable:hover .marquee-track { animation-play-state: running; } }
+
+/* ---------- Gulabi Nagri: the Jaipur guide. The Patrika Gate sits softly blurred behind everything. ---------- */
+.hub.dash { background: transparent; position: relative; isolation: isolate; font-family: var(--font-hub), ui-sans-serif, system-ui, sans-serif; }
+.hub-bg { position: fixed; inset: 0; z-index: -1; background: #130d11; overflow: hidden; }
+.hub-bg::before { content: ""; position: absolute; inset: -24px; background: url(/brand/patrika-gate.jpg) center top / cover no-repeat; filter: blur(7px) saturate(1.2); opacity: 0.55; }
+.hub-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(19,13,17,0.3) 0%, rgba(19,13,17,0.68) 40%, rgba(19,13,17,0.92) 100%), radial-gradient(90% 40% at 50% 0%, rgba(225,29,116,0.22), transparent 70%); }
+.hub h1, .hub h2, .hub h3 { font-weight: 800; letter-spacing: -0.035em; color: #fff; }
+.hub p, .hub span, .hub a, .hub button, .hub li { font-weight: 600; }
+.hub-grad { background: linear-gradient(90deg, #ff4d94, #ff9d3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hub-mark { color: #fff; }
+.hub-pill { border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #ffd9a8; background: rgba(255, 157, 61, 0.14); box-shadow: inset 0 0 0 1px rgba(255, 157, 61, 0.35); }
+.hub .d-btn { border-radius: 999px; font-weight: 700; letter-spacing: -0.01em; }
+.hub .d-btn-p { background: linear-gradient(135deg, #ff2d7e, #ff8a3d); color: #fff; box-shadow: 0 12px 28px -12px rgba(255, 45, 126, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+.hub .d-btn-s { background: rgba(255, 255, 255, 0.09); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.hub .d-card, .hub .d-raise { background: rgba(26, 18, 22, 0.62); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.hub .d-chip { font-weight: 800; }

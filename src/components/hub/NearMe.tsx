@@ -38,8 +38,8 @@ export function NearMe({ radius = 10 }: { radius?: number }) {
         <div className="d-card flex flex-col items-center gap-3 px-5 py-7 text-center" style={{ borderRadius: 24 }}>
           <span className="grid h-12 w-12 place-items-center rounded-full" style={{ background: "var(--d-chip-bg)" }}><LocateFixed size={22} aria-hidden /></span>
           <div>
-            <p className="text-[17px] font-semibold" style={{ color: "var(--d-text)" }}>See what is around you</p>
-            <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>Cafes, salons, gyms and more within {radius} km, with the offers running there today. Your location is used only to find places and is not saved.</p>
+            <p className="text-[17px] font-semibold" style={{ color: "var(--d-text)" }}>What is around you</p>
+            <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>Cafes, salons, gyms and more within {radius} km, with the offers running today. Your location is only used to find places. It is never saved.</p>
           </div>
           <button type="button" className="d-btn d-btn-p !min-h-12 w-full max-w-xs" onClick={find} disabled={state === "asking" || state === "loading"}>
             {state === "asking" || state === "loading" ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <LocateFixed size={16} aria-hidden />} Show places near me

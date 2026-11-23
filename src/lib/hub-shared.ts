@@ -1,8 +1,8 @@
 // Pure values and helpers used by both server and client code.
 // One place to rename the product. Everything on the public pages reads this.
-export const HUB_NAME = "Gulabi Nagar";
+export const HUB_NAME = "Gulabi Nagri";
 export const HUB_PATH = "/jaipur";
-/** Switch for the whole Gulabi Nagar area: the dashboard tab, the public pages and the nearby strip on guest pages. */
+/** Switch for the whole Gulabi Nagri area: the dashboard tab, the public pages and the nearby strip on guest pages. */
 export const HUB_ENABLED = true;
 export const MIN_GUESTS = 30;
 

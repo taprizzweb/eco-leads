@@ -31,8 +31,8 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
     return (
       <div className="d-card mx-auto max-w-lg p-8 text-center">
         <Lock className="mx-auto" style={{ color: "var(--d-muted)" }} />
-        <h1 className="mt-4 text-xl font-semibold">You are not on Gulabi Nagar yet</h1>
-        <p className="mt-2" style={{ color: "var(--d-muted)" }}>Ask the Taprizz team to add your business to the Gulabi Nagar guide. Then you can run special offers here and check guest codes at the counter.</p>
+        <h1 className="mt-4 text-xl font-semibold">You are not on Gulabi Nagri yet</h1>
+        <p className="mt-2" style={{ color: "var(--d-muted)" }}>Ask the Taprizz team to add your business to the Gulabi Nagri guide. Then you can run special offers here and check guest codes at the counter.</p>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
     setBusy(null);
     if (error) return setErr(/45 days/.test(error.message) ? "An offer can run for 45 days at most." : /3 offers/.test(error.message) ? "You already have 3 offers open. Wait for one to end." : /past/.test(error.message) ? "Choose today or a later date to start." : "The offer did not save. Please try again.");
     setF({ ...f, title: "", details: "" });
-    toast("Offer sent to the team. It appears on Gulabi Nagar as soon as it is approved.");
+    toast("Offer sent to the team. It appears on Gulabi Nagri as soon as it is approved.");
     router.refresh();
   }
   async function remove(o: MyOffer) {
@@ -74,7 +74,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.04em]">Gulabi Nagar page</h1>
+        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.04em]">Gulabi Nagri page</h1>
         <p className="mt-1" style={{ color: "var(--d-muted)" }}>{areaName ?? "Jaipur"}{categoryLabel ? `, ${categoryLabel}` : ""}. Run special offers here and check guest codes at the counter. Everyday offers are added in Announcements and show here automatically.</p>
       </div>
 
@@ -89,7 +89,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
         <p className="text-sm" style={{ color: "var(--d-muted)" }}>This is the page guests see. Put the link in your Instagram bio, WhatsApp status or Google profile.</p>
         <div className="flex flex-wrap gap-2">
           <a className="d-btn d-btn-p" href={`/jaipur/${slug}`} target="_blank" rel="noopener"><ExternalLink size={15} /> View live page</a>
-          <a className="d-btn d-btn-s" href={areaId ? `/jaipur?area=${areaId}` : "/jaipur"} target="_blank" rel="noopener"><ExternalLink size={15} /> View the Gulabi Nagar list</a>
+          <a className="d-btn d-btn-s" href={areaId ? `/jaipur?area=${areaId}` : "/jaipur"} target="_blank" rel="noopener"><ExternalLink size={15} /> View the Gulabi Nagri list</a>
           <button type="button" className="d-btn d-btn-s" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/jaipur/${slug}`).then(() => toast("Link copied")).catch(() => toast("Could not copy. Open the link and copy it from the address bar.", true))}><Copy size={15} /> Copy link</button>
         </div>
       </section>
@@ -97,7 +97,7 @@ export function JaipurBoard({ clientId, slug, areaId, listed, areaName, category
       <section aria-labelledby="st">
         <h2 id="st" className="mb-3 text-base font-semibold" style={lt}>Last 30 days</h2>
         <div className="grid grid-cols-2 gap-3">
-          {stat(stats.views, "people saw your offer", "on Gulabi Nagar")}
+          {stat(stats.views, "people saw your offer", "on Gulabi Nagri")}
           {stat(stats.follows, "people went to Instagram", "to open the offer")}
           {stat(stats.claims, "people claimed the offer", "They got a code")}
           {stat(stats.redeems, "came to the shop", "Showed the code at the counter")}

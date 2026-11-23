@@ -41,7 +41,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
     await sb.rpc("guest_log_tap", { p_client: data.client.id, p_code: data.plate?.code ?? null });
   });
 
-  // Only businesses that are on the Gulabi Nagar page get the link.
+  // Only businesses that are on the Gulabi Nagri page get the link.
   const onHub = HUB_ENABLED ? await loadPlace(data.client.slug) : null;
   const { data: outlets } = await sb.rpc("guest_outlets", { p_client: data.client.id });
   const { data: extras } = await sb.rpc("guest_extras", { p_client: data.client.id });

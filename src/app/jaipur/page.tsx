@@ -20,13 +20,13 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
     <div className="space-y-6">
       <HubMark />
       <div>
-        <h1 className="text-[30px] leading-[1.08] font-bold tracking-[-0.045em]" style={{ color: "var(--d-text)" }}>The best {catLabel ?? "places"} in {areaName}</h1>
-        <p className="mt-2 text-[15px]" style={{ color: "var(--d-muted)" }}>Ranked by real guest ratings. Paying does not change the order.</p>
+        <h1 className="text-[34px] leading-[1.04] font-extrabold tracking-[-0.045em]" style={{ color: "#fff" }}>Discover the best {catLabel ?? "of"} {areaName === "Jaipur" ? "Jaipur" : `in ${areaName}`}</h1>
+        <p className="mt-2 text-[15px]" style={{ color: "var(--d-muted)" }}>Cafes, salons, gyms and more, ranked by real guests. Paying never changes the order.</p>
       </div>
 
       <NearMe />
 
-      <h2 className="text-base font-semibold" style={{ color: "var(--d-text)" }}>Or browse by area</h2>
+      <h2 className="text-base font-semibold" style={{ color: "var(--d-text)" }}>Explore by area</h2>
       <div className="flex flex-wrap items-center gap-2"><AreaPicker areas={hub.areas} area={area} cat={cat0} /></div>
 
       <nav aria-label="Category" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
@@ -72,7 +72,7 @@ export default async function HubPage({ searchParams }: { searchParams: Promise<
       )}
 
       <section aria-labelledby="top">
-        <h2 id="top" className="mb-3 text-base font-semibold" style={{ color: "var(--d-text)" }}>Top rated</h2>
+        <h2 id="top" className="mb-3 text-base font-semibold" style={{ color: "var(--d-text)" }}>Top rated in Jaipur</h2>
         {cards.length === 0 ? (
           <div className="d-card p-8 text-center text-sm" style={{ color: "var(--d-muted)" }}>No places listed here yet. More are coming soon.</div>
         ) : (

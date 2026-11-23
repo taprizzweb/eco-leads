@@ -70,7 +70,7 @@ export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0, wit
     setBusy(null);
     if (error) return toast("Save nahi hua.", true);
     setClients((s) => s.map((x) => (x.id === c.id ? next : x)));
-    toast(next.hub_listed ? `${c.name} Gulabi Nagar page par hai` : `${c.name} Gulabi Nagar page se hat gayi`);
+    toast(next.hub_listed ? `${c.name} Gulabi Nagri page par hai` : `${c.name} Gulabi Nagri page se hat gayi`);
   }
   async function addArea() {
     const name = newArea.trim(); const id = slugify(name);
@@ -91,10 +91,10 @@ export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0, wit
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
-        <a className="d-btn d-btn-s" href="/jaipur" target="_blank" rel="noopener"><ExternalLink size={15} /> Live Gulabi Nagar page dekho</a>
+        <a className="d-btn d-btn-s" href="/jaipur" target="_blank" rel="noopener"><ExternalLink size={15} /> Live Gulabi Nagri page dekho</a>
         <span className="text-sm" style={M}>Customer ko taprizz.in/jaipur par dikhta hai. Instagram bio, plate ka card aur WhatsApp status se khulta hai.</span>
       </div>
-      <div className="d-seg w-fit max-w-full overflow-x-auto" role="group" aria-label="Gulabi Nagar page">
+      <div className="d-seg w-fit max-w-full overflow-x-auto" role="group" aria-label="Gulabi Nagri page">
         {tabs.map(([k, l]) => <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </div>
 
@@ -156,7 +156,7 @@ export function HubAdmin({ offers: o0, sponsors: s0, clients: c0, areas: a0, wit
               {c.hub_listed && <a className="d-btn d-btn-s !min-h-10 !px-3 !text-[13px]" href={`/jaipur/${c.slug}`} target="_blank" rel="noopener" aria-label={`${c.name} ka live page`}><ExternalLink size={14} /> Live</a>}
               <select aria-label={`${c.name} ka area`} className="d-input !w-44 !min-h-10 !text-[13px]" value={c.hub_area ?? ""} disabled={busy === c.id} onChange={(e) => saveClient(c, { hub_area: e.target.value || null, hub_listed: e.target.value ? c.hub_listed : false })}>
                 <option value="">Area chuno</option>{areas.filter((a) => a.active || a.id === c.hub_area).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-              <button type="button" role="switch" aria-checked={c.hub_listed} aria-label={`${c.name} Gulabi Nagar page par`} disabled={busy === c.id || !c.hub_area || (!c.hub_listed && !withPlate.includes(c.id))} className="d-btn d-btn-s !min-h-10 !px-4 !text-[13px]" onClick={() => saveClient(c, { hub_listed: !c.hub_listed })}>{c.hub_listed ? "Listed" : withPlate.includes(c.id) ? "List karo" : "Plate nahi"}</button>
+              <button type="button" role="switch" aria-checked={c.hub_listed} aria-label={`${c.name} Gulabi Nagri page par`} disabled={busy === c.id || !c.hub_area || (!c.hub_listed && !withPlate.includes(c.id))} className="d-btn d-btn-s !min-h-10 !px-4 !text-[13px]" onClick={() => saveClient(c, { hub_listed: !c.hub_listed })}>{c.hub_listed ? "Listed" : withPlate.includes(c.id) ? "List karo" : "Plate nahi"}</button>
             </div>
           ))}
           {shown.length === 0 && <div className="d-card p-8 text-center text-sm" style={M}>Koi business nahi mila.</div>}
