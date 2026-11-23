@@ -19,7 +19,7 @@ const ago = (iso: string) => {
 };
 const ORDER_COLS = "id, order_no, channel, external_ref, table_label, plate_code, customer_name, customer_phone, items, subtotal, extras, discount, gst_rate, gst_inclusive, cgst, sgst, total, note, status, payment_status, payment_mode, bill_no, created_at, updated_at";
 
-export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, initialRequests, menu, canBill = true }: {canBill?: boolean;  clientId: string; slug: string; accepting: boolean; initialOrders: Order[]; initialRequests: Request[]; menu: MenuItem[] }) {
+export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, initialRequests, menu, canBill = true, autoKot = false }: {autoKot?: boolean; canBill?: boolean;  clientId: string; slug: string; accepting: boolean; initialOrders: Order[]; initialRequests: Request[]; menu: MenuItem[] }) {
   const sb = supabaseBrowser();
   const toast = useToast();
   const [orders, setOrders] = useState(initialOrders);
@@ -63,7 +63,7 @@ export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, init
     if (error) { toast("That did not save. Please try again.", true); void load(); }
   }
   const printOrder = (id: string, kind: "kot" | "bill") => window.open(`/pos/${slug}/print/${id}?kind=${kind}`, "_blank");
-  async function accept(o: Order) { await setStatus(o, "preparing"); printOrder(o.id, "kot"); }
+  async function accept(o: Order, print = autoKot) { await setStatus(o, "preparing"); if (print) printOrder(o.id, "kot"); }
   async function reject(o: Order) { if (!window.confirm(`Cancel order #${o.order_no}?`)) return; await setStatus(o, "cancelled"); toast(`Order #${o.order_no} cancelled`); }
   async function doneReq(r: Request) {
     setReqs((s) => s.filter((x) => x.id !== r.id));
@@ -110,7 +110,7 @@ export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, init
               <div className="space-y-3">
                 {list.length === 0 && <div className="d-card px-4 py-8 text-center text-sm" style={{ color: "var(--d-muted)" }}>{c.key === "new" ? "Waiting for the next order" : "Nothing here"}</div>}
                 {list.map((o) => (
-                  <OrderCard canBill={canBill} key={o.id} o={o} onAccept={() => accept(o)} onReject={() => reject(o)} onReady={() => setStatus(o, "ready")} onServed={() => setStatus(o, "served")} onBill={() => setBill(o.id)} onKot={() => printOrder(o.id, "kot")} />
+                  <OrderCard canBill={canBill} key={o.id} o={o} onAccept={() => accept(o, autoKot)} onAcceptKot={() => accept(o, true)} onReject={() => reject(o)} onReady={() => setStatus(o, "ready")} onServed={() => setStatus(o, "served")} onBill={() => setBill(o.id)} onKot={() => printOrder(o.id, "kot")} />
                 ))}
               </div>
             </section>
@@ -124,7 +124,7 @@ export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, init
   );
 }
 
-function OrderCard({ canBill, o, onAccept, onReject, onReady, onServed, onBill, onKot }: { canBill: boolean; o: Order; onAccept: () => void; onReject: () => void; onReady: () => void; onServed: () => void; onBill: () => void; onKot: () => void }) {
+function OrderCard({ canBill, o, onAccept, onAcceptKot, onReject, onReady, onServed, onBill, onKot }: { canBill: boolean; o: Order; onAccept: () => void; onAcceptKot: () => void; onReject: () => void; onReady: () => void; onServed: () => void; onBill: () => void; onKot: () => void }) {
   const ch = CHANNELS[o.channel];
   const where = o.channel === "dine_in" ? o.table_label ?? "Table" : ch.label;
   return (
@@ -151,7 +151,8 @@ function OrderCard({ canBill, o, onAccept, onReject, onReady, onServed, onBill, 
       {o.note && <p className="mt-2 rounded-lg px-2.5 py-1.5 text-sm" style={{ background: "color-mix(in srgb, var(--d-yellow, #eab308) 18%, transparent)" }}>Note: {o.note}</p>}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {o.status === "new" && (<>
-          <button type="button" className="d-btn d-btn-p" onClick={onAccept}><ChefHat size={15} /> Accept + KOT</button>
+          <button type="button" className="d-btn d-btn-p" onClick={onAccept}><ChefHat size={15} /> Accept</button>
+          <button type="button" className="d-btn d-btn-s" onClick={onAcceptKot}><Printer size={15} /> Accept + KOT</button>
           <button type="button" className="d-btn d-btn-s" onClick={onReject}><X size={15} /> Cancel</button>
         </>)}
         {o.status === "preparing" && <button type="button" className="d-btn d-btn-p" onClick={onReady}><Check size={15} /> Mark ready</button>}

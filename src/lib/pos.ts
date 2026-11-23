@@ -16,7 +16,7 @@ export type MenuCat = { id: string; name: string; sort: number; active: boolean 
 export type MenuItem = { id: string; category_id: string | null; name: string; description: string | null; price: number; veg: boolean; image_url: string | null; available: boolean; bestseller: boolean; addons: { name: string; price: number }[]; sort: number };
 export type PosSettings = {
   client_id: string; accepting: boolean; gst_rate: number; gst_inclusive: boolean; gstin: string | null; legal_name: string | null; address: string | null; bill_footer: string | null;
-  geo_lat: number | null; geo_lng: number | null; geo_radius_m: number; geo_required: boolean; counter_orders: boolean;
+  geo_lat: number | null; geo_lng: number | null; geo_radius_m: number; geo_required: boolean; counter_orders: boolean; auto_kot: boolean;
 };
 
 export const CHANNELS: Record<Channel, { label: string; color: string }> = {

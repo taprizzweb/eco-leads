@@ -42,7 +42,7 @@ export { timeAgo } from "./dash-time";
 /** Pages call this first. A person whose role does not include the page is sent to the page that is theirs. */
 export async function requireSection(slug: string, section: Section) {
   const ctx = await loadClient(slug);
-  if (!can(ctx.role, section)) redirect(can(ctx.role, "pos") && ctx.features.pos === true ? `/pos/${slug}` : can(ctx.role, "calls") ? `/dashboard/${slug}/calls` : "/dashboard");
+  if (!can(ctx.role, section)) redirect(can(ctx.role, "pos-kitchen") && !can(ctx.role, "pos") ? `/pos/${slug}/kitchen` : can(ctx.role, "pos") && ctx.features.pos === true ? `/pos/${slug}` : can(ctx.role, "calls") ? `/dashboard/${slug}/calls` : "/dashboard");
   return ctx;
 }
 export type { Role };

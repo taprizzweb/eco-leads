@@ -8,7 +8,7 @@ import { useToast } from "./Toast";
 
 type Member = { user_id: string; email: string; role: Role; last_seen: string | null };
 type Invite = { id: string; email: string; role: Role };
-const ASSIGN: Role[] = ["manager", "reception", "waiter"];
+const ASSIGN: Role[] = ["manager", "reception", "waiter", "kitchen"];
 
 export function AccessBoard({ clientId, me, initialMembers, initialInvites }: { clientId: string; me: Role; initialMembers: Member[]; initialInvites: Invite[] }) {
   const sb = supabaseBrowser();

@@ -12,7 +12,7 @@ export const maxDuration = 20;
 // The database calls this the moment a guest orders, asks for the waiter or writes a chat message.
 // Only the database knows the server key, so nobody else can send alerts to a business's staff.
 const Body = z.object({ client_id: z.string().uuid(), kind: z.enum(["order", "request", "chat"]), title: z.string().max(160), body: z.string().max(300).default(""), url: z.string().max(200).startsWith("/") });
-const WHO: Record<string, string[]> = { order: ["owner", "manager", "reception", "waiter"], request: ["owner", "manager", "reception", "waiter"], chat: ["owner", "manager", "reception"] };
+const WHO: Record<string, string[]> = { order: ["owner", "manager", "reception", "waiter", "kitchen"], request: ["owner", "manager", "reception", "waiter"], chat: ["owner", "manager", "reception"] };
 
 export async function POST(req: Request) {
   const key = process.env.REVIEW_SERVER_KEY;

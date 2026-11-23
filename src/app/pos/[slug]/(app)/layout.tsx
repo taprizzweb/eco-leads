@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function PosLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { sb, client, features, role } = await loadClient(slug);
-  if (!can(role, "pos")) redirect("/dashboard");
+  if (!can(role, "pos") && !can(role, "pos-kitchen")) redirect("/dashboard");
   if (features.pos !== true) {
     return (
       <PosShell clientId={client.id} slug={client.slug} clientName={client.name} role={role}>

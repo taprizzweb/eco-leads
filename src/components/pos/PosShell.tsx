@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { ArrowLeft, ChefHat, MessageCircle, ReceiptText, Settings, Sun, Moon, UtensilsCrossed } from "lucide-react";
+import { ArrowLeft, ChefHat, Flame, MessageCircle, ReceiptText, Settings, Sun, Moon, UtensilsCrossed } from "lucide-react";
 import { ToastProvider } from "@/components/dash/Toast";
 import { AlertsButton, PosAlerts } from "./PosAlerts";
 import { NavFeedback } from "@/components/NavFeedback";
@@ -20,6 +20,7 @@ export function PosShell({ slug, clientId, clientName, chatUnread = 0, role = "o
   const base = `/pos/${slug}`;
   const tabs = ([
     { href: base, label: "Live orders", Icon: ChefHat, exact: true, badge: 0, section: "pos" },
+    { href: `${base}/kitchen`, label: "Kitchen", Icon: Flame, badge: 0, section: "pos-kitchen" },
     { href: `${base}/menu`, label: "Menu", Icon: UtensilsCrossed, badge: 0, section: "pos-menu" },
     { href: `${base}/bills`, label: "Bills", Icon: ReceiptText, badge: 0, section: "pos-bills" },
     { href: `${base}/chat`, label: "Chat", Icon: MessageCircle, badge: chatUnread, section: "pos-chat" },
@@ -52,7 +53,7 @@ export function PosShell({ slug, clientId, clientName, chatUnread = 0, role = "o
             <button onClick={toggle} aria-label="Switch light or dark" className="grid h-11 w-11 place-items-center rounded-xl md:ml-0" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}><ModeIcon size={17} /></button>
           </div>
         </header>
-        {clientId && <PosAlerts clientId={clientId} kinds={can(role, "pos-chat") ? ["order", "request", "chat"] : ["order", "request"]} />}
+        {clientId && <PosAlerts clientId={clientId} kinds={can(role, "pos-chat") ? ["order", "request", "chat"] : can(role, "pos") ? ["order", "request"] : ["order"]} />}
         <main className="mx-auto max-w-7xl px-4 pt-5 pb-28 [overflow-x:clip] md:pb-12">{children}</main>
         <nav aria-label="Food orders" className="fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 90%, transparent)" }}>
           <div className="grid" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
