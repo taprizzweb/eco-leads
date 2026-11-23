@@ -43,9 +43,8 @@ export default async function Page({ params }: { params: Promise<{ code: string 
 
   // Only businesses that are on the Gulabi Nagar page get the link.
   const onHub = HUB_ENABLED ? await loadPlace(data.client.slug) : null;
-  const { data: near } = onHub ? await sb.rpc("hub_nearby", { p_slug: data.client.slug }) : { data: null };
   const { data: outlets } = await sb.rpc("guest_outlets", { p_client: data.client.id });
   const { data: extras } = await sb.rpc("guest_extras", { p_client: data.client.id });
   data.extras = (extras ?? { staff: [], posters: [] }) as GuestPageData["extras"];
-  return <GuestPage data={data} code={code} hubHref={onHub ? HUB_PATH : null} nearby={(near ?? null) as never} outlets={(Array.isArray(outlets) ? outlets : []) as never} />;
+  return <GuestPage data={data} code={code} hubHref={onHub ? HUB_PATH : null} hubGeo={onHub?.lat != null && onHub?.lng != null ? { lat: onHub.lat, lng: onHub.lng } : null} outlets={(Array.isArray(outlets) ? outlets : []) as never} />;
 }

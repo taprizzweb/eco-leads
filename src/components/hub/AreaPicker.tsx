@@ -13,7 +13,7 @@ export function AreaPicker({ areas, area, cat }: { areas: HubArea[]; area: strin
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   useBackToClose(open, () => setOpen(false));
-  const current = areas.find((a) => a.id === area)?.name ?? "Poora Jaipur";
+  const current = areas.find((a) => a.id === area)?.name ?? "All of Jaipur";
   const shown = useMemo(() => areas.filter((a) => a.name.toLowerCase().includes(q.trim().toLowerCase())), [areas, q]);
   const go = (id: string) => {
     const p = new URLSearchParams();
@@ -25,7 +25,7 @@ export function AreaPicker({ areas, area, cat }: { areas: HubArea[]; area: strin
   const opt = (id: string, label: string) => (
     <button key={id || "all"} type="button" role="radio" aria-checked={id === area} onClick={() => go(id)}
       className="d-raise flex min-h-12 w-full items-center justify-between px-4 text-left text-[15px] font-medium" style={{ color: "var(--d-text)", boxShadow: id === area ? "inset 0 0 0 1.5px var(--d-amber)" : undefined }}>
-      {label}{id === area && <span className="text-xs" style={{ color: "var(--d-amber)" }}>Chuna hua</span>}
+      {label}{id === area && <span className="text-xs" style={{ color: "var(--d-amber)" }}>Selected</span>}
     </button>
   );
   return (
@@ -45,7 +45,7 @@ export function AreaPicker({ areas, area, cat }: { areas: HubArea[]; area: strin
               <input aria-label="Area dhoondho" className="d-input !pl-10" placeholder="Area dhoondho" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2" role="radiogroup" aria-label="Area">
-              {!q.trim() && opt("", "Poora Jaipur")}
+              {!q.trim() && opt("", "All of Jaipur")}
               {shown.map((a) => opt(a.id, a.name))}
               {q.trim() && shown.length === 0 && <p className="py-4 text-center text-sm" style={{ color: "var(--d-muted)" }}>Ye area abhi list mein nahi hai.</p>}
             </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import { OFFER_KINDS } from "@/lib/hub-shared";
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Instagram, Facebook, MapPin, Phone, ChevronRight, Star, Store, MessageCircle } from "lucide-react";
@@ -15,6 +14,7 @@ import { CallServerButton, NewPill, PostersSheet, StaffSheet, WifiSheet } from "
 import { useExitPrompt } from "@/lib/sheet-back";
 import { ReviewFlow } from "./ReviewFlow";
 import { PhotoStrip } from "@/components/PhotoStrip";
+import { NearbyStrip } from "@/components/hub/NearbyStrip";
 import { FeedbackForm } from "./FeedbackForm";
 import { CreatorsSheet } from "./CreatorsSheet";
 import { VisitorGate } from "./VisitorGate";
@@ -78,7 +78,7 @@ function Marquee({ children, seconds, pausable, label, reverse }: { children: Re
 
 export type NearbyOffer = { slug: string; name: string; area: string; category: string | null; kind: string; title: string | null; ends_on: string };
 
-export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data: GuestPageData; code: string; hubHref?: string | null; nearby?: { area_id: string | null; area: string | null; offers: NearbyOffer[] } | null; outlets?: LinkOutlet[] }) {
+export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data: GuestPageData; code: string; hubHref?: string | null; hubGeo?: { lat: number; lng: number } | null; outlets?: LinkOutlet[] }) {
   const [outletsOpen, setOutletsOpen] = useState(false);
   const closeOutlets = useCallback(() => setOutletsOpen(false), []);
   const theme = getTheme(data.client.theme);
@@ -237,6 +237,9 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
           </section>
         ) : (
           <>
+            {/* 2b. Places within 5 km, as small photo cards that slide past (Gulabi Nagar) */}
+            {hubGeo && <NearbyStrip lat={hubGeo.lat} lng={hubGeo.lng} exclude={client.slug} />}
+
             {/* 3. Offers strip */}
             {data.features.offers_strip && data.offers.length > 0 && (
               <motion.div {...rise(2)} className="mb-4 py-2.5" style={{ background: "var(--strip)", color: "var(--strip-text)" }}>
@@ -249,26 +252,6 @@ export function GuestPage({ data, code, hubHref, nearby, outlets = [] }: { data:
                   ))}
                 </Marquee>
               </motion.div>
-            )}
-
-            {/* 3b. Nearby offers from other listed places (other categories), so a guest here discovers the area */}
-            {nearby && nearby.offers.length > 0 && (
-              <motion.section {...rise(2)} aria-label="Nearby offers" className="mb-4 px-4">
-                <div className="mb-2 flex items-baseline justify-between px-1">
-                  <h2 className="text-[15px] font-semibold text-fg">Nearby offers</h2>
-                  <a href={nearby.area_id ? `/jaipur?area=${nearby.area_id}` : "/jaipur"} className="text-xs text-muted">{nearby.area ?? "Jaipur"} · See all</a>
-                </div>
-                <div className="no-scrollbar -mx-4 flex snap-x gap-2.5 overflow-x-auto px-4 pb-1">
-                  {nearby.offers.map((o) => (
-                    <a key={o.slug + o.kind + o.ends_on} href={`/jaipur/${o.slug}`} className="w-[172px] shrink-0 snap-start rounded-2xl p-3 ring-1 ring-line" style={{ background: "var(--surface)" }}>
-                      <span className="block text-[10.5px] font-bold tracking-[0.06em] text-muted uppercase">{o.category ?? "Nearby"}</span>
-                      <span className="mt-1.5 line-clamp-2 block text-[14.5px] leading-snug font-semibold text-fg">{o.title ?? (OFFER_KINDS[o.kind] ?? "Special offer")}</span>
-                      <span className="mt-1 block truncate text-xs text-muted">{o.name}{o.area && o.area !== nearby.area ? ` · ${o.area}` : ""}</span>
-                      {!o.title && <span className="mt-1 block text-[11px] text-muted">Follow to unlock</span>}
-                    </a>
-                  ))}
-                </div>
-              </motion.section>
             )}
 
             {/* 4. Photos and clips: they keep moving; a tap opens one full screen */}

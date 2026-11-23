@@ -23,7 +23,7 @@ export function HubBack() {
   };
   return (
     <button type="button" onClick={back} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold" style={{ color: "var(--d-text)" }}>
-      <ArrowLeft size={16} aria-hidden /> Wapas
+      <ArrowLeft size={16} aria-hidden /> Back
     </button>
   );
 }

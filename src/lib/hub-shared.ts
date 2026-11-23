@@ -2,8 +2,8 @@
 // One place to rename the product. Everything on the public pages reads this.
 export const HUB_NAME = "Gulabi Nagar";
 export const HUB_PATH = "/jaipur";
-/** Gulabi Nagar is paused: nothing is deleted, but guests, owners and the public pages do not see it. Set to true to bring it back. */
-export const HUB_ENABLED = false;
+/** Switch for the whole Gulabi Nagar area: the dashboard tab, the public pages and the nearby strip on guest pages. */
+export const HUB_ENABLED = true;
 export const MIN_GUESTS = 30;
 
 export const OFFER_KINDS: Record<string, string> = {
@@ -18,8 +18,9 @@ export type HubSponsor = { offer_id: string; kind: string; ends_on: string; slug
 export type HubHome = { areas: HubArea[]; categories: HubCategory[]; sponsors: HubSponsor[]; places: HubPlace[] };
 export type HubChainTile = { slug: string; name: string; logo_url: string | null; branches: number };
 export type HubChainFull = { name: string; slug: string; logo_url: string | null; branches: { slug: string; name: string; area: string; category: string | null; rating: number; guests: number; has_offer: boolean }[] };
-export type HubOffer = { id: string; kind: string; ends_on: string; follow_first: boolean; title: string | null };
+export type HubOffer = { id: string; kind: string; ends_on: string; follow_first: boolean; title: string | null; details?: string | null };
 export type HubPlaceFull = {
+  photos?: string[]; review_url?: string | null; lat?: number | null; lng?: number | null; terms?: string | null;
   name: string; slug: string; tagline: string | null; logo_url: string | null; area: string; category: string | null;
   instagram: string | null; maps: string | null; phone: string | null; rating: number; guests: number; rank: number | null; total: number; offers: HubOffer[];
 };
@@ -30,5 +31,5 @@ export function daysLeft(iso: string): number {
 }
 export const endsLabel = (iso: string) => {
   const d = daysLeft(iso);
-  return d <= 1 ? "Aaj last din" : `${d} din baaki`;
+  return d <= 1 ? "Last day" : `${d} days left`;
 };
