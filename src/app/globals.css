@@ -228,3 +228,13 @@ html { touch-action: manipulation; }
 @keyframes tick-pop { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
 .tick-pop { animation: tick-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @media (prefers-reduced-motion: reduce) { .tick-pop { animation: none; } }
+
+/* Photo strip: moves all the time. Only a finger held down pauses it, and it carries on when the finger lifts. */
+@keyframes photo-move { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.photo-track { display: flex; width: max-content; animation: photo-move var(--photo-duration, 40s) linear infinite; }
+.photo-marquee:active .photo-track { animation-play-state: paused; }
+@media (hover: hover) { .photo-marquee:hover .photo-track { animation-play-state: paused; } }
+@media (prefers-reduced-motion: reduce) { .photo-track { animation: none; } .photo-marquee { overflow-x: auto; } }
+/* the old strips no longer stay paused after a tap on a phone */
+.marquee-pausable:focus-within .marquee-track { animation-play-state: running; }
+@media (hover: none) { .marquee-pausable:hover .marquee-track { animation-play-state: running; } }

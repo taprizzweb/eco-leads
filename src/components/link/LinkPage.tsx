@@ -1,14 +1,15 @@
 "use client";
 
 import { useBackToClose } from "@/lib/sheet-back";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Bike, CalendarDays, Coffee, Gift, Globe, Instagram, Facebook, Link2, Mail, MapPin, MessageSquareText, Phone, Share2, ShoppingBag, Star, Store, Utensils, X } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Mark } from "@/components/dash/AuthFrame";
 import { BRAND, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
 import { brandFor } from "./brands";
-import { getLinkTheme, isVideo, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
+import { PhotoStrip } from "@/components/PhotoStrip";
+import { getLinkTheme, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
 const ICONS: Record<string, Ico> = {
@@ -17,6 +18,9 @@ const ICONS: Record<string, Ico> = {
 };
 const display = { fontFamily: 'var(--font-bebas), "Bebas Neue", Oswald, "Arial Narrow", Impact, sans-serif' } as const;
 
+/** Repeats a short list until it has at least n items, so a moving strip never shows a blank gap. */
+const fillTo = <T,>(list: T[], n: number): T[] => (list.length === 0 ? list : Array.from({ length: Math.ceil(n / list.length) }).flatMap(() => list));
+
 function Marquee({ children, seconds, label }: { children: React.ReactNode; seconds: number; label: string }) {
   return (
     <div className="marquee-scroll marquee-pausable no-scrollbar overflow-hidden" aria-label={label} tabIndex={0}>
@@ -24,60 +28,6 @@ function Marquee({ children, seconds, label }: { children: React.ReactNode; seco
         <div className="flex shrink-0">{children}</div>
         <div className="flex shrink-0" aria-hidden>{children}</div>
       </div>
-    </div>
-  );
-}
-
-/** One photo or clip at a time, with dots. It moves on by itself and also follows a swipe. The direction is set per page. */
-function Slider({ photos, backward }: { photos: { url: string; caption?: string; kind?: "image" | "video" }[]; backward: boolean }) {
-  const reduce = useReducedMotion();
-  const [i, setI] = useState(0);
-  const [hold, setHold] = useState(false);
-  const x0 = useRef<number | null>(null);
-  const n = photos.length;
-  const [instant, setInstant] = useState(false);
-  // Going from the first photo back to the last jumps there at once, instead of sliding past every photo in between.
-  const go = useCallback((d: number) => setI((v) => {
-    const next = (v + d + n) % n;
-    if (Math.abs(next - v) > 1) { setInstant(true); setTimeout(() => setInstant(false), 80); }
-    return next;
-  }), [n]);
-  useEffect(() => {
-    if (hold || n < 2) return;
-    const t = setInterval(() => go(backward ? -1 : 1), reduce ? 5000 : 3600);
-    return () => clearInterval(t);
-  }, [reduce, hold, n, go, backward]);
-  // only the clip on screen plays, muted and looping
-  const vids = useRef<(HTMLVideoElement | null)[]>([]);
-  useEffect(() => { vids.current.forEach((v, k) => { if (!v) return; if (k === i) void v.play().catch((e) => console.warn("Clip could not start:", e?.name)); else v.pause(); }); }, [i]);
-  return (
-    <div className="rounded-[26px] px-0 py-4" style={{ background: "var(--l-surface)", boxShadow: "inset 0 0 0 1px var(--l-line)" }}>
-      <div className="relative overflow-hidden touch-pan-y" role="group" aria-roledescription="carousel" aria-label="Photos"
-        onPointerDown={(e) => { x0.current = e.clientX; setHold(true); }}
-        onPointerUp={(e) => { if (x0.current !== null) { const d = e.clientX - x0.current; if (Math.abs(d) > 40) go(d < 0 ? 1 : -1); } x0.current = null; setHold(false); }}
-        onPointerCancel={() => { x0.current = null; setHold(false); }}>
-        <div className={`flex ${instant || reduce ? "" : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"}`} style={{ transform: `translateX(calc(17% - ${i} * 66%))` }}>
-          {photos.map((p, k) => (
-            <div key={p.url + k} className="w-[66%] shrink-0 px-[1.5%]" aria-hidden={k !== i}>
-              <div className="aspect-square overflow-hidden rounded-[18px] transition-all duration-700" style={{ opacity: k === i ? 1 : 0.45, transform: k === i ? "scale(1)" : "scale(0.94)", background: "var(--l-bg)" }}>
-                {isVideo(p)
-                  ? <video ref={(el) => { vids.current[k] = el; }} src={p.url} muted loop playsInline preload={k === 0 ? "auto" : "metadata"} aria-label={p.caption ?? `Clip ${k + 1}`} className="h-full w-full object-cover" />
-                  // eslint-disable-next-line @next/next/no-img-element
-                  : <img src={p.url} alt={p.caption ?? `Photo ${k + 1}`} loading={k < 3 ? "eager" : "lazy"} decoding="async" draggable={false} className="h-full w-full object-cover" />}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      {n > 1 && (
-        <div className="mt-3 flex justify-center gap-1.5" role="tablist" aria-label="Choose a photo">
-          {photos.map((_, k) => (
-            <button key={k} role="tab" aria-selected={k === i} aria-label={`Photo ${k + 1}`} onClick={() => setI(k)} className="grid h-11 w-8 place-items-center">
-              <span className="block rounded-full transition-all" style={{ width: k === i ? 8 : 5, height: k === i ? 8 : 5, background: k === i ? "var(--l-text)" : "var(--l-muted)", opacity: k === i ? 1 : 0.55 }} />
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -300,7 +250,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         )}
 
         {data.photos.length > 0 && (
-          <motion.section {...rise(3)} className="mt-4 px-3" aria-label="Photos"><Slider photos={data.photos} backward={data.photo_direction === "backward"} /></motion.section>
+          <motion.section {...rise(3)} className="mt-4" aria-label="Photos"><PhotoStrip items={data.photos.map((p) => ({ url: p.url, caption: p.caption, kind: p.kind }))} width={210} ratio="1/1" /></motion.section>
         )}
 
         {buttons.length > 0 && (
@@ -327,8 +277,8 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
 
         {data.reviews.length > 0 && (
           <motion.section {...rise(5)} className="mt-5" aria-label="Guest reviews">
-            <Marquee seconds={Math.max(40, data.reviews.length * 8)} label="Guest reviews">
-              {data.reviews.map((r, i) => (
+            <Marquee seconds={Math.max(24, data.reviews.length * 6)} label="Guest reviews">
+              {fillTo(data.reviews, 8).map((r, i) => (
                 <ReviewCard key={i} href={reviewHref} onClick={() => track("click")}>
                   <div className="flex items-center gap-2.5">
                     {r.avatar
