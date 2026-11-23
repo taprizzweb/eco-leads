@@ -1,9 +1,9 @@
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { ChatInbox } from "@/components/pos/ChatInbox";
 
 export default async function ChatPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client } = await loadClient(slug);
+  const { sb, client } = await requireSection(slug, "pos-chat");
   const { data } = await sb.from("chat_threads").select("id, table_label, customer_name, customer_phone, unread_staff, last_message_at").eq("client_id", client.id).gte("last_message_at", new Date(Date.now() - 3 * 86400e3).toISOString()).order("last_message_at", { ascending: false }).limit(60);
   return (
     <div className="space-y-4">

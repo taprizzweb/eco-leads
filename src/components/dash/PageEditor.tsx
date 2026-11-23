@@ -412,7 +412,7 @@ export function PageEditor({
             </button>
           </Section>
 
-          <Section id="offers" title="Offers" sub="Live offers run in the black strip. They disappear on their end date.">
+          <Section id="offers" title="Live offers (announcements)" sub="These run in the black strip on your guest page and on your mini link, and they disappear on their end date.">
             <ul className="space-y-2">
               {offers.map((o) => {
                 const ended = o.ends_at && o.ends_at < today;

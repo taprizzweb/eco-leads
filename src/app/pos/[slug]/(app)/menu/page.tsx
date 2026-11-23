@@ -1,10 +1,10 @@
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { MenuManager } from "@/components/pos/MenuManager";
 import type { MenuCat, MenuItem } from "@/lib/pos";
 
 export default async function MenuPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client } = await loadClient(slug);
+  const { sb, client } = await requireSection(slug, "pos-menu");
   const [c, i] = await Promise.all([
     sb.from("menu_categories").select("id, name, sort, active").eq("client_id", client.id).order("sort").limit(100),
     sb.from("menu_items").select("id, category_id, name, description, price, veg, image_url, available, bestseller, addons, sort").eq("client_id", client.id).order("sort").limit(1000),

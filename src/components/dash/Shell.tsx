@@ -3,18 +3,21 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing, UtensilsCrossed, Menu, X, ShieldCheck } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing, UtensilsCrossed, Menu, X, ShieldCheck, Users, MessageCircle, KeyRound } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
 import { NavFeedback } from "@/components/NavFeedback";
 import { Suspense } from "react";
 import { closeSheetsThen, useBackToClose } from "@/lib/sheet-back";
+import { can, type Role, type Section } from "@/lib/roles";
+import { AlertsButton, PosAlerts } from "@/components/pos/PosAlerts";
 
 const KEY = "taprizz-dash-mode";
 
 export function Shell({
   slug,
+  clientId,
   clientName,
   logoUrl,
   openCount,
@@ -27,9 +30,11 @@ export function Shell({
   callsOn = false,
   callsOpen = 0,
   posOn = false,
+  role = "owner",
   children,
 }: {
   slug: string;
+  clientId?: string;
   clientName: string;
   logoUrl: string | null;
   openCount: number;
@@ -42,6 +47,7 @@ export function Shell({
   callsOn?: boolean;
   callsOpen?: number;
   posOn?: boolean;
+  role?: Role;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -64,22 +70,26 @@ export function Shell({
   };
 
   const base = `/dashboard/${slug}`;
-  type Tab = { href: string; label: string; Icon: typeof Home; exact?: boolean; badge?: number };
-  const tabs: Tab[] = [
-    { href: base, label: "Home", Icon: Home, exact: true },
-    { href: `${base}/inbox`, label: "Inbox", Icon: Inbox, badge: openCount },
-    { href: `${base}/reviews`, label: "Reviews", Icon: Star },
-    { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount },
-    { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft },
-    ...(waOn ? [{ href: `${base}/offers`, label: "Offers", Icon: Megaphone } as Tab] : []),
-    ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Gulabi", Icon: MapPin } as Tab] : []),
-    ...(callsOn ? [{ href: `${base}/calls`, label: "Calls", Icon: BellRing, badge: callsOpen } as Tab] : []),
-    ...(tablesOn ? [{ href: `${base}/tables`, label: "Tables", Icon: QrCode } as Tab] : []),
-    ...(posOn ? [{ href: `/pos/${slug}`, label: "Food orders", Icon: UtensilsCrossed } as Tab] : []),
-    { href: `${base}/plan`, label: "Plan", Icon: Gem },
+  type Tab = { href: string; label: string; Icon: typeof Home; exact?: boolean; badge?: number; section?: Section };
+  const all: Tab[] = [
+    { href: base, label: "Home", Icon: Home, exact: true, section: "home" },
+    { href: `${base}/inbox`, label: "Inbox", Icon: Inbox, badge: openCount, section: "inbox" },
+    { href: `${base}/reviews`, label: "Reviews", Icon: Star, section: "reviews" },
+    ...(posOn ? [{ href: `/pos/${slug}`, label: "Food orders", Icon: UtensilsCrossed, section: "pos" } as Tab] : []),
+    ...(callsOn ? [{ href: `${base}/calls`, label: "Calls", Icon: BellRing, badge: callsOpen, section: "calls" } as Tab] : []),
+    { href: `${base}/announce`, label: "Announcements", Icon: Megaphone, section: "announce" },
+    { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount, section: "moments" },
+    { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft, section: "mypage" },
+    { href: `${base}/team`, label: "Staff report", Icon: Users, section: "staff" },
+    ...(waOn ? [{ href: `${base}/offers`, label: "WhatsApp offers", Icon: MessageCircle, section: "offers" } as Tab] : []),
+    ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Gulabi", Icon: MapPin, section: "jaipur" } as Tab] : []),
+    ...(tablesOn ? [{ href: `${base}/tables`, label: "Tables", Icon: QrCode, section: "tables" } as Tab] : []),
+    { href: `${base}/access`, label: "Team access", Icon: KeyRound, section: "access" },
+    { href: `${base}/plan`, label: "Plan", Icon: Gem, section: "plan" },
   ];
+  const tabs = all.filter((t) => !t.section || can(role, t.section));
   // Phone bottom bar: four main tabs and "More" for the rest, so nothing is squeezed.
-  const mainLabels = ["Home", "Inbox", "Reviews", posOn ? "Food orders" : "My Page"];
+  const mainLabels = can(role, "home") ? ["Home", "Inbox", "Reviews", posOn ? "Food orders" : "My Page"] : ["Food orders", "Calls"];
   const bottomTabs = mainLabels.map((l) => tabs.find((t) => t.label === l)).filter(Boolean) as Tab[];
   const moreTabs = tabs.filter((t) => !mainLabels.includes(t.label));
   const moreBadge = moreTabs.reduce((a, t) => a + (t.badge ?? 0), 0);
@@ -125,6 +135,7 @@ export function Shell({
               <a href={`/e/${slug}`} target="_blank" rel="noopener" title="Open guest page" aria-label="Open guest page" className="hidden h-11 w-11 place-items-center rounded-xl md:grid" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
                 <ExternalLink size={17} />
               </a>
+              {clientId && (posOn || callsOn) && <AlertsButton clientId={clientId} />}
               <button onClick={toggle} title={modeLabel} aria-label={modeLabel} className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: "var(--d-surface)", boxShadow: "inset 0 0 0 1px var(--d-line)", color: "var(--d-text)" }}>
                 <ModeIcon size={17} />
               </button>
@@ -137,13 +148,14 @@ export function Shell({
           </div>
         </header>
 
+        {clientId && (posOn || callsOn) && <PosAlerts clientId={clientId} kinds={can(role, "pos-chat") ? ["order", "request", "chat"] : ["order", "request"]} />}
         <main className="mx-auto max-w-6xl px-4 pt-6 pb-28 [overflow-x:clip] md:pb-12">{children}</main>
         <Suspense fallback={null}><RememberPage /></Suspense>
         <ExitGuard />
 
         {/* Phone: bottom bar */}
         <nav aria-label="Dashboard" className="fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden" style={{ borderColor: "var(--d-line)", background: "color-mix(in srgb, var(--d-bg) 90%, transparent)" }}>
-          <div className="grid grid-cols-5">
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${bottomTabs.length + (moreTabs.length ? 1 : 0)}, minmax(0, 1fr))` }}>
             {bottomTabs.map((t) => {
               const { href, label, Icon, badge } = t;
               const on = active(t);
@@ -155,10 +167,10 @@ export function Shell({
                 </Link>
               );
             })}
-            <button type="button" onClick={() => setMore(true)} aria-label="More" aria-expanded={more} className="relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 text-[11px] font-medium" style={{ color: more || moreTabs.some(active) ? "var(--d-text)" : "var(--d-muted)" }}>
+            {moreTabs.length > 0 && <button type="button" onClick={() => setMore(true)} aria-label="More" aria-expanded={more} className="relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 text-[11px] font-medium" style={{ color: more || moreTabs.some(active) ? "var(--d-text)" : "var(--d-muted)" }}>
               <Menu size={21} strokeWidth={1.8} />More
               {moreBadge > 0 && <span className="absolute top-2 left-1/2 ml-2 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold text-white" style={{ background: "var(--d-red)" }}>{moreBadge}</span>}
-            </button>
+            </button>}
           </div>
         </nav>
         {more && (

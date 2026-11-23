@@ -1,10 +1,10 @@
 import { Lock } from "lucide-react";
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { OfferRequest, type MyReq } from "@/components/dash/OfferRequest";
 
 export default async function OffersPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client } = await loadClient(slug);
+  const { sb, client } = await requireSection(slug, "offers");
   const on = client.review_setup?.collect_contact === true;
   if (!on) {
     return (
@@ -19,7 +19,7 @@ export default async function OffersPage({ params }: { params: Promise<{ slug: s
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.04em]">Send an offer</h1>
+        <h1 className="text-[30px] leading-tight font-semibold tracking-[-0.04em]">WhatsApp offers</h1>
         <p className="mt-1" style={{ color: "var(--d-muted)" }}>Write your offer and add a poster. Taprizz checks it and sends it to your customers on WhatsApp.</p>
       </div>
       <OfferRequest clientId={client.id} businessName={client.name} initial={(data ?? []) as MyReq[]} />

@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { HUB_ENABLED } from "@/lib/hub-shared";
 import { JaipurBoard, type MyOffer } from "@/components/dash/JaipurBoard";
 
 export default async function JaipurPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (!HUB_ENABLED) redirect(`/dashboard/${slug}`);
-  const { sb, client } = await loadClient(slug);
+  const { sb, client } = await requireSection(slug, "jaipur");
   const { data: row } = await sb.from("clients").select("hub_listed, hub_area, business_type").eq("id", client.id).single();
   const listed = row?.hub_listed === true;
   if (!listed) return <JaipurBoard clientId={client.id} slug={client.slug} areaId={null} listed={false} areaName={null} categoryLabel={null} rank={null} total={0} rating={0} guests={0} stats={{ views: 0, follows: 0, claims: 0, redeems: 0 }} offers={[]} hasInstagram={false} />;

@@ -1,10 +1,10 @@
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import Link from "next/link";
 import { PageEditor } from "@/components/dash/PageEditor";
 
 export default async function MyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client, features } = await loadClient(slug);
+  const { sb, client, features } = await requireSection(slug, "mypage");
   const [gallery, offers, events, links, tpl] = await Promise.all([
     sb.from("gallery_photos").select("id, url, label, caption, sort").eq("client_id", client.id).order("sort"),
     sb.from("offers").select("id, title, details, starts_at, ends_at, claimable").eq("client_id", client.id).order("created_at", { ascending: false }),

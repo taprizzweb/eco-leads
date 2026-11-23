@@ -1,12 +1,12 @@
 import { Lock } from "lucide-react";
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { TablesBoard } from "@/components/dash/TablesBoard";
 import { tablesFit } from "@/lib/features";
 import { isTablePlate } from "@/lib/pos";
 
 export default async function TablesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client, features } = await loadClient(slug);
+  const { sb, client, features } = await requireSection(slug, "tables");
   if (!tablesFit(client.business_type)) {
     return (
       <div className="d-card mx-auto max-w-lg p-8 text-center">

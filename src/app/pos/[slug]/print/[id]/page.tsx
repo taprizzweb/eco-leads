@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { CHANNELS, inr, type Order } from "@/lib/pos";
 import { AutoPrint } from "@/components/pos/AutoPrint";
 
@@ -10,7 +10,7 @@ export default async function PrintPage({ params, searchParams }: { params: Prom
   const { slug, id } = await params;
   const { kind } = await searchParams;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const { sb, client } = await loadClient(slug);
+  const { sb, client } = await requireSection(slug, kind === "bill" ? "pos-bills" : "pos");
   let { data: o } = await sb.from("orders").select("*").eq("id", id).eq("client_id", client.id).maybeSingle();
   if (!o) notFound();
   const isBill = kind === "bill";

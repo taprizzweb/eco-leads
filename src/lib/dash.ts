@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { supabaseServer } from "@/lib/supabase/server";
+import { can, toRole, type Role, type Section } from "@/lib/roles";
+import { redirect } from "next/navigation";
 
 export type DashClient = {
   id: string;
@@ -31,8 +33,16 @@ export const loadClient = cache(async (slug: string) => {
     .eq("slug", slug)
     .maybeSingle();
   if (!data) notFound();
-  const { data: features } = await sb.rpc("client_features", { cid: data.id });
-  return { sb, client: data as DashClient, features: (features ?? {}) as Record<string, unknown> };
+  const [{ data: features }, { data: roleRaw }] = await Promise.all([sb.rpc("client_features", { cid: data.id }), sb.rpc("my_client_role", { cid: data.id })]);
+  return { sb, client: data as DashClient, features: (features ?? {}) as Record<string, unknown>, role: toRole(roleRaw) };
 });
 
 export { timeAgo } from "./dash-time";
+
+/** Pages call this first. A person whose role does not include the page is sent to the page that is theirs. */
+export async function requireSection(slug: string, section: Section) {
+  const ctx = await loadClient(slug);
+  if (!can(ctx.role, section)) redirect(can(ctx.role, "pos") && ctx.features.pos === true ? `/pos/${slug}` : can(ctx.role, "calls") ? `/dashboard/${slug}/calls` : "/dashboard");
+  return ctx;
+}
+export type { Role };

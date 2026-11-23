@@ -1,10 +1,10 @@
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { InboxBoard, type Item } from "@/components/dash/InboxBoard";
 
 export default async function InboxPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ open?: string }> }) {
   const { slug } = await params;
   const { open } = await searchParams;
-  const { sb, client, features } = await loadClient(slug);
+  const { sb, client, features } = await requireSection(slug, "inbox");
   const [{ data }, { data: plates }] = await Promise.all([
     sb.from("feedback")
       .select("id, kind, body, media_paths, contact_name, contact_phone, contact_consent, status, private_note, plate_code, created_at, resolved_at")

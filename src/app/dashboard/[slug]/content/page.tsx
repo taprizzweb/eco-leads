@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { MomentsBoard, type Moment } from "@/components/dash/MomentsBoard";
 
 export default async function ContentPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client, features } = await loadClient(slug);
+  const { sb, client, features } = await requireSection(slug, "moments");
   if (!features.creators) {
     return (
       <div className="d-card mx-auto max-w-lg p-8 text-center">

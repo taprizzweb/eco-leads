@@ -1,10 +1,10 @@
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { tablesFit } from "@/lib/features";
 import { CallsBoard } from "@/components/dash/CallsBoard";
 
 export default async function CallsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client, features } = await loadClient(slug);
+  const { sb, client, features } = await requireSection(slug, "calls");
   if (features.call_server !== true || !tablesFit(client.business_type)) {
     return (
       <div className="d-card mx-auto max-w-lg p-8 text-center">

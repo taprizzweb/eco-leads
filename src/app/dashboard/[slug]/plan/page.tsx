@@ -1,5 +1,5 @@
 import { Check, Lock } from "lucide-react";
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { UpgradeButton } from "@/components/dash/UpgradeButton";
 
 const ROWS: { key: string; label: string; show: (v: unknown) => string | boolean }[] = [
@@ -16,7 +16,7 @@ const ROWS: { key: string; label: string; show: (v: unknown) => string | boolean
 
 export default async function PlanPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client, features } = await loadClient(slug);
+  const { sb, client, features } = await requireSection(slug, "plan");
   const { data: packages } = await sb.from("packages").select("id, name, price_inr, sort").order("sort");
   const current = packages?.find((p) => p.id === client.package_id);
   const higher = (packages ?? []).filter((p) => p.sort > (current?.sort ?? 0));

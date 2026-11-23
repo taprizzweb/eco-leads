@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BellRing, Check, Minus, Phone, Plus, Printer, Search, Trash2, Volume2, VolumeX, X, MessageCircle, Radio, Receipt, ChefHat } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { BellRing, Check, Minus, Phone, Plus, Printer, Search, Trash2, X, MessageCircle, Radio, Receipt, ChefHat } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useToast } from "@/components/dash/Toast";
-import { CHANNELS, MANUAL_CHANNELS, REQUEST_LABEL, beep, inr, itemsSubtotal, totals, waLink, type Channel, type Extra, type Line, type MenuItem, type Order, type Request } from "@/lib/pos";
+import { CHANNELS, MANUAL_CHANNELS, REQUEST_LABEL, inr, itemsSubtotal, totals, waLink, type Channel, type Extra, type Line, type MenuItem, type Order, type Request } from "@/lib/pos";
 
 const OPEN = ["new", "preparing", "ready", "served"] as const;
 const COLS: { key: (typeof OPEN)[number]; title: string }[] = [
@@ -19,21 +19,16 @@ const ago = (iso: string) => {
 };
 const ORDER_COLS = "id, order_no, channel, external_ref, table_label, plate_code, customer_name, customer_phone, items, subtotal, extras, discount, gst_rate, gst_inclusive, cgst, sgst, total, note, status, payment_status, payment_mode, bill_no, created_at, updated_at";
 
-export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, initialRequests, menu }: { clientId: string; slug: string; accepting: boolean; initialOrders: Order[]; initialRequests: Request[]; menu: MenuItem[] }) {
+export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, initialRequests, menu, canBill = true }: {canBill?: boolean;  clientId: string; slug: string; accepting: boolean; initialOrders: Order[]; initialRequests: Request[]; menu: MenuItem[] }) {
   const sb = supabaseBrowser();
   const toast = useToast();
   const [orders, setOrders] = useState(initialOrders);
   const [reqs, setReqs] = useState(initialRequests);
-  const [sound, setSound] = useState(false);
   const [live, setLive] = useState(false);
   const [accepting, setAccepting] = useState(acc0);
   const [bill, setBill] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
   const [, tick] = useState(0);
-  const seenOrders = useRef(new Set(initialOrders.map((o) => o.id)));
-  const seenReqs = useRef(new Set(initialRequests.map((r) => r.id)));
-  const soundOn = useRef(false);
-  useEffect(() => { soundOn.current = sound; }, [sound]);
 
   const load = useCallback(async () => {
     const [o, r] = await Promise.all([
@@ -41,15 +36,9 @@ export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, init
       sb.from("server_calls").select("id, label, kind, note, status, created_at").eq("client_id", clientId).eq("status", "new").order("created_at", { ascending: true }).limit(50),
     ]);
     if (o.data) {
-      const fresh = (o.data as Order[]).filter((x) => x.status === "new" && !seenOrders.current.has(x.id));
-      (o.data as Order[]).forEach((x) => seenOrders.current.add(x.id));
-      if (fresh.length && soundOn.current) beep("order");
       setOrders(o.data as unknown as Order[]);
     }
     if (r.data) {
-      const fresh = (r.data as Request[]).filter((x) => !seenReqs.current.has(x.id));
-      (r.data as Request[]).forEach((x) => seenReqs.current.add(x.id));
-      if (fresh.length && soundOn.current) beep("request");
       setReqs(r.data as Request[]);
     }
   }, [sb, clientId]);
@@ -93,9 +82,6 @@ export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, init
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="d-chip" style={{ ["--c" as string]: live ? "var(--d-green)" : "var(--d-muted)" }}><Radio size={12} /> {live ? "Live" : "Connecting (auto refresh on)"}</span>
-        <button type="button" className="d-btn d-btn-s" aria-pressed={sound} onClick={() => { setSound((v) => !v); if (!sound) beep("order"); }}>
-          {sound ? <Volume2 size={15} /> : <VolumeX size={15} />} {sound ? "Sound on" : "Turn on sound"}
-        </button>
         <button type="button" className="d-btn d-btn-s" aria-pressed={accepting} onClick={toggleAccepting}>{accepting ? "Taking orders" : "Orders paused"}</button>
         <button type="button" className="d-btn d-btn-p ml-auto" onClick={() => setManual(true)}><Plus size={15} /> New order</button>
       </div>
@@ -124,7 +110,7 @@ export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, init
               <div className="space-y-3">
                 {list.length === 0 && <div className="d-card px-4 py-8 text-center text-sm" style={{ color: "var(--d-muted)" }}>{c.key === "new" ? "Waiting for the next order" : "Nothing here"}</div>}
                 {list.map((o) => (
-                  <OrderCard key={o.id} o={o} onAccept={() => accept(o)} onReject={() => reject(o)} onReady={() => setStatus(o, "ready")} onServed={() => setStatus(o, "served")} onBill={() => setBill(o.id)} onKot={() => printOrder(o.id, "kot")} />
+                  <OrderCard canBill={canBill} key={o.id} o={o} onAccept={() => accept(o)} onReject={() => reject(o)} onReady={() => setStatus(o, "ready")} onServed={() => setStatus(o, "served")} onBill={() => setBill(o.id)} onKot={() => printOrder(o.id, "kot")} />
                 ))}
               </div>
             </section>
@@ -138,7 +124,7 @@ export function LiveBoard({ clientId, slug, accepting: acc0, initialOrders, init
   );
 }
 
-function OrderCard({ o, onAccept, onReject, onReady, onServed, onBill, onKot }: { o: Order; onAccept: () => void; onReject: () => void; onReady: () => void; onServed: () => void; onBill: () => void; onKot: () => void }) {
+function OrderCard({ canBill, o, onAccept, onReject, onReady, onServed, onBill, onKot }: { canBill: boolean; o: Order; onAccept: () => void; onReject: () => void; onReady: () => void; onServed: () => void; onBill: () => void; onKot: () => void }) {
   const ch = CHANNELS[o.channel];
   const where = o.channel === "dine_in" ? o.table_label ?? "Table" : ch.label;
   return (
@@ -170,7 +156,7 @@ function OrderCard({ o, onAccept, onReject, onReady, onServed, onBill, onKot }: 
         </>)}
         {o.status === "preparing" && <button type="button" className="d-btn d-btn-p" onClick={onReady}><Check size={15} /> Mark ready</button>}
         {o.status === "ready" && <button type="button" className="d-btn d-btn-p" onClick={onServed}><Check size={15} /> Served</button>}
-        {(o.status === "served" || o.status === "ready" || o.status === "preparing") && <button type="button" className={o.status === "served" ? "d-btn d-btn-p" : "d-btn d-btn-s"} onClick={onBill}><Receipt size={15} /> Bill</button>}
+        {canBill && (o.status === "served" || o.status === "ready" || o.status === "preparing") && <button type="button" className={o.status === "served" ? "d-btn d-btn-p" : "d-btn d-btn-s"} onClick={onBill}><Receipt size={15} /> Bill</button>}
         <button type="button" className="d-btn d-btn-s" onClick={onKot} aria-label="Print KOT" title="Print KOT"><Printer size={15} /> KOT</button>
         {o.customer_phone && (<>
           <a className="d-btn d-btn-s" href={`tel:+${o.customer_phone}`} aria-label="Call guest"><Phone size={15} /></a>

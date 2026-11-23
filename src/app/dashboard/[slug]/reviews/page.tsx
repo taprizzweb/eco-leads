@@ -1,9 +1,9 @@
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { ReviewsBoard } from "@/components/dash/ReviewsBoard";
 
 export default async function ReviewsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client, features } = await loadClient(slug);
+  const { sb, client, features } = await requireSection(slug, "reviews");
   const monthStart = (() => { const [y, m] = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }).split("-"); return new Date(`${y}-${m}-01T00:00:00+05:30`).toISOString(); })();
   const head = { count: "exact" as const, head: true };
   const [reviews, drafts, made, copied, plates] = await Promise.all([

@@ -1,4 +1,4 @@
-import { loadClient } from "@/lib/dash";
+import { requireSection } from "@/lib/dash";
 import { BillsView } from "@/components/pos/BillsView";
 import type { Order } from "@/lib/pos";
 
@@ -6,7 +6,7 @@ export default async function BillsPage({ params, searchParams }: { params: Prom
   const { slug } = await params;
   const { r } = await searchParams;
   const range = r === "7" || r === "30" ? r : "today";
-  const { sb, client } = await loadClient(slug);
+  const { sb, client } = await requireSection(slug, "pos-bills");
   // "Today" follows the shop's day in India, not the server's clock.
   const ist = new Date(Date.now() + 5.5 * 3600e3);
   const startIst = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()) - 5.5 * 3600e3;
