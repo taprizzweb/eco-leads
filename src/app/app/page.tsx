@@ -16,7 +16,7 @@ export default async function AppEntry() {
   const jar = await cookies();
   const last = safeNext(decodeURIComponent(jar.get("tz_last")?.value ?? ""), "");
   // Only go back to a screen this person may open: the admin only for the owner, the rest for anyone signed in.
-  if (last && /^\/(dashboard|group)(\/|$)/.test(last)) redirect(last);
+  if (last && /^\/(dashboard|group|pos)(\/|$)/.test(last)) redirect(last);
   if (last && /^\/admin(\/|$)/.test(last) && role === "owner") redirect(last);
   redirect(role ? "/admin" : "/dashboard");
 }
