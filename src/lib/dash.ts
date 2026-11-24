@@ -13,6 +13,7 @@ export type DashClient = {
   google_review_url: string | null;
   menu_url: string | null;
   theme: string;
+  colors: { bg?: string; accent?: string; button?: string } | null;
   socials: Record<string, string>;
   keywords: string[];
   seo_keywords: string[];
@@ -30,7 +31,7 @@ export const loadClient = cache(async (slug: string) => {
   const sb = await supabaseServer();
   const { data } = await sb
     .from("clients")
-    .select("id, slug, name, tagline, logo_url, google_review_url, menu_url, theme, socials, keywords, seo_keywords, card_config, business_type, creator_settings, review_setup, package_id, status, expires_at")
+    .select("id, slug, name, tagline, logo_url, google_review_url, menu_url, theme, colors, socials, keywords, seo_keywords, card_config, business_type, creator_settings, review_setup, package_id, status, expires_at")
     .eq("slug", slug)
     .maybeSingle();
   if (!data) notFound();

@@ -1,3 +1,5 @@
+import { isHex, lightness, mix, type LinkColors } from "@/lib/linkpage";
+
 // Guest page themes. Each client picks one in My Page; more can be added here.
 // Every theme defines the same CSS variables so components never hard-code colours.
 
@@ -206,8 +208,29 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
 };
 
-export function getTheme(id: string | null | undefined): Theme {
-  return THEMES[(id as ThemeId) ?? "graphite"] ?? THEMES.graphite;
+/** The theme's colours with the business's own background, accent and button colours laid on top. Text turns light or dark by itself so it always reads. */
+export function getTheme(id: string | null | undefined, colors?: LinkColors | null): Theme {
+  const base = THEMES[(id as ThemeId) ?? "graphite"] ?? THEMES.graphite;
+  const bg = isHex(colors?.bg) ? colors!.bg! : null;
+  const accent = isHex(colors?.accent) ? colors!.accent! : null;
+  const button = isHex(colors?.button) ? colors!.button! : null;
+  if (!bg && !accent && !button) return base;
+  const vars: Record<string, string> = { ...base.vars };
+  let dark = base.dark;
+  if (bg) {
+    dark = lightness(bg) < 0.4;
+    const text = dark ? "#f4f4f7" : "#17140e";
+    Object.assign(vars, {
+      "--bg": bg, "--text": text, "--muted": mix(text, bg, 0.42),
+      "--surface": dark ? mix(bg, "#ffffff", 0.06) : mix(bg, "#ffffff", 0.6), "--surface-2": dark ? mix(bg, "#ffffff", 0.11) : mix(bg, text, 0.07),
+      "--border": dark ? "rgba(255,255,255,0.08)" : "rgba(20,16,8,0.09)",
+      "--strip": text, "--strip-text": bg, "--pill": mix(bg, text, 0.12), "--pill-text": text,
+      "--top": dark ? mix(bg, "#ffffff", 0.14) : mix(bg, "#000000", 0.07),
+    });
+  }
+  if (accent) vars["--top"] = mix(vars["--bg"], accent, 0.38);
+  if (button) { vars["--btn"] = button; vars["--btn-text"] = lightness(button) > 0.45 ? "#111111" : "#ffffff"; }
+  return { ...base, dark, vars };
 }
 
 // Each action card keeps its own light tint so the stack is easy to tell apart.

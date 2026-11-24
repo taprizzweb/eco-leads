@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2, ImagePlus, X, Smartphone, Lock } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { THEMES, type ThemeId } from "@/lib/themes";
+import { ColorField, BG_SWATCHES } from "@/components/ui/ColorField";
+import { logoPalettes, type Palette } from "@/lib/logo-colors";
 import { toWebp } from "@/lib/image";
 import type { DashClient } from "@/lib/dash";
 import type { GuestPageData } from "@/lib/types";
@@ -71,6 +73,7 @@ export function PageEditor({
     google_review_url: client.google_review_url ?? "",
     menu_url: client.menu_url ?? "",
     theme: client.theme as ThemeId,
+    colors: { ...(client.colors ?? {}) } as { bg?: string; accent?: string; button?: string },
     logo_url: client.logo_url,
     socials: { ...client.socials } as Record<string, string>,
     keywords: client.keywords.length ? client.keywords : template?.keywords ?? [],
@@ -96,6 +99,19 @@ export function PageEditor({
   const photoLimit = Number(features.photo_limit ?? 5);
   const today = new Date().toISOString().slice(0, 10);
 
+  const [looks, setLooks] = useState<Palette[] | null>(null);
+  const [lookBusy, setLookBusy] = useState(false);
+  async function pickFromLogo() {
+    if (!f.logo_url) return;
+    setLookBusy(true);
+    try {
+      const list = await logoPalettes(f.logo_url);
+      setLooks(list);
+      if (!list.length) toast("No clear colours found in this logo.", true);
+    } catch { toast("We could not read this logo's colours. Upload the logo again and try once more.", true); }
+    finally { setLookBusy(false); }
+  }
+  const setColor = (k: "bg" | "accent" | "button", v: string | undefined) => setF((s) => { const c = { ...s.colors }; if (v) c[k] = v; else delete c[k]; return { ...s, colors: c }; });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
 
   function validUrl(v: string) {
@@ -118,6 +134,7 @@ export function PageEditor({
       google_review_url: f.google_review_url.trim() || null,
       menu_url: f.menu_url.trim() || null,
       theme: f.theme,
+      colors: Object.fromEntries(Object.entries(f.colors).filter(([, v]) => /^#[0-9a-f]{6}$/i.test(v ?? ""))),
       logo_url: f.logo_url,
       socials,
       keywords: f.keywords,
@@ -273,7 +290,7 @@ export function PageEditor({
     plate: { code: "preview", label: "Table 1" },
     client: {
       id: client.id, slug: client.slug, name: f.name || "Your business", tagline: f.tagline || template?.tagline || null,
-      logo_url: f.logo_url, theme: f.theme, google_review_url: f.google_review_url || null, menu_url: f.menu_url || null,
+      logo_url: f.logo_url, theme: f.theme, colors: f.colors, google_review_url: f.google_review_url || null, menu_url: f.menu_url || null,
       business_type: client.business_type, socials: f.socials, keywords: f.keywords,
       review_chips: template?.review_chips ?? [], card_config: {}, card_copy: template?.card_copy ?? {},
     },
@@ -340,6 +357,29 @@ export function PageEditor({
                 );
               })}
             </div>
+          </Section>
+
+          <Section title="Colours" sub="Pick any colour for the background, the soft glow at the top and the buttons. Text turns light or dark by itself so it stays readable. Leave a colour empty to keep the theme's.">
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="d-btn d-btn-p" disabled={!f.logo_url || lookBusy} onClick={() => void pickFromLogo()}>{lookBusy && <Loader2 size={15} className="animate-spin" />} Pick colours from my logo</button>
+              {!f.logo_url && <span className="text-xs" style={{ color: "var(--d-muted)" }}>Add a logo first.</span>}
+            </div>
+            {looks && looks.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Looks made from your logo">
+                {looks.map((p) => { const on = f.colors.bg === p.bg && f.colors.accent === p.accent && f.colors.button === p.button; return (
+                  <button key={p.name} type="button" aria-pressed={on} onClick={() => set("colors", { bg: p.bg, accent: p.accent, button: p.button })} className="overflow-hidden rounded-xl text-left" style={{ boxShadow: on ? "0 0 0 2px var(--d-bg), 0 0 0 4px var(--d-text)" : "inset 0 0 0 1px var(--d-line-2)" }}>
+                    <span className="block px-3 pt-3 pb-3" style={{ background: p.bg, color: "#fff" }}>
+                      <span className="block h-1.5 w-10 rounded-full" style={{ background: p.accent }} />
+                      <span className="mt-2 block rounded-full py-1.5 text-center text-[11px] font-semibold" style={{ background: p.button, color: "#111" }}>Button</span>
+                    </span>
+                    <span className="block px-3 py-2 text-xs" style={{ background: "var(--d-bg)", color: "var(--d-text)" }}>{p.name}</span>
+                  </button>); })}
+              </div>
+            )}
+            <ColorField label="Background" value={f.colors.bg} fallback={THEMES[f.theme].vars["--bg"]} swatches={BG_SWATCHES} onChange={(v) => setColor("bg", v)} />
+            <ColorField label="Accent and glow" hint="the soft light at the top" value={f.colors.accent} fallback={THEMES[f.theme].vars["--top"] ?? THEMES[f.theme].vars["--surface-2"]} onChange={(v) => setColor("accent", v)} />
+            <ColorField label="Buttons" hint="the big buttons and chosen options" value={f.colors.button} fallback={THEMES[f.theme].vars["--text"]} onChange={(v) => setColor("button", v)} />
+            <button type="button" className="d-btn d-btn-s" disabled={!Object.keys(f.colors).length} onClick={() => set("colors", {})}>Reset all colours</button>
           </Section>
 
           <Section title="Links">

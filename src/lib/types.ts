@@ -40,6 +40,7 @@ export type GuestPageData = {
     tagline: string | null;
     logo_url: string | null;
     theme: string;
+    colors?: { bg?: string; accent?: string; button?: string };
     google_review_url: string | null;
     menu_url: string | null;
     business_type: string | null;

@@ -31,7 +31,7 @@ const MAX_AGAIN = 0;   // the stars open once, by themselves. Back does not brin
 
 export function MenuApp({ data, menu, code }: { data: GuestPageData; menu: MenuData; code: string }) {
   const { client, plate } = data;
-  const theme = getTheme(client.theme);
+  const theme = getTheme(client.theme, client.colors);
   const sb = useMemo(() => supabaseBrowser(), []);
   const tableLabel = plate?.label ?? "your table";
   const viewOnly = menu.counter_orders === false && !isTablePlate(plate?.label);   // a Counter plate with ordering switched off

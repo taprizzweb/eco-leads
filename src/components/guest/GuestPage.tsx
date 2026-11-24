@@ -81,7 +81,7 @@ export type NearbyOffer = { slug: string; name: string; area: string; category: 
 export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data: GuestPageData; code: string; hubHref?: string | null; hubGeo?: { lat: number; lng: number } | null; outlets?: LinkOutlet[] }) {
   const [outletsOpen, setOutletsOpen] = useState(false);
   const closeOutlets = useCallback(() => setOutletsOpen(false), []);
-  const theme = getTheme(data.client.theme);
+  const theme = getTheme(data.client.theme, data.client.colors);
   const [open, setOpen] = useState<CardKey | null>(null);
   const close = useCallback(() => setOpen(null), []);
   // The first tap on an action card asks for the guest's name and number (once per business, on their own phone).
