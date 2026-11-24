@@ -3,11 +3,22 @@
 Fill the `[ ]` parts before sending. Nothing here is submitted yet. Send it through Google's Business Profile API access request form
 (find it from the "Prerequisites" page of the Business Profile APIs documentation, and use the Google Cloud project you want approved).
 
+## Why the first request was refused (Google's reply, Nov 2026)
+Google's email said the application could not go ahead because:
+- The email used to apply must belong to an **Owner or Manager of a business listing that has been verified for at least 60 days**.
+- The listing must have a **working website on its own unique domain**, and the **website URL in the application must be an exact match** of the URL shown on the Google Business Profile.
+
+So the application must come from Taprizz's own Business Profile (or another listing the applicant owns or manages) that meets both points.
+If a listing already meets them and Google still refused, contact the Business Profile API support team and choose **General API Question**.
+
 ## Before you apply
+- A Business Profile for Taprizz exists, is **verified, and the verification is more than 60 days old**.
+- That profile shows a website on its own domain (for example https://taprizz.in), the site really works, and the same address, written exactly the same way
+  (http or https, www or not, trailing slash or not), is the website URL in the application.
+- The email used to apply is an **Owner or Manager** of that profile.
 - Use one Google Cloud project for this and note its **project number** (not the name).
 - The OAuth consent screen needs the app name, a support email, the **privacy policy URL** and the domain `taprizz.in`. The scope
   `https://www.googleapis.com/auth/business.manage` is a sensitive scope, so Google will also ask to verify the app.
-- Google asks for a Business Profile that is verified and has been live for some time. Check the current rule on the prerequisites page.
 - A short screen recording of the reviews panel (reading a review, writing and approving a reply) helps.
 
 ## Text to paste
