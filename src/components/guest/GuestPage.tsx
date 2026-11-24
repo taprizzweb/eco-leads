@@ -96,6 +96,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
   const [postersOpen, setPostersOpen] = useState(false);
   const closePosters = useCallback(() => setPostersOpen(false), []);
   const newStyle = client.card_config?.new_style ?? "pill";
+  const cardStyle = client.card_config?.card_style ?? "classic";
   // The "What is new" posters open as soon as the guest page loads, every time.
   const posterIds = (data.extras?.posters ?? []).map((p) => p.id).join(",");
   const menuBackKey = `tz_menuback_${client.id}`;
@@ -211,7 +212,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
   return (
     <div
       style={{ ...(theme.vars as React.CSSProperties), background: "radial-gradient(70% 380px at 50% -80px, var(--top, var(--surface-2)) 0%, var(--bg) 100%) no-repeat, var(--bg)" }}
-      className="guest-root min-h-dvh text-fg"
+      className="guest-root min-h-dvh overflow-x-clip text-fg"
       data-theme={theme.dark ? "dark" : "light"}
     >
       <main className="mx-auto max-w-md pb-12">
@@ -325,10 +326,39 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
             {data.live && !!data.extras?.posters.length && newStyle === "banner" && <NewPill variant="banner" onOpen={() => setPostersOpen(true)} />}
 
             {/* 6. Action cards */}
-            <section aria-label="What would you like to do?" className="space-y-3.5 px-4">
+            <section aria-label="What would you like to do?" className={cardStyle === "tiles" ? "grid grid-cols-2 gap-3 px-4" : cardStyle === "compact" ? "space-y-2.5 px-4" : "space-y-3.5 px-4"}>
               {order.map((k, i) => {
                 const c = copyFor(k);
                 const tint = CARD_TINTS[k];
+                if (cardStyle !== "classic") {
+                  const t = k === "review" ? "251, 191, 36" : tint;
+                  const stars = k === "review" && (
+                    <span className="mb-1 flex gap-0.5" aria-hidden>{[0, 1, 2, 3, 4].map((s) => <Star key={s} size={13} className="fill-amber-400 text-amber-400" />)}</span>
+                  );
+                  if (cardStyle === "compact") {
+                    return (
+                      <motion.button key={k} {...rise(5 + i)} whileTap={reduce ? undefined : { scale: 0.98 }} onClick={() => onCard(k)} className="flex w-full items-center gap-3.5 rounded-2xl py-3 pr-3.5 pl-3 text-left ring-1 ring-line" style={{ background: `radial-gradient(80% 160% at 0% 50%, rgba(${t},0.16), transparent 60%), var(--surface)` }}>
+                        <AnimatedIcon name={k} tint={t} size={46} play={i} />
+                        <span className="min-w-0 flex-1">
+                          {stars}
+                          <span className="block text-[16.5px] leading-tight font-semibold tracking-[-0.01em]">{c.title}</span>
+                          <span className="mt-0.5 block truncate text-[12.5px] text-muted">{c.help}</span>
+                        </span>
+                        <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden />
+                      </motion.button>
+                    );
+                  }
+                  return (
+                    <motion.button key={k} {...rise(5 + i)} whileTap={reduce ? undefined : { scale: 0.97 }} onClick={() => onCard(k)} className={`flex min-h-[148px] flex-col items-start justify-between gap-3 rounded-[24px] p-4 text-left ring-1 ring-line ${k === "review" ? "col-span-2" : ""}`} style={{ background: `radial-gradient(100% 90% at 100% 0%, rgba(${t},0.20), transparent 62%), var(--surface)` }}>
+                      <AnimatedIcon name={k} tint={t} size={52} play={i} />
+                      <span className="block w-full min-w-0">
+                        {stars}
+                        <span className="block text-[16.5px] leading-tight font-semibold tracking-[-0.01em]">{c.title}</span>
+                        <span className="mt-1 line-clamp-2 block text-[12.5px] leading-snug text-muted">{c.help}</span>
+                      </span>
+                    </motion.button>
+                  );
+                }
                 if (k === "review") {
                   return (
                     <motion.button key={k} {...rise(5 + i)} whileTap={reduce ? undefined : { scale: 0.98 }} onClick={() => onCard(k)} className="sweep-border block w-full text-left">

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, ImagePlus, X, Smartphone, Lock } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { THEMES, type ThemeId } from "@/lib/themes";
-import { NEW_STYLES, type NewStyle } from "@/components/guest/GuestExtras";
+import { CARD_STYLES, NEW_STYLES, type CardStyle, type NewStyle } from "@/components/guest/GuestExtras";
 import { SortableList, Grip } from "@/components/ui/SortableList";
 import { ColorField, BG_SWATCHES } from "@/components/ui/ColorField";
 import { logoPalettes, type Palette } from "@/lib/logo-colors";
@@ -77,6 +77,7 @@ export function PageEditor({
     google_review_url: client.google_review_url ?? "",
     menu_url: client.menu_url ?? "",
     theme: client.theme as ThemeId,
+    card_style: (((client.card_config as { card_style?: CardStyle } | null)?.card_style) ?? "classic") as CardStyle,
     new_style: (((client.card_config as { new_style?: NewStyle } | null)?.new_style) ?? "pill") as NewStyle,
     colors: { ...(client.colors ?? {}) } as { bg?: string; accent?: string; button?: string },
     logo_url: client.logo_url,
@@ -139,7 +140,7 @@ export function PageEditor({
       google_review_url: f.google_review_url.trim() || null,
       menu_url: f.menu_url.trim() || null,
       theme: f.theme,
-      card_config: { ...(client.card_config ?? {}), new_style: f.new_style },
+      card_config: { ...(client.card_config ?? {}), new_style: f.new_style, card_style: f.card_style },
       colors: Object.fromEntries(Object.entries(f.colors).filter(([, v]) => /^#[0-9a-f]{6}$/i.test(v ?? ""))),
       logo_url: f.logo_url,
       socials,
@@ -317,7 +318,7 @@ export function PageEditor({
       id: client.id, slug: client.slug, name: f.name || "Your business", tagline: f.tagline || template?.tagline || null,
       logo_url: f.logo_url, theme: f.theme, colors: f.colors, google_review_url: f.google_review_url || null, menu_url: f.menu_url || null,
       business_type: client.business_type, socials: f.socials, keywords: f.keywords,
-      review_chips: template?.review_chips ?? [], card_config: { new_style: f.new_style }, card_copy: template?.card_copy ?? {},
+      review_chips: template?.review_chips ?? [], card_config: { new_style: f.new_style, card_style: f.card_style }, card_copy: template?.card_copy ?? {},
     },
     features: features as GuestPageData["features"],
     gallery: gallery.slice(0, photoLimit),
@@ -405,6 +406,26 @@ export function PageEditor({
             <ColorField label="Accent and glow" hint="the soft light at the top" value={f.colors.accent} fallback={THEMES[f.theme].vars["--top"] ?? THEMES[f.theme].vars["--surface-2"]} onChange={(v) => setColor("accent", v)} />
             <ColorField label="Buttons" hint="the big buttons and chosen options" value={f.colors.button} fallback={THEMES[f.theme].vars["--text"]} onChange={(v) => setColor("button", v)} />
             <button type="button" className="d-btn d-btn-s" disabled={!Object.keys(f.colors).length} onClick={() => set("colors", {})}>Reset all colours</button>
+          </Section>
+
+          <Section title="Button style" sub="How the action buttons look on your guest page: Menu, Review, Complaint, Offers, Membership and the rest. The preview on the right shows it at once.">
+            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Action button style">
+              {CARD_STYLES.map((o) => {
+                const on = f.card_style === o.id;
+                const bar = <span className="h-1.5 w-8 rounded-full" style={{ background: "var(--d-muted)" }} />;
+                return (
+                  <button key={o.id} type="button" role="radio" aria-checked={on} onClick={() => set("card_style", o.id)} className="rounded-lg p-2 text-left text-sm" style={{ boxShadow: `inset 0 0 0 ${on ? 2 : 1}px ${on ? "var(--d-blue)" : "var(--d-line-2)"}` }}>
+                    <span className="mb-2 block h-24 overflow-hidden rounded-md p-2" style={{ background: "var(--d-bg)" }}>
+                      {o.id === "classic" && <span className="flex h-full flex-col gap-1.5">{[0, 1].map((n) => <span key={n} className="flex flex-1 items-center justify-between rounded-lg px-2" style={{ background: "var(--d-line-2)" }}>{bar}<span className="h-4 w-4 rounded-md bg-purple-400/70" /></span>)}</span>}
+                      {o.id === "compact" && <span className="flex h-full flex-col gap-1">{[0, 1, 2].map((n) => <span key={n} className="flex flex-1 items-center gap-1.5 rounded-md px-1.5" style={{ background: "var(--d-line-2)" }}><span className="h-3 w-3 rounded bg-teal-400/70" />{bar}</span>)}</span>}
+                      {o.id === "tiles" && <span className="grid h-full grid-cols-2 gap-1.5">{[0, 1, 2, 3].map((n) => <span key={n} className="flex flex-col justify-between rounded-md p-1.5" style={{ background: "var(--d-line-2)" }}><span className="h-3 w-3 rounded bg-sky-400/70" />{bar}</span>)}</span>}
+                    </span>
+                    <span className="block font-medium" style={{ color: "var(--d-text)" }}>{o.label}</span>
+                    <span className="block text-xs" style={{ color: "var(--d-muted)" }}>{o.help}</span>
+                  </button>
+                );
+              })}
+            </div>
           </Section>
 
           <Section title="The NEW button" sub="Guests see your posters as soon as the page opens. This is the button that brings them back. Pick the look.">

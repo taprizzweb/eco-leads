@@ -120,6 +120,12 @@ export function StaffSheet({ staff, clientId, code, visitor, canReport, onDone }
 }
 
 /** Floating "New" button. Opens the owner's latest posters one by one. */
+export type CardStyle = "classic" | "compact" | "tiles";
+export const CARD_STYLES: { id: CardStyle; label: string; help: string }[] = [
+  { id: "classic", label: "Big cards", help: "Large cards with a big icon. One under the other." },
+  { id: "compact", label: "Slim rows", help: "Slim rows with a small icon. More fits on the screen." },
+  { id: "tiles", label: "Square tiles", help: "Two tiles side by side, like an app home screen." },
+];
 export type NewStyle = "pill" | "tab" | "banner";
 export const NEW_STYLES: { id: NewStyle; label: string; help: string }[] = [
   { id: "pill", label: "Red button", help: "A red NEW button floats above the footer, in the middle." },
