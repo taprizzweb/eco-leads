@@ -123,7 +123,7 @@ export function PageEditor({
   }
 
   async function save() {
-    const bad = ["google_review_url", "menu_url"].some((k) => !validUrl(f[k as "menu_url"]));
+    const bad = ["google_review_url", "menu_url"].some((k) => !validUrl(f[k as "menu_url"])) || !validUrl(f.socials.membership_url ?? "");
     if (!f.name.trim()) return toast("Your business name cannot be empty.", true);
     if (bad) return toast("One of the links needs fixing before you publish.", true);
     setSaving(true);
@@ -395,6 +395,10 @@ export function PageEditor({
                 <button type="button" className="d-btn d-btn-s" onClick={() => menuInput.current?.click()}>Upload a PDF menu</button>
                 {f.menu_url && <button type="button" className="d-btn d-btn-s" onClick={() => set("menu_url", "")}>Remove menu</button>}
               </div>
+            </Field>
+            <Field label="Membership card link" hint="Where the membership card opens: your sign-up form, loyalty page or WhatsApp link. Leave empty to hide the card.">
+              <input className="d-input" inputMode="url" value={f.socials.membership_url ?? ""} onChange={(e) => { set("socials", { ...f.socials, membership_url: e.target.value }); if (errors.membership_url) checkUrl("membership_url", e.target.value); }} onBlur={(e) => checkUrl("membership_url", e.target.value)} placeholder="https://" />
+              {errors.membership_url && <span className="mt-1 block text-sm" style={{ color: "var(--d-red)" }}>{errors.membership_url}</span>}
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
               {SOCIALS.map(([k, label]) => (

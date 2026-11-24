@@ -39,7 +39,7 @@ const DEFAULT_COPY: Record<CardKey, { title: string; help: string }> = {
 
 // Flows built so far. Cards for later build steps stay hidden until their flow exists,
 // so a guest never taps into a dead end.
-const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events", "creators", "staff", "wifi", "instagram"];
+const BUILT: CardKey[] = ["menu", "review", "complaint", "suggestion", "offers", "events", "creators", "staff", "wifi", "instagram", "membership"];
 
 function cardEnabled(k: CardKey, d: GuestPageData): boolean {
   const f = d.features;
@@ -50,7 +50,7 @@ function cardEnabled(k: CardKey, d: GuestPageData): boolean {
     case "suggestion": return !!f.suggestions;
     case "offers": return !!f.offers_card && d.offers.length > 0;
     case "events": return !!f.events && d.events.length > 0;
-    case "membership": return !!f.membership;
+    case "membership": return /^https?:\/\//i.test(d.client.socials.membership_url ?? "");
     case "creators": return !!f.creators;
     case "staff": return !!d.extras?.staff.length;
     case "wifi": return !!d.client.socials.wifi_name;
@@ -136,6 +136,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
       window.open(menuLink, "_blank", "noopener");
       return;
     }
+    if (k === "membership" && client.socials.membership_url) { window.open(client.socials.membership_url, "_blank", "noopener"); return; }
     if (k === "instagram" && client.socials.instagram) { window.open(client.socials.instagram, "_blank", "noopener"); return; }
     if (!askContact || k === "creators" || k === "wifi" || k === "staff") { setOpen(k); return; }
     if (!visitor) { setPending(k); setGate(true); return; }

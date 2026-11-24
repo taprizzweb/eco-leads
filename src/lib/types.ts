@@ -44,7 +44,7 @@ export type GuestPageData = {
     google_review_url: string | null;
     menu_url: string | null;
     business_type: string | null;
-    socials: Partial<Record<"instagram" | "facebook" | "maps" | "phone" | "zomato" | "swiggy" | "wifi_name" | "wifi_password", string>>;
+    socials: Partial<Record<"instagram" | "facebook" | "maps" | "phone" | "zomato" | "swiggy" | "wifi_name" | "wifi_password" | "membership_url", string>>;
     keywords: string[];
     review_chips: string[];
     card_config: {
