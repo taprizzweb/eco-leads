@@ -2,9 +2,10 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Trash2, ImagePlus, X, Smartphone, Lock } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, ImagePlus, X, Smartphone, Lock } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { THEMES, type ThemeId } from "@/lib/themes";
+import { SortableList, Grip } from "@/components/ui/SortableList";
 import { ColorField, BG_SWATCHES } from "@/components/ui/ColorField";
 import { logoPalettes, type Palette } from "@/lib/logo-colors";
 import { toWebp } from "@/lib/image";
@@ -26,6 +27,8 @@ const SOCIALS = [
   ["zomato", "Zomato link"],
   ["swiggy", "Swiggy link"],
 ] as const;
+
+const moveItem = <T,>(a: T[], i: number, d: -1 | 1): T[] => { const j = i + d; if (j < 0 || j >= a.length) return a; const n = [...a]; [n[i], n[j]] = [n[j], n[i]]; return n; };
 
 function Section({ id, title, sub, children }: { id?: string; title: string; sub?: string; children: React.ReactNode }) {
   return (
@@ -166,26 +169,45 @@ export function PageEditor({
     toast("Menu PDF ready. Publish to show it.");
   }
 
+  const isClip = (u: string) => /\.(mp4|webm|mov|m4v)(\?|$)/i.test(u);
+  async function uploadClip(file: File) {
+    if (file.size > 20 * 1024 * 1024) throw new Error("big");
+    const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
+    const path = `${client.id}/gallery/${crypto.randomUUID()}.${ext}`;
+    const { error } = await sb.storage.from("page-assets").upload(path, file, { contentType: file.type || "video/mp4" });
+    if (error) throw error;
+    return sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl;
+  }
+  async function reorderPhotos(next: Photo[]) {
+    const prev = gallery;
+    const numbered = next.map((p, i) => ({ ...p, sort: i + 1 }));
+    setGallery(numbered);
+    const changed = numbered.filter((p) => prev.find((q) => q.id === p.id)?.sort !== p.sort);
+    const r = await Promise.all(changed.map((p) => sb.from("gallery_photos").update({ sort: p.sort }).eq("id", p.id)));
+    if (r.some((x) => x.error)) { setGallery(prev); toast("The new order did not save. Please try again.", true); }
+  }
+
   async function addPhotos(files: FileList | null) {
     if (!files?.length) return;
     const room = photoLimit - gallery.length;
-    if (room <= 0) return toast(`Your plan allows ${photoLimit} photos. Remove one to add another.`, true);
+    if (room <= 0) return toast(`Your plan allows ${photoLimit} photos or clips. Remove one to add another.`, true);
     setUploading(true);
     let added = 0;
     for (const file of Array.from(files).slice(0, room)) {
       try {
-        const url = await uploadAsset(file, "gallery");
+        const clip = file.type.startsWith("video/");
+        const url = clip ? await uploadClip(file) : await uploadAsset(file, "gallery");
         const sort = (gallery.at(-1)?.sort ?? 0) + 1 + added;
         const { data, error } = await sb.from("gallery_photos").insert({ client_id: client.id, url, sort }).select("id, url, label, caption, sort").single();
         if (error) throw error;
         setGallery((g) => [...g, data]);
         added++;
       } catch {
-        toast(`${file.name} did not upload. Try a JPG or PNG photo.`, true);
+        toast(file.type.startsWith("video/") ? `${file.name} did not upload. Clips can be up to 20 MB (MP4, WebM or MOV).` : `${file.name} did not upload. Try a JPG or PNG photo.`, true);
       }
     }
     setUploading(false);
-    if (added) toast(added === 1 ? "Photo added" : `${added} photos added`);
+    if (added) toast(added === 1 ? "Added" : `${added} added`);
   }
 
   async function updatePhoto(id: string, patch: Partial<Photo>) {
@@ -438,28 +460,35 @@ export function PageEditor({
             <textarea id="seo" className="d-input min-h-28" maxLength={600} value={f.seo_keywords.join("\n")} onChange={(e) => set("seo_keywords", e.target.value.split("\n").slice(0, 8).map((x) => x.slice(0, 60)))} placeholder={"cafe in C-Scheme Jaipur\nbest coffee in Jaipur"} />
           </Section>
 
-          <Section title="Photos" sub={`${gallery.length} of ${photoLimit} on your plan. Swipe order follows this list.`}>
-            {gallery.length === 0 && <p className="text-sm" style={{ color: "var(--d-muted)" }}>No photos yet. Your best dish or your favourite corner is a great first photo.</p>}
-            <ul className="space-y-2">
-              {gallery.map((p) => (
-                <li key={p.id} className="d-raise flex items-center gap-3 p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.url} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
-                  <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                    <label className="sr-only" htmlFor={`cap-${p.id}`}>Caption</label>
-                    <input id={`cap-${p.id}`} className="d-input" defaultValue={p.caption ?? ""} placeholder="Dish or caption" onBlur={(e) => e.target.value !== (p.caption ?? "") && updatePhoto(p.id, { caption: e.target.value || null })} />
-                    <label className="flex min-h-11 items-center gap-2 text-sm">
-                      <input type="checkbox" className="h-5 w-5" checked={p.label === "BEST SELLER"} onChange={(e) => updatePhoto(p.id, { label: e.target.checked ? "BEST SELLER" : null })} />
-                      Best seller label
-                    </label>
-                  </div>
-                  <button onClick={() => removePhoto(p.id)} aria-label="Remove photo" className="grid h-11 w-11 shrink-0 place-items-center" style={{ color: "var(--d-muted)" }}><Trash2 size={17} /></button>
-                </li>
-              ))}
-            </ul>
-            <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
+          <Section title="Photos and videos" sub={`${gallery.length} of ${photoLimit} on your plan. Guests see them in this order. Press and hold the dots on the left and drag to move one. Clips play muted and loop; up to 20 MB each (MP4, WebM or MOV).`}>
+            {gallery.length === 0 && <p className="text-sm" style={{ color: "var(--d-muted)" }}>Nothing yet. Your best dish or your favourite corner is a great first photo.</p>}
+            <SortableList className="space-y-2" items={gallery} keyOf={(p) => p.id} onChange={(n) => void reorderPhotos(n)} render={(p, i, grip) => (
+              <div className="d-raise flex items-center gap-2 p-2">
+                <Grip label={`Drag item ${i + 1} to move it`} {...grip} />
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md" style={{ background: "var(--d-bg)" }}>
+                  {isClip(p.url)
+                    ? <><video src={p.url} muted playsInline preload="metadata" aria-label={`Clip ${i + 1}`} className="h-full w-full object-cover" /><span className="absolute bottom-0.5 left-0.5 rounded-full bg-black/70 px-1.5 text-[9px] font-semibold text-white">VIDEO</span></>
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : <img src={p.url} alt="" className="h-full w-full object-cover" />}
+                </div>
+                <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                  <label className="sr-only" htmlFor={`cap-${p.id}`}>Caption</label>
+                  <input id={`cap-${p.id}`} className="d-input" defaultValue={p.caption ?? ""} placeholder="Dish or caption" onBlur={(e) => e.target.value !== (p.caption ?? "") && updatePhoto(p.id, { caption: e.target.value || null })} />
+                  <label className="flex min-h-11 items-center gap-2 text-sm">
+                    <input type="checkbox" className="h-5 w-5" checked={p.label === "BEST SELLER"} onChange={(e) => updatePhoto(p.id, { label: e.target.checked ? "BEST SELLER" : null })} />
+                    Best seller label
+                  </label>
+                </div>
+                <div className="flex shrink-0 flex-col">
+                  <button type="button" className="grid h-8 w-8 place-items-center" aria-label={`Move item ${i + 1} earlier`} disabled={i === 0} onClick={() => void reorderPhotos(moveItem(gallery, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={15} /></button>
+                  <button type="button" className="grid h-8 w-8 place-items-center" aria-label={`Move item ${i + 1} later`} disabled={i === gallery.length - 1} onClick={() => void reorderPhotos(moveItem(gallery, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={15} /></button>
+                </div>
+                <button onClick={() => removePhoto(p.id)} aria-label="Remove" className="grid h-11 w-11 shrink-0 place-items-center" style={{ color: "var(--d-muted)" }}><Trash2 size={17} /></button>
+              </div>
+            )} />
+            <input ref={photoInput} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
             <button onClick={() => photoInput.current?.click()} disabled={uploading || gallery.length >= photoLimit} className="d-btn d-btn-s">
-              {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />} {uploading ? "Uploading" : "Add photos"}
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />} {uploading ? "Uploading" : "Add photos or videos"}
             </button>
           </Section>
 

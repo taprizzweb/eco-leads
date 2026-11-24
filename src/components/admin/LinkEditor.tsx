@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, ImagePlus, Loader2, Plus, Trash2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
+import { SortableList, Grip } from "@/components/ui/SortableList";
 import { ColorField, BG_SWATCHES } from "@/components/ui/ColorField";
 import { logoPalettes, type Palette } from "@/lib/logo-colors";
 import { useToast } from "@/components/dash/Toast";
@@ -232,26 +233,25 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
           <F label="Tags" hint="comma separated"><textarea className="d-input" rows={2} value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder="Specialty Coffee, Pet Friendly, All-Day Dining" /></F>
         </Sec>
 
-        <Sec title="Photos and videos" sub="One at a time with dots. It slides on its own. Videos play muted and loop. Images are shrunk automatically; videos can be up to 20 MB (MP4, WebM or MOV).">
+        <Sec title="Photos and videos" sub="One at a time with dots. It slides on its own. Press and hold the dots on a photo and drag to move it. Videos play muted and loop. Images are shrunk automatically; videos can be up to 20 MB (MP4, WebM or MOV).">
           <F label="Which way it moves"><select className="d-input !w-auto" value={r.photo_direction} onChange={(e) => set("photo_direction", e.target.value as Row["photo_direction"])}><option value="forward">Forward (the next one comes from the right)</option><option value="backward">Backward (the next one comes from the left)</option></select></F>
           <input ref={photoIn} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (!fs.length) return; void guard("photos", async () => { const items: LinkPhoto[] = []; for (const f of fs.slice(0, 30 - r.photos.length)) { if (f.type.startsWith("video/")) { if (f.size > MAX_VIDEO_BYTES) { toast(`${f.name} is over 20 MB. Use a shorter clip.`, true); continue; } items.push({ url: await uploadVideo(f), kind: "video" }); } else items.push({ url: await upload(f, 1200) }); } setR((s) => ({ ...s, photos: [...s.photos, ...items] })); }); }} />
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {r.photos.map((p, i) => (
-              <div key={p.url + i} className="space-y-1">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-xl" style={{ background: "var(--d-bg)" }}>
-                  {isVideo(p)
-                    ? <><video src={p.url} muted playsInline preload="metadata" aria-label={`Clip ${i + 1}`} className="h-full w-full object-cover" /><span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">VIDEO</span></>
-                    // eslint-disable-next-line @next/next/no-img-element
-                    : <img src={p.url} alt={p.caption ?? `Photo ${i + 1}`} className="h-full w-full object-cover" />}
-                </div>
-                <div className="flex justify-between">
-                  <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Move photo ${i + 1} earlier`} disabled={i === 0} onClick={() => set("photos", move(r.photos, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={15} /></button>
-                  <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Remove photo ${i + 1}`} onClick={() => set("photos", r.photos.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={15} /></button>
-                  <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Move photo ${i + 1} later`} disabled={i === r.photos.length - 1} onClick={() => set("photos", move(r.photos, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={15} /></button>
-                </div>
+          <SortableList className="grid grid-cols-3 gap-2 sm:grid-cols-5" items={r.photos} keyOf={(p, i) => p.url + i} onChange={(n) => set("photos", n)} render={(p, i, grip) => (
+            <div className="space-y-1">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-xl" style={{ background: "var(--d-bg)" }}>
+                {isVideo(p)
+                  ? <><video src={p.url} muted playsInline preload="metadata" aria-label={`Clip ${i + 1}`} className="h-full w-full object-cover" /><span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">VIDEO</span></>
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : <img src={p.url} alt={p.caption ?? `Photo ${i + 1}`} className="h-full w-full object-cover" />}
+                <Grip label={`Drag item ${i + 1} to move it`} className="absolute top-1 left-1 !bg-black/55 !text-white" {...grip} style={{ ...grip.style, color: "#fff" }} />
               </div>
-            ))}
-          </div>
+              <div className="flex justify-between">
+                <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Move photo ${i + 1} earlier`} disabled={i === 0} onClick={() => set("photos", move(r.photos, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={15} /></button>
+                <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Remove photo ${i + 1}`} onClick={() => set("photos", r.photos.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={15} /></button>
+                <button type="button" className="grid h-9 w-9 place-items-center" aria-label={`Move photo ${i + 1} later`} disabled={i === r.photos.length - 1} onClick={() => set("photos", move(r.photos, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={15} /></button>
+              </div>
+            </div>
+          )} />
           <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= 30} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} Add photos or videos ({r.photos.length} of 30)</button>
         </Sec>
 
