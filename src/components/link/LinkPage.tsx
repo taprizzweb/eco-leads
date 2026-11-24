@@ -173,7 +173,10 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const sb = supabaseBrowser();
   // A review opens the business on Google Maps: its first outlet's map link, else the page's own Maps link.
   const reviewHref = safeUrl(data.outlets?.find((o) => safeUrl(o.map_url))?.map_url) ?? safeUrl(data.socials.maps);
-  const track = (kind: "view" | "click") => { if (!preview) void sb.rpc("link_track", { p_id: data.id, p_kind: kind }); };
+  // A Supabase call only goes out once something waits on it, so .then() is what actually sends the count. A failed count never bothers the visitor.
+  const track = (kind: "view" | "click", key?: string) => {
+    if (!preview) sb.rpc("link_track", { p_id: data.id, p_kind: kind, p_key: key ?? null }).then(() => {}, () => {});
+  };
   const viewed = useRef(false);
   useEffect(() => { if (!viewed.current) { viewed.current = true; track("view"); } });
 
@@ -229,7 +232,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         {icons.length > 0 && (
           <motion.nav {...rise(1)} aria-label="Find us" className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 px-6">
             {icons.map((i) => (
-              <a key={i.label} href={i.href} target={i.href.startsWith("tel:") ? undefined : "_blank"} rel="noopener" aria-label={i.label} onClick={() => track("click")}
+              <a key={i.label} href={i.href} target={i.href.startsWith("tel:") ? undefined : "_blank"} rel="noopener" aria-label={i.label} onClick={() => track("click", `Icon: ${i.label}`)}
                 className={i.brand ? "grid h-8 w-8 place-items-center rounded-full transition active:scale-90" : "grid h-8 w-8 place-items-center transition active:scale-90"}
                 style={i.brand ? { background: i.brand.bg, color: i.brand.fg } : { color: "var(--l-text)" }}>{i.node}</a>
             ))}
@@ -269,8 +272,8 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
               const cls = "relative flex min-h-[52px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]";
               const st = { background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8)" } as const;
               return b.url === "#outlets" || b.url === "#offers"
-                ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click"); if (b.url === "#offers") setOffersOpen(true); else setOutlets(true); }}>{inner}</button>
-                : <a key={i} href={b.url} target={b.url.startsWith("tel:") || b.url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener" className={cls} style={st} onClick={() => track("click")}>{inner}</a>;
+                ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click", `Button: ${b.label}`); if (b.url === "#offers") setOffersOpen(true); else setOutlets(true); }}>{inner}</button>
+                : <a key={i} href={safeUrl(b.url) ?? "#"} target={b.url.startsWith("tel:") || b.url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener" className={cls} style={st} onClick={() => track("click", `Button: ${b.label}`)}>{inner}</a>;
             })}
           </motion.nav>
         )}
@@ -279,7 +282,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.section {...rise(5)} className="mt-5" aria-label="Guest reviews">
             <Marquee seconds={Math.max(24, data.reviews.length * 6)} label="Guest reviews">
               {fillTo(data.reviews, 8).map((r, i) => (
-                <ReviewCard key={i} href={reviewHref} onClick={() => track("click")}>
+                <ReviewCard key={i} href={reviewHref} onClick={() => track("click", "Guest reviews card")}>
                   <div className="flex items-center gap-2.5">
                     {r.avatar
                       // eslint-disable-next-line @next/next/no-img-element
@@ -298,8 +301,8 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
 
         <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><Mark size={16} />Powered by Taprizz</footer>
       </main>
-      {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click")} />}
-      {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click")} />}
+      {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click", "Offer: Get this offer")} />}
+      {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click", "Outlet: call, map or Instagram")} />}
     </div>
   );
 }

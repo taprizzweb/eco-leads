@@ -25,11 +25,16 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      { source: "/:path*", headers },
+      // Every page except the two below. A header set by two matching rules is not overridden by the later one, so those two get their own full lists.
+      { source: "/:path((?!l/|edit/).*)", headers },
       // Admin and dashboard pages are never stored by a browser or a shared cache.
       { source: "/admin/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
       { source: "/dashboard/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
       { source: "/group/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      // The editor shows a live preview of the mini link in a frame on the same site. Nobody else may frame it.
+      { source: "/l/:path*", headers: headers.map((h) => (h.key === "X-Frame-Options" ? { ...h, value: "SAMEORIGIN" } : h)) },
+      // The private control link is never stored and never leaked through a referrer.
+      { source: "/edit/:path*", headers: [...headers.filter((h) => h.key !== "Referrer-Policy"), { key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] },
     ];
   },
 };

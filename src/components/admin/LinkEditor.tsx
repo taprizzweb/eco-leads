@@ -15,6 +15,9 @@ type Row = {
   show_client_reviews: boolean; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
 };
 
+/** admin: Taprizz team (everything). member: the business owner or manager signed in. token: the private control link, no login. */
+export type EditorMode = "admin" | "member" | "token";
+
 // An Indian mobile number box: +91 is already there, the person types the 10 digits. Numbers that came in with another country code stay as they are.
 function PhoneField({ label, value, onChange, placeholder = "98765 43210" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   const v = value.trim();
@@ -48,7 +51,10 @@ const SOCIAL_FIELDS: [keyof LinkSocials, string, string][] = [
   ["phone", "Phone number", "+91 98765 43210"], ["website", "Website", "https://"],
 ];
 
-export function LinkEditor({ initial, clientName }: { initial: Row; clientName: string | null }) {
+export function LinkEditor({ initial, clientName, mode = "admin", token }: { initial: Row; clientName: string | null; mode?: EditorMode; token?: string }) {
+  const admin = mode === "admin";
+  // Uploads: the team uses links/<page>, a signed-in business uses its own folder, the control link uses a folder named by its secret.
+  const folder = mode === "token" ? `link-edit/${token}` : mode === "member" ? `${initial.client_id}/links` : `links/${initial.id}`;
   const sb = supabaseBrowser();
   const router = useRouter();
   const toast = useToast();
@@ -65,7 +71,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
 
   async function upload(file: File, max: number): Promise<string> {
     const blob = await toWebp(file, max);
-    const path = `links/${r.id}/${crypto.randomUUID()}.webp`;
+    const path = `${folder}/${crypto.randomUUID()}.webp`;
     const { error } = await sb.storage.from("page-assets").upload(path, blob, { contentType: "image/webp" });
     if (error) throw error;
     return sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl;
@@ -74,31 +80,41 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
   async function uploadVideo(file: File): Promise<string> {
     if (file.size > MAX_VIDEO_BYTES) throw new Error("big");
     const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "mp4";
-    const path = `links/${r.id}/${crypto.randomUUID()}.${ext}`;
+    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
     const { error } = await sb.storage.from("page-assets").upload(path, file, { contentType: file.type || "video/mp4" });
     if (error) throw error;
     return sb.storage.from("page-assets").getPublicUrl(path).data.publicUrl;
   }
 
   async function save() {
-    const slug = slugify(r.slug);
-    if (!/^[a-z0-9-]{3,40}$/.test(slug)) return toast("The page link needs 3 to 40 letters, numbers or dashes.", true);
     if (!r.name.trim()) return toast("Add the business name.", true);
     const tags = tagText.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 20);
     const socials = Object.fromEntries(Object.entries(r.socials).filter(([, v]) => typeof v === "string" && v.trim()).map(([k, v]) => [k, String(v).trim()]));
-    setBusy(true);
-    const { error } = await sb.from("link_pages").update({
-      slug, name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, tags, socials,
+    const content = {
+      name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, tags, socials, photo_direction: r.photo_direction,
       photos: r.photos.slice(0, 30), buttons: r.buttons.filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30), offers: r.offers.filter((o) => o.title.trim()).slice(0, 60),
-      reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, published: r.published, photo_direction: r.photo_direction,
-      fee_inr: Math.max(0, Math.floor(Number(r.fee_inr) || 0)), billing_note: r.billing_note?.trim() || null, updated_at: new Date().toISOString(),
-    }).eq("id", r.id);
+    };
+    setBusy(true);
+    let message: string | null = null;
+    if (admin) {
+      const slug = slugify(r.slug);
+      if (!/^[a-z0-9-]{3,40}$/.test(slug)) { setBusy(false); return toast("The page link needs 3 to 40 letters, numbers or dashes.", true); }
+      const { error } = await sb.from("link_pages").update({
+        ...content, slug, reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, published: r.published,
+        fee_inr: Math.max(0, Math.floor(Number(r.fee_inr) || 0)), billing_note: r.billing_note?.trim() || null, updated_at: new Date().toISOString(),
+      }).eq("id", r.id);
+      if (error) message = /duplicate|unique/i.test(error.message) ? "That page link is already taken." : "That did not save. Please try again.";
+      else setR((st) => ({ ...st, slug, tags }));
+    } else {
+      const { error } = mode === "token" ? await sb.rpc("link_edit_save", { p_token: token, p_patch: content }) : await sb.rpc("link_my_save", { p_id: r.id, p_patch: content });
+      if (error) message = /bad .* link/i.test(error.message) ? "One of the links is not a web address. Links start with https://, tel: or mailto:." : "That did not save. Please try again.";
+      else setR((st) => ({ ...st, tags }));
+    }
     setBusy(false);
-    if (error) return toast(/duplicate|unique/i.test(error.message) ? "That page link is already taken." : "That did not save. Please try again.", true);
-    setR((s) => ({ ...s, slug, tags }));
+    if (message) return toast(message, true);
     setVer((v) => v + 1);
     toast("Saved");
-    router.refresh();
+    if (admin) router.refresh();
   }
 
   async function remove() {
@@ -113,14 +129,14 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
   return (
     <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
       <div className="space-y-4">
-        <Sec title="Page" sub={clientName ? `Linked to the registered business ${clientName}.` : "A link-only business. It is not registered in Taprizz."}>
+        {admin && (        <Sec title="Page" sub={clientName ? `Linked to the registered business ${clientName}.` : "A link-only business. It is not registered in Taprizz."}>
           <div className="grid gap-4 sm:grid-cols-2">
             <F label="Page link" hint={`${LINK_BASE.replace(/^https?:\/\//, "")}/${slugify(r.slug) || "name"}`}><input className="d-input" maxLength={40} value={r.slug} onChange={(e) => set("slug", e.target.value.toLowerCase())} /></F>
             <F label="Status"><select className="d-input" value={r.published ? "live" : "draft"} onChange={(e) => set("published", e.target.value === "live")}><option value="live">Live</option><option value="draft">Draft (hidden)</option></select></F>
             <F label="Fee for this page" hint="Rs, 0 means free"><input className="d-input" type="number" min={0} value={r.fee_inr} onChange={(e) => set("fee_inr", Number(e.target.value))} /></F>
             <F label="Billing note"><input className="d-input" maxLength={200} value={r.billing_note ?? ""} onChange={(e) => set("billing_note", e.target.value)} placeholder="Paid till March, free as a service..." /></F>
           </div>
-        </Sec>
+        </Sec>)}
 
         <Sec title="Template" sub="The colours of the page.">
           <div className="flex flex-wrap gap-2">{(Object.keys(LINK_THEMES) as LinkTheme[]).map((t) => (
@@ -278,7 +294,7 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
           {r.offers.length > 0 && !r.buttons.some((b) => b.url === "#offers") && <p className="text-xs" style={{ color: "var(--d-amber)" }}>There is no Offers button yet. Add one in Link buttons and press the Offers shortcut, or guests will not see these.</p>}
         </Sec>
 
-        <Sec title="Reviews" sub="Shown as a moving row of Google review cards.">
+        {admin && (        <Sec title="Reviews" sub="Shown as a moving row of Google review cards.">
           {r.client_id && <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={r.show_client_reviews} onChange={(e) => set("show_client_reviews", e.target.checked)} />Also show the reviews pasted for the registered business</label>}
           <div className="space-y-3">
             {r.reviews.map((x, i) => (
@@ -295,12 +311,12 @@ export function LinkEditor({ initial, clientName }: { initial: Row; clientName: 
           </div>
           <button type="button" className="d-btn d-btn-s" disabled={r.reviews.length >= 30} onClick={() => set("reviews", [...r.reviews, { author: "", rating: 5, body: "" }])}><Plus size={15} /> Add a review</button>
           <p className="text-xs" style={{ color: "var(--d-muted)" }}>Only add real reviews that guests wrote.</p>
-        </Sec>
+        </Sec>)}
 
         <div className="sticky bottom-3 z-10 flex flex-wrap gap-2 rounded-2xl p-2 backdrop-blur" style={{ background: "color-mix(in srgb, var(--d-bg) 80%, transparent)" }}>
           <button className="d-btn d-btn-p" disabled={busy || !!up} onClick={save}>{busy && <Loader2 size={16} className="animate-spin" />} Save</button>
           <a className="d-btn d-btn-s" href={`/l/${slugify(initial.slug)}${initial.published ? "" : "?preview=1"}`} target="_blank" rel="noopener">Open page</a>
-          <button className="d-btn d-btn-s ml-auto" onClick={remove}>Delete</button>
+          {admin && <button className="d-btn d-btn-s ml-auto" onClick={remove}>Delete</button>}
         </div>
       </div>
 

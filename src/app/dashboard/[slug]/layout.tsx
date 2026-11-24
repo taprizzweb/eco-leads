@@ -18,8 +18,9 @@ export default async function DashLayout({ children, params }: { children: React
   const { count } = await sb.from("feedback").select("id", { count: "exact", head: true }).eq("client_id", client.id).eq("status", "new");
   const callsOn = features.call_server === true && tablesFit(client.business_type);
   const { count: callsOpen } = callsOn ? await sb.from("server_calls").select("id", { count: "exact", head: true }).eq("client_id", client.id).eq("status", "new") : { count: 0 };
+  const { data: linkOn } = await sb.rpc("link_my_exists", { p_client: client.id });
   return (
-    <Shell clientId={client.id} slug={client.slug} clientName={client.name} logoUrl={client.logo_url} openCount={count ?? 0} contentCount={newMoments} isTeam={!!teamRole} waOn={client.review_setup?.collect_contact === true} tablesOn={(features.table_ordering === true || features.pos === true) && tablesFit(client.business_type)} jaipurOn={HUB_ENABLED && hubRow?.hub_listed === true} upHref={upHref} callsOn={callsOn} callsOpen={callsOpen ?? 0} posOn={features.pos === true} role={role}>
+    <Shell clientId={client.id} slug={client.slug} clientName={client.name} logoUrl={client.logo_url} openCount={count ?? 0} contentCount={newMoments} isTeam={!!teamRole} waOn={client.review_setup?.collect_contact === true} tablesOn={(features.table_ordering === true || features.pos === true) && tablesFit(client.business_type)} jaipurOn={HUB_ENABLED && hubRow?.hub_listed === true} upHref={upHref} callsOn={callsOn} callsOpen={callsOpen ?? 0} posOn={features.pos === true} linkOn={linkOn === true} role={role}>
       {children}
     </Shell>
   );

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { requireTeam, atLeast } from "@/lib/admin";
 import { PageHead } from "@/components/admin/ui";
-import { LinkEditor } from "@/components/admin/LinkEditor";
+import { LinkManager } from "@/components/link/LinkManager";
+import { LinkControl } from "@/components/admin/LinkControl";
 
 export default async function LinkEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,8 @@ export default async function LinkEditPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <PageHead title={data.name} sub="Edit the page. Press Save to see changes in the preview." />
-      <LinkEditor initial={data as never} clientName={client?.name ?? null} />
+      <div className="mb-4"><LinkControl linkId={data.id} initialToken={data.edit_token ?? null} initialEnabled={data.edit_enabled !== false} /></div>
+      <LinkManager initial={data as never} clientName={client?.name ?? null} mode="admin" />
     </>
   );
 }

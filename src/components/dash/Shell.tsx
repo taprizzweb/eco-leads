@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing, UtensilsCrossed, Menu, X, ShieldCheck, Users, MessageCircle, KeyRound } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing, UtensilsCrossed, Menu, X, ShieldCheck, Users, MessageCircle, KeyRound, Link2 } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
@@ -30,6 +30,7 @@ export function Shell({
   callsOn = false,
   callsOpen = 0,
   posOn = false,
+  linkOn = false,
   role = "owner",
   children,
 }: {
@@ -47,6 +48,7 @@ export function Shell({
   callsOn?: boolean;
   callsOpen?: number;
   posOn?: boolean;
+  linkOn?: boolean;
   role?: Role;
   children: React.ReactNode;
 }) {
@@ -80,6 +82,7 @@ export function Shell({
     { href: `${base}/announce`, label: "Announcements", Icon: Megaphone, section: "announce" },
     { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount, section: "moments" },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft, section: "mypage" },
+    ...(linkOn ? [{ href: `${base}/mini-link`, label: "Mini link", Icon: Link2, section: "mypage" } as Tab] : []),
     { href: `${base}/team`, label: "Staff report", Icon: Users, section: "staff" },
     ...(waOn ? [{ href: `${base}/offers`, label: "WhatsApp offers", Icon: MessageCircle, section: "offers" } as Tab] : []),
     ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Gulabi", Icon: MapPin, section: "jaipur" } as Tab] : []),
