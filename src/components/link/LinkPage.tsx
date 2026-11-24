@@ -165,7 +165,7 @@ function OffersSheet({ offers, outlets, onClose, onClick }: { offers: LinkOffer[
 const PALETTE = ["#6c5ce7", "#00a3a3", "#e17055", "#0984e3", "#d63384", "#2d9b5e"];
 
 export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean }) {
-  const theme = getLinkTheme(data.theme);
+  const theme = getLinkTheme(data.theme, data.colors);
   const reduce = useReducedMotion();
   const [outlets, setOutlets] = useState(false);
   const [offersOpen, setOffersOpen] = useState(false);

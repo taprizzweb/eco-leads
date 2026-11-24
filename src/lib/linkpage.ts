@@ -15,7 +15,43 @@ export const LINK_THEMES: Record<LinkTheme, ThemeDef> = {
   plum: { label: "Plum", dark: true, vars: { "--l-bg": "#0d0716", "--l-glow": "rgba(150,90,255,0.28)", "--l-surface": "rgba(255,255,255,0.055)", "--l-surface-2": "rgba(255,255,255,0.09)", "--l-line": "rgba(255,255,255,0.10)", "--l-text": "#f4eeff", "--l-muted": "#a592c8", "--l-accent": "#a984ff", "--l-accent-soft": "rgba(169,132,255,0.16)", "--l-pill": "#ffffff", "--l-pill-text": "#0b1020", "--l-sheet": "#170d2a" } },
   ivory: { label: "Ivory (light)", dark: false, vars: { "--l-bg": "#f7f3ec", "--l-glow": "rgba(214,170,90,0.28)", "--l-surface": "rgba(255,255,255,0.85)", "--l-surface-2": "rgba(255,255,255,1)", "--l-line": "rgba(20,16,8,0.09)", "--l-text": "#1b1710", "--l-muted": "#7b7365", "--l-accent": "#a87a1f", "--l-accent-soft": "rgba(168,122,31,0.12)", "--l-pill": "#1b1710", "--l-pill-text": "#f7f3ec", "--l-sheet": "#fffdf8" } },
 };
-export const getLinkTheme = (id: string | null | undefined) => LINK_THEMES[(id as LinkTheme) in LINK_THEMES ? (id as LinkTheme) : "midnight"];
+/** Colours a person picks freely. Each one is optional; an empty one keeps the template's own colour. */
+export type LinkColors = { bg?: string; accent?: string; button?: string };
+export const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+
+const rgb = (h: string): [number, number, number] => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const hex = (c: number[]) => "#" + c.map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, "0")).join("");
+const mix = (a: string, b: string, t: number) => { const x = rgb(a), y = rgb(b); return hex(x.map((v, i) => v * (1 - t) + y[i] * t)); };
+const rgba = (h: string, a: number) => { const [r, g, b] = rgb(h); return `rgba(${r},${g},${b},${a})`; };
+/** Perceived brightness from 0 (black) to 1 (white). */
+export const lightness = (h: string) => { const [r, g, b] = rgb(h).map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+
+/** The template's colours with the person's own background, accent and button colours laid on top. Text colour is chosen so it always reads. */
+export function getLinkTheme(id: string | null | undefined, colors?: LinkColors | null) {
+  const base = LINK_THEMES[(id as LinkTheme) in LINK_THEMES ? (id as LinkTheme) : "midnight"];
+  const bg = isHex(colors?.bg) ? colors!.bg! : null;
+  const accentIn = isHex(colors?.accent) ? colors!.accent! : null;
+  const buttonIn = isHex(colors?.button) ? colors!.button! : null;
+  if (!bg && !accentIn && !buttonIn) return base;
+  const vars: Record<string, string> = { ...base.vars };
+  let dark = base.dark;
+  if (bg) {
+    dark = lightness(bg) < 0.4;
+    const text = dark ? "#f4f4f7" : "#17140e";
+    Object.assign(vars, {
+      "--l-bg": bg, "--l-text": text, "--l-muted": mix(text, bg, 0.42),
+      "--l-surface": dark ? "rgba(255,255,255,0.055)" : "rgba(255,255,255,0.85)", "--l-surface-2": dark ? "rgba(255,255,255,0.09)" : "#ffffff",
+      "--l-line": dark ? "rgba(255,255,255,0.10)" : "rgba(20,16,8,0.09)", "--l-sheet": dark ? mix(bg, "#ffffff", 0.06) : mix(bg, "#ffffff", 0.7),
+      "--l-pill": dark ? "#ffffff" : text, "--l-pill-text": dark ? "#0b1020" : bg,
+    });
+    if (!accentIn) vars["--l-accent"] = dark ? mix(bg, "#ffffff", 0.8) : mix(bg, "#000000", 0.7);
+  }
+  const accent = accentIn ?? vars["--l-accent"];
+  if (accentIn) vars["--l-accent"] = accentIn;
+  if (accentIn || bg) { vars["--l-glow"] = rgba(accent, 0.3); vars["--l-accent-soft"] = rgba(accent, 0.16); }
+  if (buttonIn) { vars["--l-pill"] = buttonIn; vars["--l-pill-text"] = lightness(buttonIn) > 0.45 ? "#111111" : "#ffffff"; }
+  return { label: base.label, dark, vars };
+}
 
 export type LinkSocials = Partial<Record<"instagram" | "facebook" | "zomato" | "swiggy" | "phone" | "maps" | "whatsapp" | "website", string>>;
 export type LinkPhoto = { url: string; caption?: string; kind?: "image" | "video" };
@@ -27,7 +63,7 @@ export type LinkOutlet = { name: string; city?: string; address?: string; instag
 export type LinkOffer = { outlet: string; title: string; details?: string; link?: string; valid_till?: string };
 export type LinkReview = { author: string; rating: number; body: string; date?: string; avatar?: string };
 export type LinkData = {
-  id: string; slug: string; name: string; tagline: string | null; logo_url: string | null; theme: string; tags: string[];
+  id: string; slug: string; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; tags: string[];
   socials: LinkSocials; photos: LinkPhoto[]; photo_direction?: "forward" | "backward"; buttons: LinkButton[]; outlets: LinkOutlet[]; offers?: LinkOffer[]; reviews: LinkReview[];
 };
 
