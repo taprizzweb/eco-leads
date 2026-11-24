@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, ImagePlus, Loader2, Plus, Trash2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
+import { logoPalettes, type Palette } from "@/lib/logo-colors";
 import { useToast } from "@/components/dash/Toast";
 import { slugify, LINK_BASE } from "@/lib/features";
 import { BUTTON_ICONS, ICON_LABEL, indianNational, isHex, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, getLinkTheme, type LinkColors, type LinkButton, type LinkOffer, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
@@ -88,6 +89,19 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
   const [up, setUp] = useState<string | null>(null);
   const [ver, setVer] = useState(0);
   const logoIn = useRef<HTMLInputElement>(null);
+  const [looks, setLooks] = useState<Palette[] | null>(null);
+  const [lookBusy, setLookBusy] = useState(false);
+  async function pickFromLogo(src: Blob | string, quiet = false) {
+    setLookBusy(true);
+    try {
+      const list = await logoPalettes(src);
+      setLooks(list);
+      if (!list.length) toast("No clear colours found in this logo.", true);
+      else if (quiet) toast("Colour ideas ready from your logo. See Colours.");
+    } catch {
+      if (!quiet) toast("Taprizz could not read this logo's colours. Upload the logo here again and try once more.", true);
+    } finally { setLookBusy(false); }
+  }
   const photoIn = useRef<HTMLInputElement>(null);
   const outletTarget = useRef<number>(0);
   const outletIn = useRef<HTMLInputElement>(null);
@@ -172,6 +186,25 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
         <Sec title="Colours" sub="Pick any colour for the background, the glow and the buttons. Text turns light or dark by itself so it stays readable. Leave a colour empty to keep the template's.">
           {(() => { const t = getLinkTheme(r.theme, r.colors); const c = r.colors ?? {}; return (
             <>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" className="d-btn d-btn-p" disabled={!r.logo_url || lookBusy} onClick={() => r.logo_url && void pickFromLogo(r.logo_url)}>{lookBusy && <Loader2 size={15} className="animate-spin" />} Pick colours from my logo</button>
+                  {!r.logo_url && <span className="text-xs" style={{ color: "var(--d-muted)" }}>Add a logo first.</span>}
+                </div>
+                {looks && looks.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Looks made from your logo">
+                    {looks.map((p) => { const lt = getLinkTheme("midnight", { bg: p.bg, accent: p.accent, button: p.button }); const on = r.colors?.bg === p.bg && r.colors?.accent === p.accent && r.colors?.button === p.button; return (
+                      <button key={p.name} type="button" aria-pressed={on} onClick={() => set("colors", { bg: p.bg, accent: p.accent, button: p.button })} className="overflow-hidden rounded-xl text-left" style={{ boxShadow: on ? "0 0 0 2px var(--d-bg), 0 0 0 4px var(--d-text)" : "inset 0 0 0 1px var(--d-line-2)" }}>
+                        <span className="block px-3 pt-3 pb-3" style={{ background: `radial-gradient(90% 70px at 50% -20px, ${lt.vars["--l-glow"]}, transparent 70%), ${lt.vars["--l-bg"]}`, color: lt.vars["--l-text"] }}>
+                          <span className="block text-[11px] font-semibold uppercase tracking-wide">{r.name || "Name"}</span>
+                          <span className="mt-2 block rounded-full py-1.5 text-center text-[11px] font-semibold uppercase" style={{ background: lt.vars["--l-pill"], color: lt.vars["--l-pill-text"] }}>Button</span>
+                        </span>
+                        <span className="block px-3 py-2 text-xs" style={{ background: "var(--d-bg)", color: "var(--d-text)" }}>{p.name}</span>
+                      </button>); })}
+                  </div>
+                )}
+                <p className="text-xs" style={{ color: "var(--d-muted)" }}>Or keep a template above and fine-tune any colour below.</p>
+              </div>
               <ColorField label="Background" value={c.bg} fallback={getLinkTheme(r.theme).vars["--l-bg"]} swatches={BG_SWATCHES} onChange={(v) => setR((st) => ({ ...st, colors: { ...st.colors, bg: v } }))} />
               <ColorField label="Accent and glow" hint="the soft light at the top" value={c.accent} fallback={getLinkTheme(r.theme).vars["--l-accent"]} onChange={(v) => setR((st) => ({ ...st, colors: { ...st.colors, accent: v } }))} />
               <ColorField label="Buttons" hint="the big link buttons" value={c.button} fallback={getLinkTheme(r.theme).vars["--l-pill"]} onChange={(v) => setR((st) => ({ ...st, colors: { ...st.colors, button: v } }))} />
@@ -192,7 +225,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={r.logo_url} alt="" className="h-full w-full object-cover" /> : <ImagePlus size={22} style={{ color: "var(--d-muted)" }} />}
             </button>
-            <input ref={logoIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void guard("logo", async () => set("logo_url", await upload(f, 500))); }} />
+            <input ref={logoIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void guard("logo", async () => { set("logo_url", await upload(f, 500)); void pickFromLogo(f, true); }); }} />
             <p className="text-sm" style={{ color: "var(--d-muted)" }}>Square logo works best. It is shrunk for fast loading.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
