@@ -120,9 +120,34 @@ export function StaffSheet({ staff, clientId, code, visitor, canReport, onDone }
 }
 
 /** Floating "New" button. Opens the owner's latest posters one by one. */
-export function NewPill({ onOpen }: { onOpen: () => void }) {
+export type NewStyle = "pill" | "tab" | "banner";
+export const NEW_STYLES: { id: NewStyle; label: string; help: string }[] = [
+  { id: "pill", label: "Red button", help: "A red NEW button floats above the footer, in the middle." },
+  { id: "tab", label: "Side tab", help: "A small tab on the right edge. It stays out of the way." },
+  { id: "banner", label: "Top strip", help: "A strip above the cards. It scrolls with the page, so it never covers anything." },
+];
+const REDBG = "linear-gradient(180deg, #ef4444, #dc2626)";
+
+/** Opens the "What is new" posters again. Three looks; none of them sits on top of the Powered by Taprizz footer. */
+export function NewPill({ onOpen, variant = "pill" }: { onOpen: () => void; variant?: NewStyle }) {
+  if (variant === "banner") {
+    return (
+      <button type="button" onClick={onOpen} aria-label="See what is new" className="mx-4 mb-4 flex min-h-12 w-[calc(100%-2rem)] items-center gap-3 rounded-2xl px-4 text-left ring-1 ring-line active:scale-[0.99]" style={{ background: "var(--surface)" }}>
+        <span className="rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-[0.12em] text-white uppercase" style={{ background: REDBG }}>New</span>
+        <span className="flex-1 text-[14px] font-semibold">See what is new</span>
+        <span aria-hidden className="text-muted">›</span>
+      </button>
+    );
+  }
+  if (variant === "tab") {
+    return (
+      <button type="button" onClick={onOpen} aria-label="See what is new" className="fixed right-0 bottom-28 z-30 flex min-h-11 items-center gap-2 rounded-l-2xl pr-3 pl-3.5 text-[12px] font-extrabold tracking-[0.12em] text-white uppercase shadow-[0_10px_30px_-8px_rgba(220,38,38,0.8)]" style={{ background: REDBG }}>
+        <span className="h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden />New
+      </button>
+    );
+  }
   return (
-    <button type="button" onClick={onOpen} aria-label="See what is new" className="fixed bottom-5 left-1/2 z-30 min-h-11 -translate-x-1/2 rounded-full px-5 text-[13px] font-extrabold tracking-[0.12em] text-white uppercase shadow-[0_10px_30px_-8px_rgba(220,38,38,0.8)]" style={{ background: "linear-gradient(180deg, #ef4444, #dc2626)" }}>
+    <button type="button" onClick={onOpen} aria-label="See what is new" className="fixed bottom-24 left-1/2 z-30 min-h-11 -translate-x-1/2 rounded-full px-5 text-[13px] font-extrabold tracking-[0.12em] text-white uppercase shadow-[0_10px_30px_-8px_rgba(220,38,38,0.8)]" style={{ background: REDBG }}>
       New
     </button>
   );

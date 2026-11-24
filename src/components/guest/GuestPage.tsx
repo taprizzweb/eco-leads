@@ -95,6 +95,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
   const { client } = data;
   const [postersOpen, setPostersOpen] = useState(false);
   const closePosters = useCallback(() => setPostersOpen(false), []);
+  const newStyle = client.card_config?.new_style ?? "pill";
   // The "What is new" posters open as soon as the guest page loads, every time.
   const posterIds = (data.extras?.posters ?? []).map((p) => p.id).join(",");
   useEffect(() => {
@@ -280,6 +281,8 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
               </motion.div>
             )}
 
+            {data.live && !!data.extras?.posters.length && newStyle === "banner" && <NewPill variant="banner" onOpen={() => setPostersOpen(true)} />}
+
             {/* 6. Action cards */}
             <section aria-label="What would you like to do?" className="space-y-3.5 px-4">
               {order.map((k, i) => {
@@ -453,7 +456,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
         {postersOpen && <PostersSheet posters={data.extras?.posters ?? []} />}
       </Sheet>
       {data.live && !!data.features.call_server && !!data.plate?.label && <CallServerButton clientId={client.id} code={data.plate.code} table={data.plate.label} />}
-      {data.live && !!data.extras?.posters.length && !postersOpen && !open && !gate && !outletsOpen && <NewPill onOpen={() => setPostersOpen(true)} />}
+      {data.live && !!data.extras?.posters.length && newStyle !== "banner" && !postersOpen && !open && !gate && !outletsOpen && <NewPill variant={newStyle} onOpen={() => setPostersOpen(true)} />}
       <Sheet open={gate} onClose={() => { setGate(false); setPending(null); }} title="Before we start">
         {gate && <VisitorGate clientId={client.id} businessName={client.name} onDone={(v) => { setVisitor(v); setGate(false); setOpen(pending); setPending(null); }} />}
       </Sheet>
