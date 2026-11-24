@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Star, Copy, Check, Loader2, ArrowLeft, RefreshCw, HeartHandshake, Smile } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Star, Copy, Check, Loader2, ArrowLeft, RefreshCw, HeartHandshake, Smile, Mic, Send } from "lucide-react";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import type { GuestPageData } from "@/lib/types";
 import { LANGS, localize, resolveQuestions, type Lang } from "@/lib/review/questions";
 import type { Visitor } from "@/lib/visitor";
@@ -9,6 +10,7 @@ import { chip, glassInput, pillPrimary, pillSoft } from "./ui";
 
 type Step = "stars" | "q" | "draft";
 const MAX_TRIES = 3;
+type SpeechLike = { lang: string; interimResults: boolean; continuous: boolean; start: () => void; stop: () => void; onresult: ((e: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null };
 
 // The guest's own answers become their review. The Google button is always available, at every rating,
 // and nothing is ever offered in return for a review. Low ratings are offered a private message first.
@@ -31,6 +33,14 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [continueAnyway, setContinueAnyway] = useState(false);
+  // 1 to 3 stars: a blank box to type or speak into, sent privately to the management. The Google link stays available.
+  const [fb, setFb] = useState("");
+  const [fbSending, setFbSending] = useState(false);
+  const [fbSent, setFbSent] = useState(false);
+  const [fbError, setFbError] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const recog = useRef<{ stop: () => void } | null>(null);
+  const canSpeak = typeof window !== "undefined" && !!((window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition);
   // Remembered on this phone once the guest has opened Google with their review, so the next tap says so instead of starting again.
   const reviewedKey = `tz_reviewed_${data.client.id}`;
   const [already, setAlready] = useState(false);
@@ -56,10 +66,11 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
 
   const q = questions[qi];
   const lq = q ? localize(q, lang) : null;
-  const lowStars = rating > 0 && rating <= 2 && lowMode === "private_first" && !!onPrivateFeedback && !continueAnyway;
+  const lowStars = rating > 0 && rating <= 3 && lowMode === "private_first" && !!onPrivateFeedback && !continueAnyway;
 
   function choose(n: number) {
     setRating(n);
+    try { sessionStorage.setItem(`tz_rated_${data.client.id}`, "1"); } catch { /* fine */ }   // the page behind stops offering the stars on Back
     setError(null);
     if (step === "stars") { if (questions.length) setStep("q"); else void write({}); }
   }
@@ -120,6 +131,33 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
     }
   }
 
+  function toggleMic() {
+    if (listening) { recog.current?.stop(); return; }
+    const W = window as unknown as { SpeechRecognition?: new () => SpeechLike; webkitSpeechRecognition?: new () => SpeechLike };
+    const R = W.SpeechRecognition ?? W.webkitSpeechRecognition;
+    if (!R) return;
+    const r = new R();
+    r.lang = lang === "en" ? "en-IN" : "hi-IN";
+    r.interimResults = false;
+    r.continuous = true;
+    r.onresult = (e) => { let t = ""; for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) t += e.results[i][0].transcript + " "; if (t) setFb((v) => (v ? v.trimEnd() + " " : "") + t.trim()); };
+    r.onerror = () => { setListening(false); setFbError("The microphone did not start. Allow it in your browser, or type instead."); };
+    r.onend = () => setListening(false);
+    setFbError(null);
+    recog.current = r;
+    try { r.start(); setListening(true); } catch { setListening(false); }
+  }
+  async function sendFeedback() {
+    const text = fb.trim();
+    if (!text) { setFbError("Write or say a few words first."); return; }
+    recog.current?.stop();
+    setFbSending(true); setFbError(null);
+    const { error: e } = await supabaseBrowser().rpc("guest_submit_feedback", { p_client: data.client.id, p_code: code, p_kind: "complaint", p_body: `[${rating} star${rating > 1 ? "s" : ""}] ${text}`, p_media: [], p_name: null, p_phone: null, p_consent: false });
+    setFbSending(false);
+    if (e) { setFbError("Your message did not send. Check your connection and try again. Nothing you wrote was lost."); return; }
+    setFbSent(true);
+  }
+
   async function copyAndOpen() {
     try { await navigator.clipboard.writeText(draft); setCopied(true); } catch { /* the guest can still select the text */ }
     if (draftId) fetch("/api/review-draft/copied", { method: "POST", body: JSON.stringify({ id: draftId }) }).catch(() => {});
@@ -166,14 +204,31 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
         </div>
       </div>
 
-      {/* 1 and 2 stars: a private message comes first. The Google link below stays available. */}
+      {/* 1 to 3 stars: a box to type or speak into, sent privately to the management. The Google link stays available. */}
       {lowStars && step !== "draft" && (
-        <div className="space-y-3 rounded-3xl p-4 bg-[color-mix(in_srgb,var(--text)_7%,transparent)]">
-          <p className="flex items-center gap-2 font-semibold"><HeartHandshake size={18} /> We are sorry it was not great</p>
-          <p className="text-sm text-muted">Tell the management directly. They read every message and want to put it right.</p>
-          <button className={pillPrimary} onClick={onPrivateFeedback}>Tell the management privately</button>
-          <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => setContinueAnyway(true)}>I still want to write a review</button>
-        </div>
+        fbSent ? (
+          <div className="space-y-2 rounded-3xl p-5 text-center bg-[color-mix(in_srgb,var(--text)_7%,transparent)]" role="status">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-500/15 text-emerald-500"><Smile size={32} /></span>
+            <p className="text-lg font-semibold">Thank you for your feedback</p>
+            <p className="text-sm text-muted">The management will read it.</p>
+            <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => { setFbSent(false); setContinueAnyway(true); }}>I would also like to write a Google review</button>
+          </div>
+        ) : (
+          <div className="space-y-3 rounded-3xl p-4 bg-[color-mix(in_srgb,var(--text)_7%,transparent)]">
+            <label htmlFor="fb" className="flex items-center gap-2 font-semibold"><HeartHandshake size={18} /> What could we do better?</label>
+            <div className="relative">
+              <textarea id="fb" rows={5} value={fb} onChange={(e) => setFb(e.target.value)} maxLength={1000} className={`${glassInput} rounded-2xl pr-14 leading-relaxed`} placeholder={listening ? "Listening..." : "Type here" + (canSpeak ? ", or tap the mic and speak" : "")} />
+              {canSpeak && (
+                <button type="button" onClick={toggleMic} aria-pressed={listening} aria-label={listening ? "Stop listening" : "Speak instead of typing"} className={`absolute right-2 bottom-2 grid h-11 w-11 place-items-center rounded-full ${listening ? "bg-red-500 text-white" : "bg-[color-mix(in_srgb,var(--text)_12%,transparent)]"}`}>
+                  <Mic size={20} className={listening ? "animate-pulse" : ""} />
+                </button>
+              )}
+            </div>
+            {fbError && <p role="alert" className="text-sm text-amber-400">{fbError}</p>}
+            <button className={pillPrimary} onClick={() => void sendFeedback()} disabled={fbSending}>{fbSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}{fbSending ? "Sending" : "Send"}</button>
+            <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => setContinueAnyway(true)}>I would rather write a Google review</button>
+          </div>
+        )
       )}
 
       {!lowStars && step === "q" && q && lq && (

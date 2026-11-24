@@ -86,9 +86,9 @@ export function ClientReviewSetup({ clientId, clientName, category, setup, categ
           <span><span className="font-medium" style={{ color: "var(--d-text)" }}>WhatsApp offers: ask guests for name and number</span><br /><span className="text-xs" style={{ color: "var(--d-muted)" }}>Off by default. Switch it on only for businesses that want to send offers to their customers. Then guests see a short &ldquo;Before we start&rdquo; form once, and the owner gets a page to request offers. When it is off, guests go straight in and nothing about them is stored. Collected numbers are deleted after 45 days.</span></span></label>
       </div>
 
-      <label className="mt-4 block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>If a guest gives 1 or 2 stars</span>
+      <label className="mt-4 block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>If a guest gives 3 stars or fewer</span>
         <select className="d-input mt-1.5" value={low} onChange={(e) => setLow(e.target.value)}>
-          <option value="private_first">Offer the private message to management first</option>
+          <option value="private_first">Show a feedback box for the management first</option>
           <option value="same">Treat it like any other rating</option>
         </select></label>
       <p className="mt-1.5 text-xs" style={{ color: "var(--d-muted)" }}>The Google review link always stays available at every rating. Hiding low ratings is against Google&apos;s rules and puts the business&apos;s reviews at risk, so that option does not exist.</p>

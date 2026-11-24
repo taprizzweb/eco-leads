@@ -120,7 +120,7 @@ export function MenuApp({ data, menu, code }: { data: GuestPageData; menu: MenuD
     const t2 = setTimeout(() => {
       if (reviewable && !reviewed()) {
         setStars(true);
-        try { sessionStorage.setItem(`tz_exit_${client.id}`, "1"); } catch { /* fine */ }   // the page behind does not show the stars a second time
+        try { sessionStorage.removeItem(`tz_menuback_${client.id}`); sessionStorage.setItem(`tz_exitn_${client.id}`, "2"); } catch { /* fine */ }   // the page behind does not show the stars a second time
       }
     }, 2200);
     return () => { clearTimeout(t1); clearTimeout(t2); };

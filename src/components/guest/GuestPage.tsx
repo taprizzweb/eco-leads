@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Instagram, Facebook, MapPin, Phone, ChevronRight, Star, Store, MessageCircle } from "lucide-react";
 import type { LinkOutlet } from "@/lib/linkpage";
@@ -98,16 +98,57 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
   const newStyle = client.card_config?.new_style ?? "pill";
   // The "What is new" posters open as soon as the guest page loads, every time.
   const posterIds = (data.extras?.posters ?? []).map((p) => p.id).join(",");
+  const menuBackKey = `tz_menuback_${client.id}`;
   useEffect(() => {
-    if (data.live && posterIds && code !== "preview") setPostersOpen(true);
-  }, [data.live, posterIds, code]);
-  // Back from the page shows the review stars once. Skipped when the guest already started a review or the page cannot take reviews.
-  const exitKey = `tz_exit_${client.id}`;
-  const canNudge = data.live && !!data.features.review && !!client.google_review_url;
+    if (!data.live || !posterIds || code === "preview") return;
+    try { if (sessionStorage.getItem(menuBackKey)) return; } catch {}   // coming back from the menu: the stars come first, not the posters
+    setPostersOpen(true);
+  }, [data.live, posterIds, code, menuBackKey]);
+  // Review stars when the guest has not rated yet: Back from the page shows them up to two times, the third Back leaves.
+  // Coming back from the menu (same tab or another tab) shows them once, straight away.
+  const MAX_EXIT = 2;
+  const exitCountKey = `tz_exitn_${client.id}`;
+  const canNudge = data.live && !!data.features.review && !!client.google_review_url && code !== "preview";
+  const gaveStars = () => { try { return !!localStorage.getItem(`tz_reviewed_${client.id}`) || !!sessionStorage.getItem(`tz_rated_${client.id}`); } catch { return false; } };
+  const [rearm, setRearm] = useState(0);
+  const viaBack = useRef(false);
   useExitPrompt(canNudge, () => {
-    try { if (sessionStorage.getItem(exitKey) || localStorage.getItem(`tz_reviewed_${client.id}`)) { window.history.back(); return; } sessionStorage.setItem(exitKey, "1"); } catch {}
+    let n = 0;
+    try { n = Number(sessionStorage.getItem(exitCountKey) ?? 0); } catch {}
+    if (gaveStars() || n >= MAX_EXIT) { window.history.back(); return; }
+    try { sessionStorage.setItem(exitCountKey, String(n + 1)); } catch {}
+    viaBack.current = true;
     setOpen("review");   // straight to the stars; the name and number form is not put in front of someone who is leaving
-  });
+  }, rearm);
+  const wasReview = useRef(false);
+  useEffect(() => {
+    if (open === "review") { wasReview.current = true; return; }
+    if (!wasReview.current) return;
+    wasReview.current = false;
+    if (!viaBack.current) return;
+    viaBack.current = false;
+    // The Back entry was used up by that showing: put it back so the next Back shows the stars again (until the limit).
+    let n = 0;
+    try { n = Number(sessionStorage.getItem(exitCountKey) ?? 0); } catch {}
+    if (n < MAX_EXIT && !gaveStars()) setTimeout(() => setRearm((v) => v + 1), 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  const markMenu = () => { if (canNudge && !gaveStars()) { try { sessionStorage.setItem(menuBackKey, "1"); } catch {} } };
+  useEffect(() => {
+    if (!canNudge) return;
+    const check = () => {
+      try {
+        if (document.visibilityState !== "visible" || !sessionStorage.getItem(menuBackKey)) return;
+        sessionStorage.removeItem(menuBackKey);
+        if (!gaveStars()) setOpen("review");
+      } catch {}
+    };
+    check();
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check);
+    return () => { document.removeEventListener("visibilitychange", check); window.removeEventListener("pageshow", check); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canNudge, menuBackKey]);
 
   const copyFor = (k: CardKey) => ({
     ...DEFAULT_COPY[k],
@@ -136,9 +177,10 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
   }, [client.id, askContact]);
 
   const onCard = (k: CardKey) => {
-    if (k === "menu" && data.features.pos && data.plate) { window.location.href = `/m/${code}`; return; }
+    if (k === "menu" && data.features.pos && data.plate) { markMenu(); window.location.href = `/m/${code}`; return; }
     const menuLink = data.plate?.menu_url || client.menu_url;
     if (k === "menu" && menuLink) {
+      markMenu();
       window.open(menuLink, "_blank", "noopener");
       return;
     }
@@ -155,7 +197,6 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
     setOpen(k);
   };
 
-  useEffect(() => { if (open === "review") { try { sessionStorage.setItem(exitKey, "1"); } catch {} } }, [open, exitKey]);
 
   // Cards and blocks come in one after another when the page opens. With "less motion" they only fade, they do not rise.
   const rise = (i: number) =>
