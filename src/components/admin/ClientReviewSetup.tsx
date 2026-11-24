@@ -29,7 +29,7 @@ export function ClientReviewSetup({ clientId, clientName, category, setup, categ
   const [max, setMax] = useState(String(setup.max_questions ?? 6));
   const [langs, setLangs] = useState<Lang[]>(setup.languages?.length ? setup.languages : ["hinglish", "en", "hi"]);
   const [low, setLow] = useState(setup.low_star_mode ?? "private_first");
-  const [collect, setCollect] = useState(setup.collect_contact !== false);
+  const [collect, setCollect] = useState(setup.collect_contact === true);
   const [until, setUntil] = useState<string | null>(setup.owner_edit_until ?? null);
   const [busy, setBusy] = useState(false);
   const open = !!until && new Date(until) > new Date();
