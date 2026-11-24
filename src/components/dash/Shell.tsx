@@ -32,6 +32,7 @@ export function Shell({
   posOn = false,
   linkOn = false,
   role = "owner",
+  hidden = [],
   children,
 }: {
   slug: string;
@@ -41,6 +42,7 @@ export function Shell({
   openCount: number;
   contentCount?: number;
   isTeam?: boolean;
+  hidden?: string[];
   waOn?: boolean;
   tablesOn?: boolean;
   jaipurOn?: boolean;
@@ -72,7 +74,7 @@ export function Shell({
   };
 
   const base = `/dashboard/${slug}`;
-  type Tab = { href: string; label: string; Icon: typeof Home; exact?: boolean; badge?: number; section?: Section };
+  type Tab = { href: string; label: string; Icon: typeof Home; exact?: boolean; badge?: number; section?: Section; hide?: string };
   const all: Tab[] = [
     { href: base, label: "Home", Icon: Home, exact: true, section: "home" },
     { href: `${base}/inbox`, label: "Inbox", Icon: Inbox, badge: openCount, section: "inbox" },
@@ -82,7 +84,7 @@ export function Shell({
     { href: `${base}/announce`, label: "Announcements", Icon: Megaphone, section: "announce" },
     { href: `${base}/content`, label: "Moments", Icon: Clapperboard, badge: contentCount, section: "moments" },
     { href: `${base}/my-page`, label: "My Page", Icon: PanelsTopLeft, section: "mypage" },
-    ...(linkOn ? [{ href: `${base}/mini-link`, label: "Mini link", Icon: Link2, section: "mypage" } as Tab] : []),
+    ...(linkOn ? [{ href: `${base}/mini-link`, label: "Mini link", Icon: Link2, section: "mypage", hide: "minilink" } as Tab] : []),
     { href: `${base}/team`, label: "Staff report", Icon: Users, section: "staff" },
     ...(waOn ? [{ href: `${base}/offers`, label: "WhatsApp offers", Icon: MessageCircle, section: "offers" } as Tab] : []),
     ...(jaipurOn ? [{ href: `${base}/jaipur`, label: "Gulabi", Icon: MapPin, section: "jaipur" } as Tab] : []),
@@ -90,7 +92,7 @@ export function Shell({
     { href: `${base}/access`, label: "Team access", Icon: KeyRound, section: "access" },
     { href: `${base}/plan`, label: "Plan", Icon: Gem, section: "plan" },
   ];
-  const tabs = all.filter((t) => !t.section || can(role, t.section));
+  const tabs = all.filter((t) => (!t.section || can(role, t.section)) && !hidden.includes(t.hide ?? (t.section && t.section.startsWith("pos") ? "pos" : t.section ?? "")));
   // Phone bottom bar: four main tabs and "More" for the rest, so nothing is squeezed.
   const mainLabels = can(role, "home") ? ["Home", "Inbox", "Reviews", posOn ? "Food orders" : "My Page"] : ["Food orders", "Calls"];
   const bottomTabs = mainLabels.map((l) => tabs.find((t) => t.label === l)).filter(Boolean) as Tab[];

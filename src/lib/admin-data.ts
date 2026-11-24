@@ -5,6 +5,7 @@ export type AdminClient = {
   id: string; slug: string; name: string; business_type: string | null; package_id: string;
   status: "active" | "paused"; expires_at: string | null; created_at: string;
   feature_overrides: Record<string, unknown>;
+  hidden_sections: string[];
 };
 export type Stats = {
   client_id: string; taps_30d: number; taps_month: number; last_tap_at: string | null;
@@ -19,7 +20,7 @@ export { daysFrom };
 export const loadOverview = cache(async () => {
   const { sb, role } = await requireTeam();
   const [clients, stats, packages] = await Promise.all([
-    sb.from("clients").select("id, slug, name, business_type, package_id, status, expires_at, created_at, feature_overrides").order("name"),
+    sb.from("clients").select("id, slug, name, business_type, package_id, status, expires_at, created_at, feature_overrides, hidden_sections").order("name"),
     sb.rpc("admin_client_stats"),
     sb.from("packages").select("id, name, price_inr, sort, features").order("sort"),
   ]);

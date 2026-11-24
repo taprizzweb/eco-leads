@@ -7,10 +7,11 @@ import { Loader2, Plus, Copy, QrCode, Trash2, ExternalLink, TriangleAlert } from
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { FEATURE_DEFS, PLATE_BASE, diffOverrides, effective, newPlateCode, type FeatureMap } from "@/lib/features";
 import { useToast } from "@/components/dash/Toast";
+import { OWNER_BUTTONS } from "@/lib/roles";
 import { Pill, fmtDate } from "./ui";
 import { downloadQr } from "./qr";
 
-type Client = { id: string; slug: string; name: string; package_id: string; status: "active" | "paused"; expires_at: string | null; feature_overrides: FeatureMap };
+type Client = { id: string; slug: string; name: string; package_id: string; status: "active" | "paused"; expires_at: string | null; feature_overrides: FeatureMap; hidden_sections?: string[] };
 type Pkg = { id: string; name: string; price_inr: number; features: FeatureMap };
 type Plate = { code: string; label: string | null; active: boolean; menu_url?: string | null; redirect_url?: string | null };
 type Member = { user_id: string; email: string; role: string };
@@ -330,6 +331,26 @@ export function ClientAdmin({ client, packages, plates: p0, members: m0, invites
           </ul>
           {Object.keys(c.feature_overrides ?? {}).length > 0 && (
             <button className="d-btn d-btn-s mt-3" onClick={() => patch("reset", { feature_overrides: {} }, "Back to the package preset")}>Reset to {pkg.name} preset</button>
+          )}
+        </Card>
+
+        <Card title="Owner dashboard buttons" sub="Which buttons this business's owner and managers see. A button that is switched off disappears and its page cannot be opened. Home always shows. Floor staff and the Taprizz team are not affected.">
+          <ul className="grid gap-x-6 sm:grid-cols-2">
+            {OWNER_BUTTONS.map((b) => {
+              const shown = !(c.hidden_sections ?? []).includes(b.key);
+              const flip = () => patch("h-" + b.key, { hidden_sections: shown ? [...(c.hidden_sections ?? []), b.key] : (c.hidden_sections ?? []).filter((x) => x !== b.key) }, shown ? `${b.label} hidden` : `${b.label} shown`);
+              return (
+                <li key={b.key} className="flex min-h-12 items-center gap-3 py-2">
+                  <span className="min-w-0 flex-1"><span style={{ color: "var(--d-text)" }}>{b.label}</span><span className="block text-xs" style={{ color: "var(--d-muted)" }}>{b.help}</span></span>
+                  <button role="switch" aria-checked={shown} aria-label={`${b.label} button`} disabled={busy === "h-" + b.key} onClick={flip} className="relative h-7 w-12 shrink-0 rounded-full transition-colors" style={{ background: shown ? "var(--d-green)" : "var(--d-line-2)" }}>
+                    <span className="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all" style={{ left: shown ? 22 : 2 }} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {(c.hidden_sections ?? []).length > 0 && (
+            <button className="d-btn d-btn-s mt-3" onClick={() => patch("h-all", { hidden_sections: [] }, "All buttons shown")}>Show all buttons</button>
           )}
         </Card>
 

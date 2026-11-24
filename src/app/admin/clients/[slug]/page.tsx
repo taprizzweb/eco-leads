@@ -26,6 +26,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
     <>
       <PageHead title={base.name} sub={`taprizz.in/e/${base.slug}`}>
         <Link href={`/dashboard/${base.slug}`} className="d-btn d-btn-s">View as client</Link>
+        {role !== "rep" && <Link href={`/admin/clients/new?from=${base.slug}`} className="d-btn d-btn-s">Duplicate client</Link>}
         <a href={`/e/${base.slug}`} target="_blank" rel="noopener" className="d-btn d-btn-s">Open guest page</a>
       </PageHead>
       <ClientAdmin

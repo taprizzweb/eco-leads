@@ -21,3 +21,23 @@ export const ROLE_HELP: Record<Role, string> = {
   waiter: "Live orders and table requests only.",
   kitchen: "Only the kitchen screen: orders to cook, on their own phone.",
 };
+
+/** The owner dashboard buttons the Taprizz team can switch off for one business. Home always shows. */
+export const OWNER_BUTTONS: { key: string; label: string; help: string }[] = [
+  { key: "inbox", label: "Inbox", help: "Complaints and suggestions" },
+  { key: "reviews", label: "Reviews", help: "Review drafts and replies" },
+  { key: "pos", label: "Food orders", help: "Live orders, menu, bills and kitchen" },
+  { key: "calls", label: "Calls", help: "Call server bell requests" },
+  { key: "announce", label: "Announcements", help: "Messages to guests" },
+  { key: "moments", label: "Moments", help: "Guest photos and clips" },
+  { key: "mypage", label: "My Page", help: "Edit the guest page" },
+  { key: "minilink", label: "Mini link", help: "The Instagram bio page" },
+  { key: "staff", label: "Staff report", help: "Complaints and thank-yous per person" },
+  { key: "offers", label: "WhatsApp offers", help: "Ask Taprizz to send offers" },
+  { key: "jaipur", label: "Gulabi", help: "Jaipur network" },
+  { key: "tables", label: "Tables", help: "Table plates and QR codes" },
+  { key: "access", label: "Team access", help: "Invite managers and staff" },
+  { key: "plan", label: "Plan", help: "Plan and billing page" },
+];
+/** The hide key of a section: every Food orders screen is one button. */
+export const hideKey = (s: Section): string | null => (s === "home" ? null : s.startsWith("pos") ? "pos" : s);

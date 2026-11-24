@@ -4,7 +4,7 @@ import { LINK_BASE } from "@/lib/features";
 
 export default async function MiniLinkPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { sb, client } = await requireSection(slug, "mypage");
+  const { sb, client } = await requireSection(slug, "mypage", "minilink");
   const { data } = await sb.rpc("link_my_page", { p_client: client.id });
   if (!data) {
     return (
