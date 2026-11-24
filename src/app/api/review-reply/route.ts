@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
-  const { data: client } = await sb.from("clients").select("id, name, business_type").eq("id", b.clientId).maybeSingle();
+  const { data: client } = await sb.from("clients").select("id, name, business_type, seo_keywords").eq("id", b.clientId).maybeSingle();
   if (!client) return NextResponse.json({ error: "You do not have access to this business." }, { status: 403 });
 
   // Cost control: at most 40 new reviews an hour per business.
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     if ((count ?? 0) >= 40) return NextResponse.json({ error: "That is a lot of reviews in an hour. Please try again shortly." }, { status: 429 });
   }
 
-  const { reply, provider } = await writeReply({ businessName: client.name, businessType: client.business_type, author: b.author, rating: b.rating, text: b.text });
+  const { reply, provider } = await writeReply({ businessName: client.name, businessType: client.business_type, author: b.author, rating: b.rating, text: b.text, keywords: client.seo_keywords ?? [] });
 
   if (b.id) {
     const { error } = await sb.from("google_reviews").update({ reply_draft: reply, author: b.author || "Guest", rating: b.rating, body: b.text }).eq("id", b.id).eq("client_id", client.id);

@@ -15,7 +15,7 @@ export type ReviewAnswers = {
 };
 export type DraftResult = { draft: string; provider: string };
 
-export type ReplyInput = { businessName: string; businessType?: string | null; author: string; rating: number; text: string };
+export type ReplyInput = { businessName: string; businessType?: string | null; author: string; rating: number; text: string; keywords?: string[] };
 export type ReplyResult = { reply: string; provider: string };
 
 const COMPANY_PHRASE: Record<string, string> = {
@@ -100,7 +100,7 @@ const REPLY_OPENERS = [
 ];
 const REPLY_BANNED = ["100%", "guaranteed", "guarantee", "cure", "miracle", "no side effects", "free ", "discount", "coupon"];
 
-function replyPrompt(a: ReplyInput): string {
+function replyPrompt(a: ReplyInput, keyword?: string): string {
   const lang = replyLanguage(a.text);
   const langRule = lang === "hindi" ? "Write the reply in Hindi, in Devanagari script, the way a polite shop owner would speak."
     : lang === "hinglish" ? "Write the reply in Hinglish (Hindi written in the English alphabet), the same casual way the reviewer wrote."
@@ -115,8 +115,9 @@ function replyPrompt(a: ReplyInput): string {
     `Rules: address the reviewer by first name if given. Mention one real thing from the review. Only refer to things the review actually says; never invent facts, staff names, prices or results.`,
     `Never offer discounts, gifts or rewards, never promise specific changes, never argue, never ask for another review, never make health or medical claims. Never use the words: 100%, guaranteed, cure, miracle.`,
     `For 1 to 3 stars: apologise sincerely and invite them to contact the business directly. For 4 to 5 stars: thank them and welcome them back.`,
+    keyword ? `Search phrase: if it fits naturally in one sentence, use the exact phrase "${keyword}" once, for example when welcoming them back. If it would sound forced, leave it out. Use no other search phrase and never repeat it.` : "",
     `No emojis, no hashtags, no quotation marks. Output only the reply text.`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 /** A reply that breaks a rule is replaced by the safe template, so nothing risky is ever shown or posted. */
@@ -124,6 +125,9 @@ export const replyIsSafe = (reply: string, a: ReplyInput) => {
   const t = reply.toLowerCase();
   if (reply.trim().length < 15 || REPLY_BANNED.some((w) => t.includes(w))) return false;
   if (/[\u{1F300}-\u{1FAFF}]/u.test(reply) || /#\w/.test(reply)) return false;
+  // Search phrases may appear once, and only in replies to 4 and 5 stars. More than that reads as stuffing and is thrown away.
+  const hits = (a.keywords ?? []).map((k) => k.toLowerCase().trim()).filter(Boolean).reduce((n, k) => n + t.split(k).length - 1, 0);
+  if (hits > (a.rating >= 4 ? 1 : 0)) return false;
   const wantsDevanagari = replyLanguage(a.text) === "hindi";
   return wantsDevanagari ? /[\u0900-\u097F]/.test(reply) : !/[\u0900-\u097F]/.test(reply) || replyLanguage(a.text) !== "english";
 };
@@ -276,10 +280,13 @@ export async function writeDraft(a: ReviewAnswers): Promise<DraftResult> {
 }
 
 export async function writeReply(a: ReplyInput): Promise<ReplyResult> {
+  // One search phrase at most, chosen at random so replies differ, and only for happy reviews.
+  const keyword = a.rating >= 4 && a.keywords?.length ? pick(a.keywords.filter((k) => k.trim())) : undefined;
   const r = await run("review_reply", {
     business: { name: a.businessName, type: a.businessType ?? null },
     review: { author: a.author, rating: a.rating, text: a.text },
-  }, replyPrompt(a), 700);
+    ...(keyword ? { search_phrase: keyword } : {}),
+  }, replyPrompt(a, keyword), 700);
   return r && replyIsSafe(r.text, a) ? { reply: r.text, provider: r.provider } : { reply: templateReply(a), provider: "template" };
 }
 

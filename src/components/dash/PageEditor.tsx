@@ -74,6 +74,7 @@ export function PageEditor({
     logo_url: client.logo_url,
     socials: { ...client.socials } as Record<string, string>,
     keywords: client.keywords.length ? client.keywords : template?.keywords ?? [],
+    seo_keywords: client.seo_keywords ?? [],
   });
   const [saved, setSaved] = useState(JSON.stringify(f));
   const dirty = JSON.stringify(f) !== saved;
@@ -120,6 +121,7 @@ export function PageEditor({
       logo_url: f.logo_url,
       socials,
       keywords: f.keywords,
+      seo_keywords: f.seo_keywords.map((k) => k.trim()).filter(Boolean).slice(0, 8),
     }).eq("id", client.id);
     setSaving(false);
     if (error) return toast("Your changes did not publish. Please try again.", true);
@@ -385,6 +387,11 @@ export function PageEditor({
               <input id="kw" className="d-input" value={kw} onChange={(e) => setKw(e.target.value)} maxLength={24} placeholder="Pet Friendly" />
               <button className="d-btn d-btn-s">Add keyword</button>
             </form>
+          </Section>
+
+          <Section title="Search phrases" sub="What people type into Google to find you, for example: cafe in C-Scheme Jaipur. We use one of these now and then in replies to good reviews, only where it fits. Up to 8, one per line. Real phrases only, no repeats.">
+            <label className="sr-only" htmlFor="seo">Search phrases</label>
+            <textarea id="seo" className="d-input min-h-28" maxLength={600} value={f.seo_keywords.join("\n")} onChange={(e) => set("seo_keywords", e.target.value.split("\n").slice(0, 8).map((x) => x.slice(0, 60)))} placeholder={"cafe in C-Scheme Jaipur\nbest coffee in Jaipur"} />
           </Section>
 
           <Section title="Photos" sub={`${gallery.length} of ${photoLimit} on your plan. Swipe order follows this list.`}>

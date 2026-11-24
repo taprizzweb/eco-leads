@@ -11,7 +11,7 @@ import { slugify, LINK_BASE } from "@/lib/features";
 import { BUTTON_ICONS, ICON_LABEL, indianNational, isHex, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, getLinkTheme, type LinkColors, type LinkButton, type LinkOffer, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
 
 type Row = {
-  id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; tags: string[];
+  id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; seo_keywords?: string[]; tags: string[];
   socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; offers: LinkOffer[]; reviews: LinkReview[];
   show_client_reviews: boolean; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
 };
@@ -85,6 +85,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
   const toast = useToast();
   const [r, setR] = useState<Row>(initial);
   const [tagText, setTagText] = useState(initial.tags.join(", "));
+  const [seoText, setSeoText] = useState((initial.seo_keywords ?? []).join(", "));
   const [busy, setBusy] = useState(false);
   const [up, setUp] = useState<string | null>(null);
   const [ver, setVer] = useState(0);
@@ -127,9 +128,10 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
   async function save() {
     if (!r.name.trim()) return toast("Add the business name.", true);
     const tags = tagText.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 20);
+    const seo_keywords = seoText.split(",").map((t) => t.trim().slice(0, 60)).filter(Boolean).slice(0, 8);
     const socials = Object.fromEntries(Object.entries(r.socials).filter(([, v]) => typeof v === "string" && v.trim()).map(([k, v]) => [k, String(v).trim()]));
     const content = {
-      name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, colors: Object.fromEntries(Object.entries(r.colors ?? {}).filter(([, v]) => isHex(v))), tags, socials, photo_direction: r.photo_direction,
+      name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, colors: Object.fromEntries(Object.entries(r.colors ?? {}).filter(([, v]) => isHex(v))), tags, seo_keywords, socials, photo_direction: r.photo_direction,
       photos: r.photos.slice(0, 30), buttons: r.buttons.filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30), offers: r.offers.filter((o) => o.title.trim()).slice(0, 60),
     };
     setBusy(true);
@@ -242,6 +244,10 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
                 : <input className="d-input" inputMode="url" maxLength={300} value={r.socials[k] ?? ""} onChange={(e) => set("socials", { ...r.socials, [k]: e.target.value })} placeholder={ph} />}
             </F>
           ))}</div>
+        </Sec>
+
+        <Sec title="Search keywords" sub="Phrases people type into Google to find this place, for example: cafe in C-Scheme Jaipur. They go into the page's search description. Up to 8, separated by commas. Use real phrases that describe the place, and do not repeat them.">
+          <input className="d-input" maxLength={600} value={seoText} onChange={(e) => setSeoText(e.target.value)} placeholder="cafe in C-Scheme Jaipur, fresh fruits delivery Jaipur" aria-label="Search keywords" />
         </Sec>
 
         <Sec title="Scrolling tags" sub="Short words that keep scrolling, like offers.">

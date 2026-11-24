@@ -63,7 +63,7 @@ export type LinkOutlet = { name: string; city?: string; address?: string; instag
 export type LinkOffer = { outlet: string; title: string; details?: string; link?: string; valid_till?: string };
 export type LinkReview = { author: string; rating: number; body: string; date?: string; avatar?: string };
 export type LinkData = {
-  id: string; slug: string; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; tags: string[];
+  id: string; slug: string; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; seo_keywords?: string[]; tags: string[];
   socials: LinkSocials; photos: LinkPhoto[]; photo_direction?: "forward" | "backward"; buttons: LinkButton[]; outlets: LinkOutlet[]; offers?: LinkOffer[]; reviews: LinkReview[];
 };
 
