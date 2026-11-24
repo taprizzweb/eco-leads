@@ -95,6 +95,15 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
   const { client } = data;
   const [postersOpen, setPostersOpen] = useState(false);
   const closePosters = useCallback(() => setPostersOpen(false), []);
+  // The "What is new" posters open by themselves when the guest page opens, once per visit (not again after Back from another step).
+  const posterIds = (data.extras?.posters ?? []).map((p) => p.id).join(",");
+  useEffect(() => {
+    if (!data.live || !posterIds || code === "preview") return;
+    const key = `tz_posters_${client.id}_${posterIds}`;
+    try { if (sessionStorage.getItem(key)) return; } catch {}
+    const t = setTimeout(() => { try { sessionStorage.setItem(key, "1"); } catch {} setPostersOpen(true); }, 700);
+    return () => clearTimeout(t);
+  }, [data.live, posterIds, code, client.id]);
   // Back from the page shows the review stars once. Skipped when the guest already started a review or the page cannot take reviews.
   const exitKey = `tz_exit_${client.id}`;
   const canNudge = data.live && !!data.features.review && !!client.google_review_url;
