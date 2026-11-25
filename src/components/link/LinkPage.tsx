@@ -232,7 +232,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
     <div className="min-h-dvh [overflow-x:clip]" data-theme={theme.dark ? "dark" : "light"} style={{ ...(theme.vars as React.CSSProperties), background: `radial-gradient(90% 420px at 50% -60px, var(--l-glow), transparent 70%), var(--l-bg)`, color: "var(--l-text)" }}>
       <main className="relative mx-auto flex max-w-md flex-col pb-8">
         <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-4">
-          <span className="rounded-full" style={{ boxShadow: "0 6px 18px -8px rgba(0,0,0,0.7)" }}><Mark size={36} /></span>
+          <a href="https://taprizz.in" target="_blank" rel="noopener" aria-label="Taprizz" onClick={() => track("click", "Taprizz logo")} className="rounded-full" style={{ boxShadow: "0 6px 18px -8px rgba(0,0,0,0.7)" }}><Mark size={36} /></a>
           <button type="button" onClick={share} aria-label="Share this page" className={topBtn} style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)", color: "var(--l-text)" }}><Share2 size={16} /></button>
         </div>
         <div role="status" aria-live="polite" className="pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center">
