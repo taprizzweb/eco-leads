@@ -258,12 +258,12 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.section {...rise(3)} className="mt-4" aria-label="Photos"><PhotoStrip items={data.photos.map((p) => ({ url: p.url, caption: p.caption, kind: p.kind }))} width={210} ratio="1/1" /></motion.section>
         )}
 
-        {data.review_code && (
+        {data.review_code && (data.review_pos ?? "top") === "top" && (
           <motion.div {...rise(4)} className="mt-4 px-3">
-            <button type="button" onClick={() => { track("click", "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
+            <button type="button" onClick={() => { track("click", data.review_label || "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
               style={{ background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" }}>
               <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden><Star size={22} className="fill-amber-400 text-amber-400" /></span>
-              <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>AI Review by Tap</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
+              <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>{data.review_label || "AI Review by Tap"}</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
             </button>
           </motion.div>
         )}
@@ -289,6 +289,16 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
             })}
           </motion.nav>
         )}
+        {data.review_code && (data.review_pos ?? "top") === "bottom" && (
+          <motion.div {...rise(4)} className="mt-4 px-3">
+            <button type="button" onClick={() => { track("click", data.review_label || "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
+              style={{ background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" }}>
+              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden><Star size={22} className="fill-amber-400 text-amber-400" /></span>
+              <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>{data.review_label || "AI Review by Tap"}</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
+            </button>
+          </motion.div>
+        )}
+
 
         {data.reviews.length > 0 && (
           <motion.section {...rise(5)} className="mt-5" aria-label="Guest reviews">
