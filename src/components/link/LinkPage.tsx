@@ -300,9 +300,31 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         )}
 
         <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><Mark size={16} />Powered by Taprizz</footer>
+        {data.plan === "mini" && !preview && <MiniFooter slug={data.slug} />}
       </main>
       {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click", "Offer: Get this offer")} />}
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click", "Outlet: call, map or Instagram")} />}
+    </div>
+  );
+}
+
+/** Mini pages are open to everyone, so every one carries a link to make your own and a way to report it. */
+function MiniFooter({ slug }: { slug: string }) {
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState(false);
+  const send = async (reason: string) => { setDone(true); setOpen(false); await supabaseBrowser().rpc("link_report", { p_slug: slug, p_reason: reason }).then(() => {}, () => {}); };
+  return (
+    <div className="mt-3 pb-6 text-center text-[11px]" style={{ color: "var(--l-muted)" }}>
+      <a href="/create" className="underline underline-offset-4">Make your own page</a>
+      <span aria-hidden> · </span>
+      {done ? <span>Thank you, we will look at it.</span> : <button type="button" className="underline underline-offset-4" onClick={() => setOpen((v) => !v)}>Report this page</button>}
+      {open && (
+        <div className="mx-auto mt-2 flex max-w-xs flex-wrap justify-center gap-1.5">
+          {["Scam or fake", "Adult content", "Illegal", "Pretends to be someone", "Other"].map((r) => (
+            <button key={r} type="button" onClick={() => void send(r)} className="rounded-full px-3 py-1.5 text-[11px] font-medium" style={{ background: "var(--l-surface-2)", color: "var(--l-text)", boxShadow: "inset 0 0 0 1px var(--l-line)" }}>{r}</button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

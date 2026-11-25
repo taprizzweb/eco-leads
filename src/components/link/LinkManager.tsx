@@ -84,15 +84,15 @@ export function LinkInsights({ mode, linkId, token }: { mode: EditorMode; linkId
   );
 }
 
-export function LinkManager({ initial, clientName, mode, token }: { initial: EditorRow; clientName: string | null; mode: EditorMode; token?: string }) {
-  const [tab, setTab] = useState<"insights" | "edit">("insights");
+export function LinkManager({ initial, clientName, mode, token, mini = false }: { initial: EditorRow; clientName: string | null; mode: EditorMode; token?: string; mini?: boolean }) {
+  const [tab, setTab] = useState<"insights" | "edit">(mini ? "edit" : "insights");
   return (
     <div className="space-y-4">
       <div className="d-seg w-fit" role="group" aria-label="Mini link">
         <button type="button" aria-pressed={tab === "insights"} onClick={() => setTab("insights")}>Insights</button>
         <button type="button" aria-pressed={tab === "edit"} onClick={() => setTab("edit")}>Edit page</button>
       </div>
-      {tab === "insights" ? <LinkInsights mode={mode} linkId={initial.id} token={token} /> : <LinkEditor initial={initial} clientName={clientName} mode={mode} token={token} />}
+      {tab === "insights" ? <LinkInsights mode={mode} linkId={initial.id} token={token} /> : <LinkEditor initial={initial} clientName={clientName} mode={mode} token={token} mini={mini} />}
     </div>
   );
 }

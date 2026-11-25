@@ -6,11 +6,14 @@ import { ArrowDown, ArrowUp, ImagePlus, Loader2, Plus, Trash2 } from "lucide-rea
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
 import { SortableList, Grip } from "@/components/ui/SortableList";
+import { PhoneField } from "@/components/ui/PhoneField";
+import { MiniLinks } from "@/components/link/MiniLinks";
+import { miniNormalize } from "@/lib/mini";
 import { ColorField, BG_SWATCHES } from "@/components/ui/ColorField";
 import { logoPalettes, type Palette } from "@/lib/logo-colors";
 import { useToast } from "@/components/dash/Toast";
 import { slugify, LINK_BASE } from "@/lib/features";
-import { BUTTON_ICONS, ICON_LABEL, indianNational, isHex, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, getLinkTheme, type LinkColors, type LinkButton, type LinkOffer, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
+import { BUTTON_ICONS, ICON_LABEL, isHex, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, getLinkTheme, type LinkColors, type LinkButton, type LinkOffer, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
 
 type Row = {
   id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; seo_keywords?: string[]; tags: string[];
@@ -20,23 +23,6 @@ type Row = {
 
 /** admin: Taprizz team (everything). member: the business owner or manager signed in. token: the private control link, no login. */
 export type EditorMode = "admin" | "member" | "token";
-
-// An Indian mobile number box: +91 is already there, the person types the 10 digits. Numbers that came in with another country code stay as they are.
-function PhoneField({ label, value, onChange, placeholder = "98765 43210" }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
-  const v = value.trim();
-  const foreign = v.startsWith("+") && !v.startsWith("+91");
-  // The stored value is "+91" and the 10 digits. What is shown is only those digits, exactly as the person typed them.
-  const digits = v.replace(/\D/g, "");
-  const nat = v.startsWith("+91") ? digits.slice(2, 12) : (indianNational(v) ?? digits.replace(/^(91|0)(?=\d{10}$)/, "")).slice(0, 10);
-  if (foreign) return <input aria-label={label} className="d-input !min-h-10" inputMode="tel" maxLength={20} value={value} onChange={(e) => onChange(e.target.value)} />;
-  return (
-    <div className="flex">
-      <span className="grid shrink-0 place-items-center rounded-l-xl px-3 text-sm font-medium" style={{ background: "var(--d-bg)", color: "var(--d-sub)", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }}>+91</span>
-      <input aria-label={label} className="d-input !min-h-10 !rounded-l-none" inputMode="numeric" autoComplete="off" value={nat} placeholder={placeholder}
-        onChange={(e) => { let d = e.target.value.replace(/\D/g, ""); if (d.length > 10) d = d.replace(/^(91|0)/, ""); d = d.slice(0, 10); onChange(d ? `+91${d}` : ""); }} />
-    </div>
-  );
-}
 
 // Module level on purpose: defined inside the editor it would remount on every keystroke and the field would lose focus.
 function F({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -55,8 +41,9 @@ const SOCIAL_FIELDS: [keyof LinkSocials, string, string][] = [
   ["phone", "Phone number", "+91 98765 43210"], ["website", "Website", "https://"],
 ];
 
-export function LinkEditor({ initial, clientName, mode = "admin", token }: { initial: Row; clientName: string | null; mode?: EditorMode; token?: string }) {
+export function LinkEditor({ initial, clientName, mode = "admin", token, mini = false }: { initial: Row; clientName: string | null; mode?: EditorMode; token?: string; mini?: boolean }) {
   const admin = mode === "admin";
+  const maxPhotos = mini ? 5 : 30;
   // Uploads: the team uses links/<page>, a signed-in business uses its own folder, the control link uses a folder named by its secret.
   const folder = mode === "token" ? `link-edit/${token}` : mode === "member" ? `${initial.client_id}/links` : `links/${initial.id}`;
   const sb = supabaseBrowser();
@@ -109,9 +96,11 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
     const tags = tagText.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 20);
     const seo_keywords = seoText.split(",").map((t) => t.trim().slice(0, 60)).filter(Boolean).slice(0, 8);
     const socials = Object.fromEntries(Object.entries(r.socials).filter(([, v]) => typeof v === "string" && v.trim()).map(([k, v]) => [k, String(v).trim()]));
+    const norm = mini ? miniNormalize(socials as Record<string, string>, r.buttons) : null;
+    if (norm?.error) return toast(norm.error, true);
     const content = {
-      name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, colors: Object.fromEntries(Object.entries(r.colors ?? {}).filter(([, v]) => isHex(v))), tags, seo_keywords, socials, photo_direction: r.photo_direction,
-      photos: r.photos.slice(0, 30), buttons: r.buttons.filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30), offers: r.offers.filter((o) => o.title.trim()).slice(0, 60),
+      name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, colors: Object.fromEntries(Object.entries(r.colors ?? {}).filter(([, v]) => isHex(v))), tags, seo_keywords, socials: norm ? norm.socials : socials, photo_direction: r.photo_direction,
+      photos: r.photos.slice(0, maxPhotos), buttons: (norm ? norm.buttons : r.buttons).filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30), offers: r.offers.filter((o) => o.title.trim()).slice(0, 60),
     };
     setBusy(true);
     let message: string | null = null;
@@ -215,7 +204,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
           </div>
         </Sec>
 
-        <Sec title="Icons under the name" sub="Instagram, Zomato, Swiggy and the rest. Empty ones are hidden.">
+        {mini ? <MiniLinks socials={r.socials} setSocials={(v) => set("socials", v)} buttons={r.buttons} setButtons={(v) => set("buttons", v)} hasOutlets={r.outlets.length > 0} hasOffers={r.offers.length > 0} /> : (<Sec title="Icons under the name" sub="Instagram, Zomato, Swiggy and the rest. Empty ones are hidden.">
           <div className="grid gap-4 sm:grid-cols-2">{SOCIAL_FIELDS.map(([k, label, ph]) => (
             <F key={k} label={label}>
               {k === "phone" || k === "whatsapp"
@@ -223,19 +212,19 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
                 : <input className="d-input" inputMode="url" maxLength={300} value={r.socials[k] ?? ""} onChange={(e) => set("socials", { ...r.socials, [k]: e.target.value })} placeholder={ph} />}
             </F>
           ))}</div>
-        </Sec>
+        </Sec>)}
 
-        <Sec title="Search keywords" sub="Phrases people type into Google to find this place, for example: cafe in C-Scheme Jaipur. They go into the page's search description. Up to 8, separated by commas. Use real phrases that describe the place, and do not repeat them.">
+        {!mini && (<Sec title="Search keywords" sub="Phrases people type into Google to find this place, for example: cafe in C-Scheme Jaipur. They go into the page's search description. Up to 8, separated by commas. Use real phrases that describe the place, and do not repeat them.">
           <input className="d-input" maxLength={600} value={seoText} onChange={(e) => setSeoText(e.target.value)} placeholder="cafe in C-Scheme Jaipur, fresh fruits delivery Jaipur" aria-label="Search keywords" />
-        </Sec>
+        </Sec>)}
 
         <Sec title="Scrolling tags" sub="Short words that keep scrolling, like offers.">
           <F label="Tags" hint="comma separated"><textarea className="d-input" rows={2} value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder="Specialty Coffee, Pet Friendly, All-Day Dining" /></F>
         </Sec>
 
-        <Sec title="Photos and videos" sub="One at a time with dots. It slides on its own. Press and hold the dots on a photo and drag to move it. Videos play muted and loop. Images are shrunk automatically; videos can be up to 20 MB (MP4, WebM or MOV).">
+        <Sec title={mini ? "Photos" : "Photos and videos"} sub={mini ? "Up to 5 photos. One at a time with dots; they slide on their own. Press and hold the dots on a photo and drag to move it." : "One at a time with dots. It slides on its own. Press and hold the dots on a photo and drag to move it. Videos play muted and loop. Images are shrunk automatically; videos can be up to 20 MB (MP4, WebM or MOV)."}>
           <F label="Which way it moves"><select className="d-input !w-auto" value={r.photo_direction} onChange={(e) => set("photo_direction", e.target.value as Row["photo_direction"])}><option value="forward">Forward (the next one comes from the right)</option><option value="backward">Backward (the next one comes from the left)</option></select></F>
-          <input ref={photoIn} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (!fs.length) return; void guard("photos", async () => { const items: LinkPhoto[] = []; for (const f of fs.slice(0, 30 - r.photos.length)) { if (f.type.startsWith("video/")) { if (f.size > MAX_VIDEO_BYTES) { toast(`${f.name} is over 20 MB. Use a shorter clip.`, true); continue; } items.push({ url: await uploadVideo(f), kind: "video" }); } else items.push({ url: await upload(f, 1200) }); } setR((s) => ({ ...s, photos: [...s.photos, ...items] })); }); }} />
+          <input ref={photoIn} type="file" accept={mini ? "image/*" : "image/*,video/mp4,video/webm,video/quicktime"} multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (!fs.length) return; void guard("photos", async () => { const items: LinkPhoto[] = []; for (const f of fs.slice(0, maxPhotos - r.photos.length)) { if (f.type.startsWith("video/")) { if (f.size > MAX_VIDEO_BYTES) { toast(`${f.name} is over 20 MB. Use a shorter clip.`, true); continue; } items.push({ url: await uploadVideo(f), kind: "video" }); } else items.push({ url: await upload(f, 1200) }); } setR((s) => ({ ...s, photos: [...s.photos, ...items] })); }); }} />
           <SortableList className="grid grid-cols-3 gap-2 sm:grid-cols-5" items={r.photos} keyOf={(p, i) => p.url + i} onChange={(n) => set("photos", n)} render={(p, i, grip) => (
             <div className="space-y-1">
               <div className="relative aspect-[4/5] overflow-hidden rounded-xl" style={{ background: "var(--d-bg)" }}>
@@ -252,10 +241,10 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
               </div>
             </div>
           )} />
-          <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= 30} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} Add photos or videos ({r.photos.length} of 30)</button>
+          <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= maxPhotos} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} {mini ? "Add photos" : "Add photos or videos"} ({r.photos.length} of {maxPhotos})</button>
         </Sec>
 
-        <Sec title="Link buttons" sub="Each one opens a link. The Outlets and Offers shortcuts open a list on the page instead.">
+        {!mini && (<Sec title="Link buttons" sub="Each one opens a link. The Outlets and Offers shortcuts open a list on the page instead.">
           <div className="space-y-3">
             {r.buttons.map((b, i) => (
               <div key={i} className="d-raise space-y-2 p-3">
@@ -277,7 +266,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
             ))}
           </div>
           <button type="button" className="d-btn d-btn-s" disabled={r.buttons.length >= 12} onClick={() => set("buttons", [...r.buttons, { label: "", url: "", icon: "link" }])}><Plus size={15} /> Add button</button>
-        </Sec>
+        </Sec>)}
 
         <Sec title="Outlets" sub="One card per store, with a photo, address and buttons for directions, WhatsApp, call and Google review.">
           <input ref={outletIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; const i = outletTarget.current; e.target.value = ""; if (f) void guard(`outlet${i}`, async () => { const u = await upload(f, 1200); setR((s) => ({ ...s, outlets: s.outlets.map((o, k) => (k === i ? { ...o, image_url: u } : o)) })); }); }} />
@@ -372,7 +361,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
 
         <div className="sticky bottom-3 z-10 flex flex-wrap gap-2 rounded-2xl p-2 backdrop-blur" style={{ background: "color-mix(in srgb, var(--d-bg) 80%, transparent)" }}>
           <button className="d-btn d-btn-p" disabled={busy || !!up} onClick={save}>{busy && <Loader2 size={16} className="animate-spin" />} Save</button>
-          <a className="d-btn d-btn-s" href={`/l/${slugify(initial.slug)}${initial.published ? "" : "?preview=1"}`} target="_blank" rel="noopener">Open page</a>
+          <a className="d-btn d-btn-s" href={`/l/${slugify(initial.slug)}${initial.published ? "" : mode === "token" ? `?preview=${token}` : "?preview=1"}`} target="_blank" rel="noopener">Open page</a>
           {admin && <button className="d-btn d-btn-s ml-auto" onClick={remove}>Delete</button>}
         </div>
       </div>
@@ -381,7 +370,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token }: { ini
         <div className="sticky top-4">
           <p className="mb-2 text-xs" style={{ color: "var(--d-muted)" }}>Preview. Updates when you press Save.</p>
           <div className="overflow-hidden rounded-[34px] p-2" style={{ background: "#000", boxShadow: "0 0 0 1px var(--d-line-2)" }}>
-            <iframe key={ver} title="Preview of the mini link" src={`/l/${slugify(initial.slug)}?preview=1`} className="h-[740px] w-full rounded-[28px] bg-black" />
+            <iframe key={ver} title="Preview of the mini link" src={`/l/${slugify(initial.slug)}?preview=${mode === "token" ? token : "1"}`} className="h-[740px] w-full rounded-[28px] bg-black" />
           </div>
         </div>
       </aside>

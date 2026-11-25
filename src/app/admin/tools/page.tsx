@@ -8,11 +8,13 @@ export default async function ToolsPage() {
   const { sb, role } = await requireTeam();
   if (!atLeast(role, "manager")) notFound();
   const { count } = await sb.from("wa_requests").select("id", { count: "exact", head: true }).eq("status", "pending");
+  const { count: miniPending } = await sb.from("mini_payments").select("id", { count: "exact", head: true }).eq("status", "pending");
   const { count: hubPending } = await sb.from("hub_offers").select("id", { count: "exact", head: true }).eq("status", "pending");
   const tools = [
     { href: "/admin/tools/jaipur", title: "Gulabi Nagri page", text: "The public Jaipur guide: who is listed, special offers to approve, sponsored spots and areas.", Icon: MapPin, badge: hubPending ?? 0 },
     { href: "/admin/tools/chains", title: "Chains", text: "A company with many branches in one dashboard: make a group, add its branches, and give its head a login.", Icon: Building2, badge: 0 },
     { href: "/admin/tools/links", title: "Mini Links", text: "A premium one-page site for a business to put in its Instagram bio: photos, menus, outlets, Zomato, Swiggy and reviews.", Icon: Link2, badge: 0 },
+    { href: "/admin/tools/mini", title: "Mini Link sign-ups", text: "People who built their own mini link: check the Rs 150 payments, switch pages on or off, reports and contact list.", Icon: Link2, badge: miniPending ?? 0 },
     { href: "/admin/ai-studio", title: "AI Agent", text: "The review writer: connection, writing rules, categories and questions, and a playground to test it.", Icon: Bot, badge: 0 },
     { href: "/admin/tools/whatsapp", title: "WhatsApp Automation", text: "Switch WhatsApp offers on for a business, see its customers, and check the WhatsApp API connection.", Icon: MessageCircle, badge: 0 },
     { href: "/admin/tools/offers", title: "WhatsApp Offers", text: "Offer requests from owners. Check the message and image, pick the audience, approve or reject.", Icon: Megaphone, badge: count ?? 0 },
