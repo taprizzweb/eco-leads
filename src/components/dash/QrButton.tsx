@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import QRCode from "qrcode";
+import { qrDataUrl } from "@/lib/qr-logo";
 import { QrCode, Loader2 } from "lucide-react";
 import { useToast } from "./Toast";
 
@@ -14,7 +14,7 @@ export function QrButton({ plates, base }: { plates: { code: string; label: stri
     setBusy(true);
     try {
       for (const p of plates) {
-        const url = await QRCode.toDataURL(`${base}/e/${p.code}`, { width: 1024, margin: 2, errorCorrectionLevel: "M" });
+        const url = await qrDataUrl(`${base}/e/${p.code}`, { width: 1024, margin: 2 });
         const a = document.createElement("a");
         a.href = url;
         a.download = `taprizz-${p.label?.replace(/\s+/g, "-").toLowerCase() || p.code}.png`;

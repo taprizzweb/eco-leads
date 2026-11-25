@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import QRCode from "qrcode";
+import { qrDataUrl } from "@/lib/qr-logo";
 import { Check, Copy, Crown, Loader2, ImagePlus, Smartphone } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { toWebp } from "@/lib/image";
@@ -38,7 +38,7 @@ export function MiniPlanCard({ token, slug, state, settings }: { token: string; 
   const upi = settings.upi_id ? `upi://pay?pa=${encodeURIComponent(settings.upi_id)}&pn=${encodeURIComponent(settings.upi_name)}&am=${settings.price}&cu=INR&tn=${encodeURIComponent("Taprizz Premium " + slug)}` : "";
   const wa = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(`Hi Taprizz, I have a question about my mini link (${slug}).`)}`;
 
-  useEffect(() => { if (upi && open) void QRCode.toDataURL(upi, { width: 300, margin: 1 }).then(setQr).catch(() => setQr(null)); }, [upi, open]);
+  useEffect(() => { if (upi && open) void qrDataUrl(upi, { width: 300, margin: 1 }).then(setQr).catch(() => setQr(null)); }, [upi, open]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   async function refresh() {

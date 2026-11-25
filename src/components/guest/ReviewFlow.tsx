@@ -38,6 +38,9 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   const [fbSending, setFbSending] = useState(false);
   const [fbSent, setFbSent] = useState(false);
   const [fbError, setFbError] = useState<string | null>(null);
+  const [fbContact, setFbContact] = useState(false);   // only if the guest chooses to be contacted
+  const [fbName, setFbName] = useState("");
+  const [fbPhone, setFbPhone] = useState("");
   const [listening, setListening] = useState(false);
   const recog = useRef<{ stop: () => void } | null>(null);
   const canSpeak = typeof window !== "undefined" && !!((window as unknown as { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition);
@@ -150,9 +153,12 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
   async function sendFeedback() {
     const text = fb.trim();
     if (!text) { setFbError("Write or say a few words first."); return; }
+    const ph = fbPhone.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+    if (fbContact && ph && !/^[6-9]\d{9}$/.test(ph)) { setFbError("Please type a 10 digit mobile number, or leave it empty."); return; }
+    const share = fbContact && !!ph;
     recog.current?.stop();
     setFbSending(true); setFbError(null);
-    const { error: e } = await supabaseBrowser().rpc("guest_submit_feedback", { p_client: data.client.id, p_code: code, p_kind: "complaint", p_body: `[${rating} star${rating > 1 ? "s" : ""}] ${text}`, p_media: [], p_name: null, p_phone: null, p_consent: false });
+    const { error: e } = await supabaseBrowser().rpc("guest_submit_feedback", { p_client: data.client.id, p_code: code, p_kind: "complaint", p_body: `[${rating} star${rating > 1 ? "s" : ""}] ${text}`, p_media: [], p_name: share && fbName.trim() ? fbName.trim().slice(0, 60) : null, p_phone: share ? `+91${ph}` : null, p_consent: share });
     setFbSending(false);
     if (e) { setFbError("Your message did not send. Check your connection and try again. Nothing you wrote was lost."); return; }
     setFbSent(true);
@@ -224,6 +230,15 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
                 </button>
               )}
             </div>
+            {!fbContact
+              ? <button type="button" className="min-h-10 w-full text-left text-sm text-muted underline underline-offset-4" onClick={() => setFbContact(true)}>Want them to get back to you? (optional)</button>
+              : (
+                <div className="space-y-2 rounded-2xl p-3 bg-[color-mix(in_srgb,var(--text)_6%,transparent)]">
+                  <p className="text-xs text-muted">Only if you want. They will use it only to reply to this.</p>
+                  <input className={glassInput} maxLength={60} value={fbName} onChange={(e) => setFbName(e.target.value)} placeholder="Your name (optional)" autoComplete="name" aria-label="Your name, optional" />
+                  <input className={glassInput} inputMode="numeric" maxLength={14} value={fbPhone} onChange={(e) => setFbPhone(e.target.value)} placeholder="Mobile number (optional)" autoComplete="tel" aria-label="Your mobile number, optional" />
+                </div>
+              )}
             {fbError && <p role="alert" className="text-sm text-amber-400">{fbError}</p>}
             <button className={pillPrimary} onClick={() => void sendFeedback()} disabled={fbSending}>{fbSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}{fbSending ? "Sending" : "Send"}</button>
             <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => setContinueAnyway(true)}>I would rather write a Google review</button>

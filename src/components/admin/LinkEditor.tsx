@@ -13,12 +13,13 @@ import { ColorField, BG_SWATCHES } from "@/components/ui/ColorField";
 import { logoPalettes, type Palette } from "@/lib/logo-colors";
 import { useToast } from "@/components/dash/Toast";
 import { slugify, LINK_BASE } from "@/lib/features";
+import { downloadUrlQr } from "@/components/admin/qr";
 import { BUTTON_ICONS, ICON_LABEL, isHex, isVideo, MAX_VIDEO_BYTES, LINK_THEMES, getLinkTheme, type LinkColors, type LinkButton, type LinkOffer, type LinkOutlet, type LinkPhoto, type LinkReview, type LinkSocials, type LinkTheme } from "@/lib/linkpage";
 
 type Row = {
   id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; seo_keywords?: string[]; tags: string[];
   socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; offers: LinkOffer[]; reviews: LinkReview[];
-  show_client_reviews: boolean; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
+  show_client_reviews: boolean; ai_review?: boolean; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
 };
 
 /** admin: Taprizz team (everything). member: the business owner or manager signed in. token: the private control link, no login. */
@@ -138,7 +139,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
       const slug = slugify(r.slug);
       if (!/^[a-z0-9-]{3,40}$/.test(slug)) { setBusy(false); return toast("The page link needs 3 to 40 letters, numbers or dashes.", true); }
       const { error } = await sb.from("link_pages").update({
-        ...content, slug, reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, published: r.published,
+        ...content, slug, reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, ai_review: !!r.client_id && !!r.ai_review, published: r.published,
         fee_inr: Math.max(0, Math.floor(Number(r.fee_inr) || 0)), billing_note: r.billing_note?.trim() || null, updated_at: new Date().toISOString(),
       }).eq("id", r.id);
       if (error) message = /duplicate|unique/i.test(error.message) ? "That page link is already taken." : "That did not save. Please try again.";
@@ -182,6 +183,10 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           <div className="grid gap-4 sm:grid-cols-2">
             <F label="Page link" hint={`${LINK_BASE.replace(/^https?:\/\//, "")}/${slugify(r.slug) || "name"}`}><input className="d-input" maxLength={40} value={r.slug} onChange={(e) => set("slug", e.target.value.toLowerCase())} /></F>
             <F label="Status"><select className="d-input" value={r.published ? "live" : "draft"} onChange={(e) => set("published", e.target.value === "live")}><option value="live">Live</option><option value="draft">Draft (hidden)</option></select></F>
+            <div className="sm:col-span-2">
+              <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" disabled={!r.client_id} checked={!!r.ai_review && !!r.client_id} onChange={(e) => set("ai_review", e.target.checked)} />Allow &ldquo;AI Review by Tap&rdquo; on this page (Google review)</label>
+              <p className="d-muted text-xs">{r.client_id ? "Guests pick stars and get an AI-written review for the registered business. Every rating gets the same flow; the business needs a Google review link." : "Needs a page linked to a registered business with a Google review link."}</p>
+            </div>
             <F label="Fee for this page" hint="Rs, 0 means free"><input className="d-input" type="number" min={0} value={r.fee_inr} onChange={(e) => set("fee_inr", Number(e.target.value))} /></F>
             <F label="Billing note"><input className="d-input" maxLength={200} value={r.billing_note ?? ""} onChange={(e) => set("billing_note", e.target.value)} placeholder="Paid till March, free as a service..." /></F>
           </div>
@@ -416,6 +421,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
         <div className="sticky bottom-3 z-10 flex flex-wrap gap-2 rounded-2xl p-2 backdrop-blur" style={{ background: "color-mix(in srgb, var(--d-bg) 80%, transparent)" }}>
           <button className="d-btn d-btn-p" disabled={busy || !!up} onClick={save}>{busy && <Loader2 size={16} className="animate-spin" />} Save</button>
           <a className="d-btn d-btn-s" href={`/l/${slugify(initial.slug)}${initial.published ? "" : mode === "token" ? `?preview=${token}` : "?preview=1"}`} target="_blank" rel="noopener">Open page</a>
+          <button className="d-btn d-btn-s" onClick={() => void downloadUrlQr(`${LINK_BASE}/${slugify(initial.slug)}`, slugify(initial.slug))}>Download QR</button>
           {admin && <button className="d-btn d-btn-s ml-auto" onClick={remove}>Delete</button>}
         </div>
       </div>

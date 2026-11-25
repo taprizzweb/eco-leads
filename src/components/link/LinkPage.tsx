@@ -9,6 +9,7 @@ import { Mark } from "@/components/dash/AuthFrame";
 import { BRAND, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
 import { brandFor } from "./brands";
 import { PhotoStrip } from "@/components/PhotoStrip";
+import { LinkReviewSheet } from "./LinkReview";
 import { getLinkTheme, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
@@ -169,6 +170,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const reduce = useReducedMotion();
   const [outlets, setOutlets] = useState(false);
   const [offersOpen, setOffersOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [note, setNote] = useState("");
   const sb = supabaseBrowser();
   // A review opens the business on Google Maps: its first outlet's map link, else the page's own Maps link.
@@ -256,6 +258,16 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.section {...rise(3)} className="mt-4" aria-label="Photos"><PhotoStrip items={data.photos.map((p) => ({ url: p.url, caption: p.caption, kind: p.kind }))} width={210} ratio="1/1" /></motion.section>
         )}
 
+        {data.review_code && (
+          <motion.div {...rise(4)} className="mt-4 px-3">
+            <button type="button" onClick={() => { track("click", "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
+              style={{ background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" }}>
+              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden><Star size={22} className="fill-amber-400 text-amber-400" /></span>
+              <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>AI Review by Tap</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
+            </button>
+          </motion.div>
+        )}
+
         {buttons.length > 0 && (
           <motion.nav {...rise(4)} aria-label="Links" className="mt-4 space-y-2.5 px-3">
             {buttons.map((b, i) => {
@@ -302,6 +314,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><Mark size={16} />Powered by Taprizz</footer>
         {data.plan === "mini" && !data.premium && !preview && <MiniFooter slug={data.slug} />}
       </main>
+      {reviewOpen && data.review_code && <LinkReviewSheet code={data.review_code} onClose={() => setReviewOpen(false)} />}
       {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click", "Offer: Get this offer")} />}
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click", "Outlet: call, map or Instagram")} />}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
+import { qrDataUrl } from "@/lib/qr-logo";
 import { Check, Copy, Download, MessageCircle, Share, SquarePlus } from "lucide-react";
 
 type Evt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
@@ -21,7 +21,7 @@ export function InstallScreen({ link }: { link: string }) {
     const onPrompt = (e: Event) => { e.preventDefault(); setEvt(e as Evt); };
     const onDone = () => setInstalled(true);
     window.addEventListener("beforeinstallprompt", onPrompt); window.addEventListener("appinstalled", onDone);
-    QRCode.toDataURL(link, { margin: 1, width: 360, errorCorrectionLevel: "M" }).then(setQr).catch(() => {});
+    qrDataUrl(link, { margin: 1, width: 360 }).then(setQr).catch(() => {});
     return () => { window.removeEventListener("beforeinstallprompt", onPrompt); window.removeEventListener("appinstalled", onDone); };
   }, [link]);
 

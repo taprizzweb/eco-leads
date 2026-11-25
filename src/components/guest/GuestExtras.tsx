@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BellRing, Check, Copy, Loader2, ThumbsUp, TriangleAlert } from "lucide-react";
-import QRCode from "qrcode";
+import { qrDataUrl } from "@/lib/qr-logo";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { FeedbackForm } from "./FeedbackForm";
 import type { Visitor } from "@/lib/visitor";
@@ -18,7 +18,7 @@ export function WifiSheet({ name, password }: { name: string; password: string }
   const [copied, setCopied] = useState<"name" | "pass" | null>(null);
   useEffect(() => {
     let live = true;
-    QRCode.toDataURL(wifiText(name, password), { margin: 1, width: 440, errorCorrectionLevel: "M" }).then((u) => { if (live) setQr(u); }).catch(() => {});
+    qrDataUrl(wifiText(name, password), { margin: 1, width: 440 }).then((u) => { if (live) setQr(u); }).catch(() => {});
     return () => { live = false; };
   }, [name, password]);
   const copy = (what: "name" | "pass") => {
