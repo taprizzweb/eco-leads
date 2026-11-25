@@ -32,6 +32,7 @@ const RULES: Rule[] = [
   { name: "zomato", hosts: ["zomato.com", "zoma.to"], label: /zomato/i, node: () => <span className="grid h-6 w-9 place-items-center rounded-md" style={{ background: BRAND.zomato.bg, color: BRAND.zomato.fg }}><ZomatoIcon size={15} /></span> },
   { name: "swiggy", hosts: ["swiggy.com", "swiggy.in"], label: /swiggy/i, node: () => <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: BRAND.swiggy.bg, color: BRAND.swiggy.fg }}><SwiggyIcon size={17} /></span> },
   { name: "district", hosts: ["district.in"], label: /district/i, node: () => <span className="grid h-7 w-7 place-items-center rounded-lg" style={{ background: BRAND.district.bg, color: BRAND.district.fg }}><DistrictIcon size={17} /></span> },
+  { name: "eazydiner", hosts: ["eazydiner.com"], label: /eazy\s?diner/i, node: () => <span className="grid h-7 w-7 place-items-center rounded-lg text-[11px] font-extrabold" style={{ background: "#E5322D", color: "#fff" }}>ED</span> },
   { name: "github", hosts: ["github.com"], label: /github/i, node: () => badge("#181717", "#fff", <Github {...S} />) },
   { name: "discord", hosts: ["discord.com", "discord.gg"], label: /discord/i, node: () => badge("#5865F2", "#fff", <MessageCircle {...S} />) },
   { name: "twitch", hosts: ["twitch.tv"], label: /twitch/i, node: () => badge("#9146FF", "#fff", <Twitch {...S} />) },

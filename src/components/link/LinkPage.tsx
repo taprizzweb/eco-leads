@@ -8,6 +8,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { Mark } from "@/components/dash/AuthFrame";
 import { BRAND, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
 import { brandFor } from "./brands";
+import { SiteLogo } from "./SiteLogo";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { LinkReviewSheet } from "./LinkReview";
 import { ContactSheet } from "./ContactSheet";
@@ -291,7 +292,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
             {buttons.map((b, i) => {
               const Icon = ICONS[b.icon] ?? Link2;
               // Every link shows the logo of the app it points to (Facebook, YouTube, LinkedIn, X, Instagram...). Unknown ones keep the generic icon.
-              const logo = brandFor(b.url, b.label);
+              const logo = brandFor(b.url, b.label) ?? (b.icon === "link" && /^https?:\/\//i.test(b.url) ? <SiteLogo url={b.url} /> : null);
               const glyph = logo ?? <Icon size={21} strokeWidth={1.7} />;
               const inner = (
                 <>
