@@ -29,8 +29,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const d = await load(slug, false);
   if (!d) return { title: "Page not found" };
   const title = linkTitle(d), description = linkDescription(d);
+  // A free mini page is not offered to Google. Premium pages are.
+  const hidden = d.plan === "mini" && !d.premium;
   return {
     title, description,
+    ...(hidden ? { robots: { index: false, follow: true } } : {}),
     openGraph: { title, description, type: "website", siteName: d.name, ...(d.logo_url ? { images: [d.logo_url] } : {}) },
     twitter: { card: "summary", title, description, ...(d.logo_url ? { images: [d.logo_url] } : {}) },
   };

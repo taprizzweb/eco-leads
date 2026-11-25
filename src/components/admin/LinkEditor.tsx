@@ -24,6 +24,16 @@ type Row = {
 /** admin: Taprizz team (everything). member: the business owner or manager signed in. token: the private control link, no login. */
 export type EditorMode = "admin" | "member" | "token";
 
+function LockedCard({ title, text }: { title: string; text: string }) {
+  return (
+    <section className="d-card flex items-center gap-3 p-4">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg" style={{ background: "var(--d-bg)", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }} aria-hidden>🔒</span>
+      <div className="min-w-0 flex-1"><p className="font-semibold">{title} <span className="text-xs font-medium" style={{ color: "var(--d-muted)" }}>Premium</span></p><p className="text-sm" style={{ color: "var(--d-muted)" }}>{text}</p></div>
+      <button type="button" className="d-btn d-btn-s shrink-0" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Upgrade</button>
+    </section>
+  );
+}
+
 // Module level on purpose: defined inside the editor it would remount on every keystroke and the field would lose focus.
 function F({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -41,9 +51,11 @@ const SOCIAL_FIELDS: [keyof LinkSocials, string, string][] = [
   ["phone", "Phone number", "+91 98765 43210"], ["website", "Website", "https://"],
 ];
 
-export function LinkEditor({ initial, clientName, mode = "admin", token, mini = false }: { initial: Row; clientName: string | null; mode?: EditorMode; token?: string; mini?: boolean }) {
+export function LinkEditor({ initial, clientName, mode = "admin", token, mini = false, premium = false }: { initial: Row; clientName: string | null; mode?: EditorMode; token?: string; mini?: boolean; premium?: boolean }) {
   const admin = mode === "admin";
-  const maxPhotos = mini ? 5 : 30;
+  const maxPhotos = mini ? (premium ? 10 : 3) : 30;
+  const [step, setStep] = useState(1);
+  const goStep = (n: number) => { setStep(n); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); };
   // Uploads: the team uses links/<page>, a signed-in business uses its own folder, the control link uses a folder named by its secret.
   const folder = mode === "token" ? `link-edit/${token}` : mode === "member" ? `${initial.client_id}/links` : `links/${initial.id}`;
   const sb = supabaseBrowser();
@@ -137,6 +149,17 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
   return (
     <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
       <div className="space-y-4">
+        {mini && (
+          <div className="d-card p-3" role="group" aria-label="Steps">
+            <div className="grid grid-cols-3 gap-2">
+              {([[1, "Your look"], [2, "Your links"], [3, "Photos and more"]] as const).map(([n, label]) => (
+                <button key={n} type="button" aria-pressed={step === n} onClick={() => goStep(n)} className="rounded-xl px-2 py-2.5 text-center text-sm font-medium" style={{ background: step === n ? "var(--d-text)" : "var(--d-bg)", color: step === n ? "var(--d-bg)" : "var(--d-text)", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }}>
+                  <span className="block text-[11px] opacity-70">Step {n}</span>{label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {admin && (        <Sec title="Page" sub={clientName ? `Linked to the registered business ${clientName}.` : "A link-only business. It is not registered in Taprizz."}>
           <div className="grid gap-4 sm:grid-cols-2">
             <F label="Page link" hint={`${LINK_BASE.replace(/^https?:\/\//, "")}/${slugify(r.slug) || "name"}`}><input className="d-input" maxLength={40} value={r.slug} onChange={(e) => set("slug", e.target.value.toLowerCase())} /></F>
@@ -146,14 +169,14 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           </div>
         </Sec>)}
 
-        <Sec title="Template" sub="The colours of the page.">
+        {(!mini || step === 1) && (<Sec title="Template" sub="The colours of the page.">
           <div className="flex flex-wrap gap-2">{(Object.keys(LINK_THEMES) as LinkTheme[]).map((t) => (
             <button key={t} type="button" aria-pressed={r.theme === t} onClick={() => set("theme", t)} className="flex items-center gap-2 rounded-full py-1.5 pr-3.5 pl-1.5 text-[13px]" style={{ background: "var(--d-bg)", color: "var(--d-text)", boxShadow: r.theme === t ? "inset 0 0 0 2px var(--d-text)" : "inset 0 0 0 1px var(--d-line-2)" }}>
               <span className="h-6 w-6 rounded-full" style={{ background: `linear-gradient(135deg, ${LINK_THEMES[t].vars["--l-accent"]}, ${LINK_THEMES[t].vars["--l-bg"]})`, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.2)" }} />{LINK_THEMES[t].label}
             </button>))}</div>
-        </Sec>
+        </Sec>)}
 
-        <Sec title="Colours" sub="Pick any colour for the background, the glow and the buttons. Text turns light or dark by itself so it stays readable. Leave a colour empty to keep the template's.">
+        {(!mini || step === 1) && (<Sec title="Colours" sub="Pick any colour for the background, the glow and the buttons. Text turns light or dark by itself so it stays readable. Leave a colour empty to keep the template's.">
           {(() => { const t = getLinkTheme(r.theme, r.colors); const c = r.colors ?? {}; return (
             <>
               <div className="space-y-2">
@@ -186,9 +209,9 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
               <button type="button" className="d-btn d-btn-s" disabled={!Object.keys(c).length} onClick={() => set("colors", {})}>Reset all colours</button>
             </>
           ); })()}
-        </Sec>
+        </Sec>)}
 
-        <Sec title="Profile">
+        {(!mini || step === 1) && (<Sec title="Profile">
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => logoIn.current?.click()} aria-label="Change logo" className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full" style={{ background: "var(--d-bg)", boxShadow: "inset 0 0 0 1px var(--d-line-2)" }}>
               {up === "logo" ? <Loader2 className="animate-spin" /> : r.logo_url
@@ -202,9 +225,9 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
             <F label="Name"><input className="d-input" maxLength={80} value={r.name} onChange={(e) => set("name", e.target.value)} /></F>
             <F label="Tagline"><input className="d-input" maxLength={120} value={r.tagline ?? ""} onChange={(e) => set("tagline", e.target.value)} placeholder="Great Coffee . Great Food . Great Vibe" /></F>
           </div>
-        </Sec>
+        </Sec>)}
 
-        {mini ? <MiniLinks socials={r.socials} setSocials={(v) => set("socials", v)} buttons={r.buttons} setButtons={(v) => set("buttons", v)} hasOutlets={r.outlets.length > 0} hasOffers={r.offers.length > 0} /> : (<Sec title="Icons under the name" sub="Instagram, Zomato, Swiggy and the rest. Empty ones are hidden.">
+        {mini ? (step === 2 && <MiniLinks socials={r.socials} setSocials={(v) => set("socials", v)} buttons={r.buttons} setButtons={(v) => set("buttons", v)} hasOutlets={r.outlets.length > 0} hasOffers={r.offers.length > 0} canOffers={premium} maxExtra={premium ? 6 : 1} />) : (<Sec title="Icons under the name" sub="Instagram, Zomato, Swiggy and the rest. Empty ones are hidden.">
           <div className="grid gap-4 sm:grid-cols-2">{SOCIAL_FIELDS.map(([k, label, ph]) => (
             <F key={k} label={label}>
               {k === "phone" || k === "whatsapp"
@@ -218,13 +241,13 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           <input className="d-input" maxLength={600} value={seoText} onChange={(e) => setSeoText(e.target.value)} placeholder="cafe in C-Scheme Jaipur, fresh fruits delivery Jaipur" aria-label="Search keywords" />
         </Sec>)}
 
-        <Sec title="Scrolling tags" sub="Short words that keep scrolling, like offers.">
+        {(!mini || (step === 3 && premium)) && (<Sec title="Scrolling tags" sub="Short words that keep scrolling, like offers.">
           <F label="Tags" hint="comma separated"><textarea className="d-input" rows={2} value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder="Specialty Coffee, Pet Friendly, All-Day Dining" /></F>
-        </Sec>
+        </Sec>)}
 
-        <Sec title={mini ? "Photos" : "Photos and videos"} sub={mini ? "Up to 5 photos. One at a time with dots; they slide on their own. Press and hold the dots on a photo and drag to move it." : "One at a time with dots. It slides on its own. Press and hold the dots on a photo and drag to move it. Videos play muted and loop. Images are shrunk automatically; videos can be up to 20 MB (MP4, WebM or MOV)."}>
+        {(!mini || step === 3) && (<Sec title={mini ? "Photos" : "Photos and videos"} sub={mini ? (premium ? "Up to 10 photos and 2 videos (up to 20 MB each). One at a time with dots; they slide on their own. Press and hold the dots on a photo and drag to move it." : "Up to 3 photos. One at a time with dots; they slide on their own. Premium adds videos and up to 10 photos.") : "One at a time with dots. It slides on its own. Press and hold the dots on a photo and drag to move it. Videos play muted and loop. Images are shrunk automatically; videos can be up to 20 MB (MP4, WebM or MOV)."}>
           <F label="Which way it moves"><select className="d-input !w-auto" value={r.photo_direction} onChange={(e) => set("photo_direction", e.target.value as Row["photo_direction"])}><option value="forward">Forward (the next one comes from the right)</option><option value="backward">Backward (the next one comes from the left)</option></select></F>
-          <input ref={photoIn} type="file" accept={mini ? "image/*" : "image/*,video/mp4,video/webm,video/quicktime"} multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (!fs.length) return; void guard("photos", async () => { const items: LinkPhoto[] = []; for (const f of fs.slice(0, maxPhotos - r.photos.length)) { if (f.type.startsWith("video/")) { if (f.size > MAX_VIDEO_BYTES) { toast(`${f.name} is over 20 MB. Use a shorter clip.`, true); continue; } items.push({ url: await uploadVideo(f), kind: "video" }); } else items.push({ url: await upload(f, 1200) }); } setR((s) => ({ ...s, photos: [...s.photos, ...items] })); }); }} />
+          <input ref={photoIn} type="file" accept={mini && !premium ? "image/*" : "image/*,video/mp4,video/webm,video/quicktime"} multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); e.target.value = ""; if (!fs.length) return; void guard("photos", async () => { const items: LinkPhoto[] = []; for (const f of fs.slice(0, maxPhotos - r.photos.length)) { if (f.type.startsWith("video/")) { if (mini && r.photos.filter(isVideo).length + items.filter(isVideo).length >= 2) { toast("A Premium page can have 2 videos.", true); continue; } if (f.size > MAX_VIDEO_BYTES) { toast(`${f.name} is over 20 MB. Use a shorter clip.`, true); continue; } items.push({ url: await uploadVideo(f), kind: "video" }); } else items.push({ url: await upload(f, 1200) }); } setR((s) => ({ ...s, photos: [...s.photos, ...items] })); }); }} />
           <SortableList className="grid grid-cols-3 gap-2 sm:grid-cols-5" items={r.photos} keyOf={(p, i) => p.url + i} onChange={(n) => set("photos", n)} render={(p, i, grip) => (
             <div className="space-y-1">
               <div className="relative aspect-[4/5] overflow-hidden rounded-xl" style={{ background: "var(--d-bg)" }}>
@@ -241,8 +264,8 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
               </div>
             </div>
           )} />
-          <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= maxPhotos} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} {mini ? "Add photos" : "Add photos or videos"} ({r.photos.length} of {maxPhotos})</button>
-        </Sec>
+          <button type="button" className="d-btn d-btn-s" disabled={up === "photos" || r.photos.length >= maxPhotos} onClick={() => photoIn.current?.click()}>{up === "photos" ? <Loader2 size={15} className="animate-spin" /> : <ImagePlus size={15} />} {mini && !premium ? "Add photos" : "Add photos or videos"} ({r.photos.length} of {maxPhotos})</button>
+        </Sec>)}
 
         {!mini && (<Sec title="Link buttons" sub="Each one opens a link. The Outlets and Offers shortcuts open a list on the page instead.">
           <div className="space-y-3">
@@ -268,7 +291,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           <button type="button" className="d-btn d-btn-s" disabled={r.buttons.length >= 12} onClick={() => set("buttons", [...r.buttons, { label: "", url: "", icon: "link" }])}><Plus size={15} /> Add button</button>
         </Sec>)}
 
-        <Sec title="Outlets" sub="One card per store, with a photo, address and buttons for directions, WhatsApp, call and Google review.">
+        {(!mini || step === 3) && (<Sec title="Outlets" sub="One card per store, with a photo, address and buttons for directions, WhatsApp, call and Google review.">
           <input ref={outletIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; const i = outletTarget.current; e.target.value = ""; if (f) void guard(`outlet${i}`, async () => { const u = await upload(f, 1200); setR((s) => ({ ...s, outlets: s.outlets.map((o, k) => (k === i ? { ...o, image_url: u } : o)) })); }); }} />
           <datalist id="outlet-tags">{[...new Set(r.outlets.map((o) => (o.city ?? "").trim()).filter(Boolean))].map((t) => <option key={t} value={t} />)}</datalist>
           <p className="text-xs" style={{ color: "var(--d-muted)" }}>The <b>filter tag</b> is the short name guests see in the dropdown at the top of the outlets list (All, Jaipur, Delhi...). Give outlets of the same area the same tag. Leave it empty on every outlet to hide the dropdown. Keep it short: a city or area, not the full address.</p>
@@ -307,9 +330,9 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
             })}
           </div>
           <button type="button" className="d-btn d-btn-s" disabled={r.outlets.length >= 30} onClick={() => set("outlets", [...r.outlets, { name: "" }])}><Plus size={15} /> Add outlet</button>
-        </Sec>
+        </Sec>)}
 
-        <Sec title="Offers" sub="Pick the outlet, write the offer. Guests press the Offers button and see the offers outlet by outlet, with no photos. Each offer can have its own link.">
+        {(!mini || (step === 3 && premium)) && (<Sec title="Offers" sub="Pick the outlet, write the offer. Guests press the Offers button and see the offers outlet by outlet, with no photos. Each offer can have its own link.">
           <div className="space-y-3">
             {r.offers.map((o, i) => {
               const upd = (p: Partial<LinkOffer>) => set("offers", r.offers.map((x, k) => (k === i ? { ...x, ...p } : x)));
@@ -338,8 +361,21 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           </div>
           <button type="button" className="d-btn d-btn-s" disabled={r.offers.length >= 60} onClick={() => set("offers", [...r.offers, { outlet: r.outlets[0]?.name.trim() ?? "", title: "" }])}><Plus size={15} /> Add offer</button>
           {r.offers.length > 0 && !r.buttons.some((b) => b.url === "#offers") && <p className="text-xs" style={{ color: "var(--d-amber)" }}>There is no Offers button yet. Add one in Link buttons and press the Offers shortcut, or guests will not see these.</p>}
-        </Sec>
+        </Sec>)}
 
+        {mini && step === 3 && !premium && (
+          <>
+            <LockedCard title="Videos" text="Add up to 2 videos to your photo slider." />
+            <LockedCard title="Offers" text="Show your offers on the page, with an Offers button." />
+            <LockedCard title="Keywords line" text="A scrolling line of words under your name, like Specialty Coffee, Pet Friendly." />
+          </>
+        )}
+        {mini && (
+          <div className="flex justify-between gap-2">
+            <button type="button" className="d-btn d-btn-s" disabled={step === 1} onClick={() => goStep(step - 1)}>Back</button>
+            {step < 3 ? <button type="button" className="d-btn d-btn-p" onClick={() => goStep(step + 1)}>Next</button> : <span className="self-center text-sm" style={{ color: "var(--d-muted)" }}>That is all. Press Save.</span>}
+          </div>
+        )}
         {admin && (        <Sec title="Reviews" sub="Shown as a moving row of Google review cards.">
           {r.client_id && <label className="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={r.show_client_reviews} onChange={(e) => set("show_client_reviews", e.target.checked)} />Also show the reviews pasted for the registered business</label>}
           <div className="space-y-3">

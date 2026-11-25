@@ -11,7 +11,7 @@ export default async function MiniPage() {
   const { data } = await sb.rpc("mini_admin_overview");
   return (
     <>
-      <PageHead title="Mini Link sign-ups" sub="People who built their own mini link. Check each Rs 150 payment against your bank before you approve." />
+      <PageHead title="Mini Link sign-ups" sub="People who built their own mini link (free pages go live at once). Check each Rs 150 Premium payment against your bank before you unlock it." />
       <MiniAdmin data={(data ?? { payments: [], pages: [], reports: [], settings: {} }) as MiniOverview} />
     </>
   );

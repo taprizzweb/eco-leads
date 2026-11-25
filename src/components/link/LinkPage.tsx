@@ -300,7 +300,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         )}
 
         <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><Mark size={16} />Powered by Taprizz</footer>
-        {data.plan === "mini" && !preview && <MiniFooter slug={data.slug} />}
+        {data.plan === "mini" && !data.premium && !preview && <MiniFooter slug={data.slug} />}
       </main>
       {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click", "Offer: Get this offer")} />}
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click", "Outlet: call, map or Instagram")} />}

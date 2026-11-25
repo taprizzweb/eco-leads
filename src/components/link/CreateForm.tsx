@@ -75,8 +75,8 @@ export function CreateForm() {
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={terms} onChange={(e) => setTerms(e.target.checked)} /><span>I agree to the <a className="underline" href="/create/terms" target="_blank">terms, refund and privacy notes</a>.</span></label>
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={mkt} onChange={(e) => setMkt(e.target.checked)} /><span>Taprizz may message me on WhatsApp or email about my page and new offers. I can say stop anytime.</span></label>
       {err && <p role="alert" className="text-sm" style={{ color: "var(--d-red)" }}>{err}</p>}
-      <button className="d-btn d-btn-p w-full justify-center" disabled={busy}>{busy && <Loader2 size={16} className="animate-spin" />} Start building my page</button>
-      <p className="text-center text-xs" style={{ color: "var(--d-muted)" }}>Building and previewing is free. You pay only to put the page live.</p>
+      <button className="d-btn d-btn-p w-full justify-center" disabled={busy}>{busy && <Loader2 size={16} className="animate-spin" />} Create my free page</button>
+      <p className="text-center text-xs" style={{ color: "var(--d-muted)" }}>Your free page goes live at once. You can upgrade to Premium anytime.</p>
     </form>
   );
 }

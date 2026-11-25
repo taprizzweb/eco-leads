@@ -10,8 +10,8 @@ function Sec({ title, sub, children }: { title: string; sub?: string; children: 
 }
 
 /** Preset link rows for the self-serve mini link: nothing to choose, just type where each one goes. */
-export function MiniLinks({ socials, setSocials, buttons, setButtons, hasOutlets, hasOffers }: {
-  socials: LinkSocials; setSocials: (s: LinkSocials) => void; buttons: LinkButton[]; setButtons: (b: LinkButton[]) => void; hasOutlets: boolean; hasOffers: boolean;
+export function MiniLinks({ socials, setSocials, buttons, setButtons, hasOutlets, hasOffers, canOffers, maxExtra }: {
+  socials: LinkSocials; setSocials: (s: LinkSocials) => void; buttons: LinkButton[]; setButtons: (b: LinkButton[]) => void; hasOutlets: boolean; hasOffers: boolean; canOffers: boolean; maxExtra: number;
 }) {
   const menu = buttons.find(isMenuBtn), outlets = buttons.find(isOutletsBtn), offers = buttons.find(isOffersBtn), custom = buttons.filter(isCustomBtn);
   const compose = (m: LinkButton | undefined, o: LinkButton | undefined, f: LinkButton | undefined, c: LinkButton[]) => setButtons([m, o, f, ...c].filter(Boolean) as LinkButton[]);
@@ -38,21 +38,21 @@ export function MiniLinks({ socials, setSocials, buttons, setButtons, hasOutlets
         </div>
         <label className="flex min-h-10 items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={!!outlets} onChange={(e) => compose(menu, e.target.checked ? { label: "Our outlets", url: "#outlets", icon: "outlets" } : undefined, offers, custom)} />
           <span><span className="font-medium" style={{ color: "var(--d-text)" }}>Outlets</span><br /><span className="text-xs" style={{ color: "var(--d-muted)" }}>Guests see every outlet of yours in one list, with directions and call buttons.{!hasOutlets ? " Add your outlets in the Outlets section below." : ""}</span></span></label>
-        <label className="flex min-h-10 items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={!!offers} onChange={(e) => compose(menu, outlets, e.target.checked ? { label: "Offers", url: "#offers", icon: "gift" } : undefined, custom)} />
-          <span><span className="font-medium" style={{ color: "var(--d-text)" }}>Offers</span><br /><span className="text-xs" style={{ color: "var(--d-muted)" }}>Opens your current offers.{!hasOffers ? " Add them in the Offers section below." : ""}</span></span></label>
+{canOffers ? (        <label className="flex min-h-10 items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5" checked={!!offers} onChange={(e) => compose(menu, outlets, e.target.checked ? { label: "Offers", url: "#offers", icon: "gift" } : undefined, custom)} />
+          <span><span className="font-medium" style={{ color: "var(--d-text)" }}>Offers</span><br /><span className="text-xs" style={{ color: "var(--d-muted)" }}>Opens your current offers.{!hasOffers ? " Add them in the Offers section below." : ""}</span></span></label>) : (<p className="text-sm" style={{ color: "var(--d-muted)" }}>🔒 <b style={{ color: "var(--d-text)" }}>Offers</b> button: Premium.</p>)}
       </Sec>
 
-      <Sec title="More buttons (optional)" sub="For anything else, like Order online or Book a table. Up to 4.">
+      <Sec title="Add another link" sub={maxExtra > 1 ? `Anything else, like Order online or Book a table. Up to ${maxExtra}.` : "One more link of your own, like Order online or Book a table. Premium gives you 6."}>
         <div className="space-y-2">
           {custom.map((b, i) => (
             <div key={i} className="flex gap-2">
-              <input aria-label={`Button ${i + 1} name`} className="d-input !min-h-10 !w-40" maxLength={40} value={b.label} placeholder="Order online" onChange={(e) => compose(menu, outlets, offers, custom.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))} />
+              <input aria-label={`Button ${i + 1} name`} className="d-input !min-h-10 !w-40" maxLength={40} value={b.label} placeholder="Button name, like Order online" onChange={(e) => compose(menu, outlets, offers, custom.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))} />
               <input aria-label={`Button ${i + 1} link`} className="d-input !min-h-10" inputMode="url" maxLength={500} value={b.url} placeholder="Paste the link" onChange={(e) => compose(menu, outlets, offers, custom.map((x, k) => (k === i ? { ...x, url: e.target.value } : x)))} />
               <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove button ${i + 1}`} onClick={() => compose(menu, outlets, offers, custom.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={16} /></button>
             </div>
           ))}
         </div>
-        <button type="button" className="d-btn d-btn-s" disabled={custom.length >= 4} onClick={() => compose(menu, outlets, offers, [...custom, { label: "", url: "", icon: "link" }])}><Plus size={15} /> Add a button</button>
+        <button type="button" className="d-btn d-btn-s" disabled={custom.length >= maxExtra} onClick={() => compose(menu, outlets, offers, [...custom, { label: "", url: "", icon: "link" }])}><Plus size={15} /> Add a link</button>
       </Sec>
     </>
   );

@@ -4,7 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { LinkManager } from "@/components/link/LinkManager";
 import { TokenShell } from "@/components/link/TokenShell";
 import { LINK_BASE } from "@/lib/features";
-import { MiniPublishCard, type MiniSettings, type MiniState } from "@/components/link/MiniPublishCard";
+import { MiniPlanCard, type MiniSettings, type MiniState } from "@/components/link/MiniPlanCard";
 
 export const dynamic = "force-dynamic";
 // A private link: never indexed, never passed on as a referrer.
@@ -31,11 +31,11 @@ export default async function EditPage({ params }: { params: Promise<{ token: st
   const row = { fee_inr: 0, billing_note: null, ...(data as object) } as Parameters<typeof LinkManager>[0]["initial"];
   return (
     <TokenShell name={row.name}>
-      {mini && state && cfg && <MiniPublishCard token={token} slug={row.slug} state={state} settings={cfg as MiniSettings} />}
+      {mini && state && cfg && <MiniPlanCard token={token} slug={row.slug} state={state} settings={cfg as MiniSettings} />}
       <p className="mb-4 text-sm" style={{ color: "var(--d-muted)" }}>
-        Your page: {mini && !state?.published ? <span>{LINK_BASE.replace(/^https?:\/\//, "")}/{row.slug} (live after payment)</span> : <a className="underline" href={`/l/${row.slug}`} target="_blank" rel="noopener">{LINK_BASE.replace(/^https?:\/\//, "")}/{row.slug}</a>}. Keep this control link private: anyone who has it can change your page.{mini ? " Bookmark this page, it is the only way back to your editor." : ""}
+        Your page: <a className="underline" href={`/l/${row.slug}`} target="_blank" rel="noopener">{LINK_BASE.replace(/^https?:\/\//, "")}/{row.slug}</a>. Keep this control link private: anyone who has it can change your page.
       </p>
-      <LinkManager initial={row} clientName={null} mode="token" token={token} mini={mini} />
+      <LinkManager initial={row} clientName={null} mode="token" token={token} mini={mini} premium={!!state?.premium} />
     </TokenShell>
   );
 }

@@ -35,12 +35,12 @@ export function MiniAdmin({ data }: { data: MiniOverview }) {
   async function review(p: Pay, approve: boolean) {
     let note: string | null = null;
     if (!approve) { note = window.prompt("Why? The person will see this (optional)", "We could not find this payment in our bank. Please check the transaction ID."); if (note === null) return; }
-    else if (!confirm(`Approve ${p.name}? Make sure Rs ${p.amount_inr} with UTR ${p.utr} is in your bank.`)) return;
+    else if (!confirm(`Unlock Premium for ${p.name}? Make sure Rs ${p.amount_inr} with UTR ${p.utr} is in your bank.`)) return;
     setBusy(p.id);
     const { error } = await sb.rpc("mini_admin_review", { p_id: p.id, p_approve: approve, p_note: note });
     setBusy(null);
     if (error) return toast("That did not save. Please try again.", true);
-    toast(approve ? "Approved. The page is live." : "Rejected");
+    toast(approve ? "Premium unlocked." : "Rejected");
     router.refresh();
   }
   async function toggle(pg: Pg) {
@@ -48,7 +48,7 @@ export function MiniAdmin({ data }: { data: MiniOverview }) {
     const { error } = await sb.rpc("mini_admin_set_published", { p_link: pg.id, p_pub: !pg.published });
     setBusy(null);
     if (error) return toast("That did not save.", true);
-    toast(pg.published ? "Page switched off" : "Page is live");
+    toast(pg.published ? "Page switched off" : "Page switched on");
     router.refresh();
   }
   async function saveSetting(k: string) {
@@ -90,7 +90,7 @@ export function MiniAdmin({ data }: { data: MiniOverview }) {
       {tab === "pages" && (
         <>
           <div className="flex flex-wrap gap-2">
-            <button className="d-btn d-btn-s" disabled={!data.pages.length} onClick={() => downloadCsv("mini-link-contacts.csv", [["Name", "Page", "Phone", "Email", "OK to message", "Live", "Joined"], ...data.pages.map((g) => [g.name, g.slug, g.phone, g.email ?? "", g.marketing_consent ? "yes" : "no", g.published ? "yes" : "no", g.created_at.slice(0, 10)])])}><Download size={15} /> All contacts (CSV)</button>
+            <button className="d-btn d-btn-s" disabled={!data.pages.length} onClick={() => downloadCsv("mini-link-contacts.csv", [["Name", "Page", "Phone", "Email", "OK to message", "Premium", "Joined"], ...data.pages.map((g) => [g.name, g.slug, g.phone, g.email ?? "", g.marketing_consent ? "yes" : "no", g.paid_at ? "yes" : "no", g.created_at.slice(0, 10)])])}><Download size={15} /> All contacts (CSV)</button>
             <button className="d-btn d-btn-s" disabled={!data.pages.some((g) => g.marketing_consent)} onClick={() => downloadCsv("mini-link-ok-to-message.csv", [["Name", "Page", "Phone", "Email"], ...data.pages.filter((g) => g.marketing_consent).map((g) => [g.name, g.slug, g.phone, g.email ?? ""])])}><Download size={15} /> Only who agreed to messages</button>
           </div>
           {data.pages.length === 0 ? <Empty title="No pages yet">Pages people build show here.</Empty> : (
@@ -98,11 +98,11 @@ export function MiniAdmin({ data }: { data: MiniOverview }) {
               {data.pages.map((g) => (
                 <li key={g.id} className="d-card flex flex-wrap items-center gap-3 p-4 text-sm">
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 font-semibold">{g.name} <Pill tone={g.published ? "green" : "gray"}>{g.published ? "live" : "not live"}</Pill>{g.reports > 0 && <Pill tone="red">{g.reports} reports</Pill>}{g.marketing_consent && <Pill tone="blue">OK to message</Pill>}</p>
+                    <p className="flex items-center gap-2 font-semibold">{g.name} <Pill tone={g.paid_at ? "green" : "gray"}>{g.paid_at ? "Premium" : "Free"}</Pill>{!g.published && <Pill tone="red">switched off</Pill>}{g.reports > 0 && <Pill tone="red">{g.reports} reports</Pill>}{g.marketing_consent && <Pill tone="blue">OK to message</Pill>}</p>
                     <p style={{ color: "var(--d-muted)" }}>{linkUrl(g.slug)} · +91 {g.phone}{g.email ? ` · ${g.email}` : ""} · {fmtDate(g.created_at)}</p>
                   </div>
                   <button className="d-btn d-btn-s" onClick={() => void copy(`${origin}/edit/${g.edit_token}`, "Control link copied. Send it to the owner if they lost it.")}><Copy size={15} /> Control link</button>
-                  <button className="d-btn d-btn-s" disabled={busy === g.id} onClick={() => void toggle(g)}>{g.published ? "Switch off" : "Make live"}</button>
+                  <button className="d-btn d-btn-s" disabled={busy === g.id} onClick={() => void toggle(g)}>{g.published ? "Switch off" : "Switch on"}</button>
                 </li>
               ))}
             </ul>

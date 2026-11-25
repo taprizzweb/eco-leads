@@ -60,3 +60,22 @@ export function miniNormalize(socials: Record<string, string>, buttons: Btn[]): 
   }
   return { socials: out, buttons: bs };
 }
+
+export const FREE_PERKS = [
+  "Your page goes live at once",
+  "8 templates and any colour you like",
+  "3 photos",
+  "Instagram, WhatsApp, Call, Website, Maps, Zomato, Swiggy and Menu links",
+  "1 extra link of your own",
+  "All your outlets in one list",
+];
+export const PREMIUM_PERKS = [
+  "Everything in Free",
+  "Videos (2) and up to 10 photos",
+  "An Offers section, with an Offers button",
+  "The scrolling keywords line under your name",
+  "6 extra links instead of 1",
+  "No \"Make your own page\" line at the bottom",
+  "Your page can show up in Google search",
+  "Help on WhatsApp",
+];
