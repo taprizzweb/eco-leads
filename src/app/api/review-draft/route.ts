@@ -10,6 +10,7 @@ export const maxDuration = 30;
 
 const Body = z.object({
   code: z.string().min(3).max(40),
+  src: z.enum(["mini"]).optional(),
   rating: z.number().int().min(1).max(5),
   language: z.enum(["hinglish", "en", "hi"]),
   name: z.string().max(60).default(""),
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
   const { data: id } = await rpcKeyed(sb, "guest_save_review", {
     p_client: g.client.id,
-    p_code: g.plate?.code ?? null,
+    p_code: g.plate?.code ?? (b.src === "mini" ? "mini" : null),
     p_rating: b.rating,
     p_answers: { qa: answers, extra: cleanText(b.extra, 300) },
     p_draft: out.draft,

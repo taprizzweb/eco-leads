@@ -179,6 +179,22 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const track = (kind: "view" | "click", key?: string) => {
     if (!preview) sb.rpc("link_track", { p_id: data.id, p_kind: kind, p_key: key ?? null }).then(() => {}, () => {});
   };
+  // Someone who taps Instagram (or any link) and comes back sees the review stars once, for every rating alike.
+  useEffect(() => {
+    if (!data.review_code || preview) return;
+    const left = { v: false };
+    const onClick = (e: MouseEvent) => { const a = (e.target as HTMLElement | null)?.closest?.("a[href]") as HTMLAnchorElement | null; if (a && a.origin !== window.location.origin) left.v = true; };
+    const back = () => {
+      if (document.visibilityState !== "visible" || !left.v) return;
+      left.v = false;
+      try { if (sessionStorage.getItem("tz-review-back")) return; sessionStorage.setItem("tz-review-back", "1"); } catch { /* shown once per visit is best effort */ }
+      setReviewOpen(true);
+    };
+    document.addEventListener("click", onClick, true);
+    document.addEventListener("visibilitychange", back);
+    window.addEventListener("pageshow", back);
+    return () => { document.removeEventListener("click", onClick, true); document.removeEventListener("visibilitychange", back); window.removeEventListener("pageshow", back); };
+  }, [data.review_code, preview]);
   const viewed = useRef(false);
   useEffect(() => { if (!viewed.current) { viewed.current = true; track("view"); } });
 

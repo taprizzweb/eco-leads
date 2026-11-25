@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing, UtensilsCrossed, Menu, X, ShieldCheck, Users, MessageCircle, KeyRound, Link2 } from "lucide-react";
+import { Home, Inbox, PanelsTopLeft, Gem, Sun, Moon, LogOut, ExternalLink, Lock, Star, Clapperboard, Megaphone, QrCode, MapPin, BellRing, UtensilsCrossed, Menu, X, ShieldCheck, Users, MessageCircle, KeyRound, Link2 } from "lucide-react";
 import { ToastProvider } from "./Toast";
 import { Mark } from "./AuthFrame";
 import { BackButton, ExitGuard, RememberPage } from "@/components/AppNav";
@@ -33,6 +33,7 @@ export function Shell({
   linkOn = false,
   role = "owner",
   hidden = [],
+  limited = false,
   children,
 }: {
   slug: string;
@@ -43,6 +44,7 @@ export function Shell({
   contentCount?: number;
   isTeam?: boolean;
   hidden?: string[];
+  limited?: boolean;
   waOn?: boolean;
   tablesOn?: boolean;
   jaipurOn?: boolean;
@@ -74,7 +76,7 @@ export function Shell({
   };
 
   const base = `/dashboard/${slug}`;
-  type Tab = { href: string; label: string; Icon: typeof Home; exact?: boolean; badge?: number; section?: Section; hide?: string };
+  type Tab = { href: string; label: string; Icon: typeof Home; exact?: boolean; badge?: number; section?: Section; hide?: string; locked?: boolean };
   const all: Tab[] = [
     { href: base, label: "Home", Icon: Home, exact: true, section: "home" },
     { href: `${base}/inbox`, label: "Inbox", Icon: Inbox, badge: openCount, section: "inbox" },
@@ -92,7 +94,10 @@ export function Shell({
     { href: `${base}/access`, label: "Team access", Icon: KeyRound, section: "access" },
     { href: `${base}/plan`, label: "Plan", Icon: Gem, section: "plan" },
   ];
-  const tabs = all.filter((t) => (!t.section || can(role, t.section)) && !hidden.includes(t.hide ?? (t.section && t.section.startsWith("pos") ? "pos" : t.section ?? "")));
+  const tabs0 = all.filter((t) => (!t.section || can(role, t.section)) && !hidden.includes(t.hide ?? (t.section && t.section.startsWith("pos") ? "pos" : t.section ?? "")));
+  // "Mini link only": every other button is visible but locked and opens a short note.
+  const tabs: Tab[] = tabs0.map((t) => (limited && t.hide !== "minilink" ? { ...t, href: `${base}/locked?x=${encodeURIComponent(t.label)}`, exact: false, locked: true, badge: undefined } : t));
+  const lockMark = (t: Tab) => (t.locked ? <Lock size={12} aria-label="Locked" className="ml-1 inline opacity-70" /> : null);
   // Phone bottom bar: four main tabs and "More" for the rest, so nothing is squeezed.
   const mainLabels = can(role, "home") ? ["Home", "Inbox", "Reviews", posOn ? "Food orders" : "My Page"] : ["Food orders", "Calls"];
   const bottomTabs = mainLabels.map((l) => tabs.find((t) => t.label === l)).filter(Boolean) as Tab[];
@@ -125,7 +130,7 @@ export function Shell({
             <nav aria-label="Dashboard" className="d-seg mx-auto hidden md:flex">
               {tabs.map((t) => (
                 <Link key={t.href} href={t.href} aria-current={active(t) ? "page" : undefined}>
-                  {t.label}
+                  {t.label}{lockMark(t)}
                   {!!t.badge && <span className="d-chip" style={{ ["--c" as string]: "var(--d-red)" }}>{t.badge}</span>}
                 </Link>
               ))}
@@ -167,7 +172,7 @@ export function Shell({
               return (
                 <Link key={href} href={href} aria-current={on ? "page" : undefined} className="relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 text-[11px] font-medium" style={{ color: on ? "var(--d-text)" : "var(--d-muted)" }}>
                   <Icon size={21} strokeWidth={on ? 2.2 : 1.8} />
-                  <span className="max-w-full truncate px-0.5">{label}</span>
+                  <span className="max-w-full truncate px-0.5">{label}{lockMark(t)}</span>
                   {!!badge && <span className="absolute top-2 left-1/2 ml-2 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold text-white" style={{ background: "var(--d-red)" }}>{badge}</span>}
                 </Link>
               );
@@ -190,7 +195,7 @@ export function Shell({
                 {moreTabs.map((t) => (
                   <li key={t.href}>
                     <Link href={t.href} onClick={(e) => { e.preventDefault(); closeSheetsThen(() => { setMore(false); router.push(t.href); }); }} className="d-card relative flex min-h-[84px] flex-col items-center justify-center gap-2 p-2 text-[13px] font-medium" aria-current={active(t) ? "page" : undefined}>
-                      <t.Icon size={22} />{t.label}
+                      <t.Icon size={22} />{t.label}{lockMark(t)}
                       {!!t.badge && <span className="absolute top-2 right-2 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold text-white" style={{ background: "var(--d-red)" }}>{t.badge}</span>}
                     </Link>
                   </li>

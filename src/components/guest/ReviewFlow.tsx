@@ -14,7 +14,7 @@ type SpeechLike = { lang: string; interimResults: boolean; continuous: boolean; 
 
 // The guest's own answers become their review. The Google button is always available, at every rating,
 // and nothing is ever offered in return for a review. Low ratings are offered a private message first.
-export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: GuestPageData; code: string; visitor: Visitor | null; onPrivateFeedback?: () => void }) {
+export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: { data: GuestPageData; code: string; visitor: Visitor | null; onPrivateFeedback?: () => void; source?: "mini" }) {
   const questions = useMemo(() => resolveQuestions(data.review, data.client.business_type), [data.review, data.client.business_type]);
   const langs = useMemo(() => LANGS.filter((l) => (data.review?.languages ?? LANGS.map((x) => x.id)).includes(l.id)), [data.review]);
   const lowMode = data.review?.low_star_mode ?? "private_first";
@@ -111,7 +111,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          code, rating, language: lang, name: visitor?.name ?? "", extra: own,
+          code, rating, language: lang, name: visitor?.name ?? "", extra: own, src: source,
           answers: questions.map((x) => ({ id: x.id, values: a[x.id] ?? [] })),
         }),
       });
@@ -158,7 +158,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback }: { data: G
     const share = fbContact && !!ph;
     recog.current?.stop();
     setFbSending(true); setFbError(null);
-    const { error: e } = await supabaseBrowser().rpc("guest_submit_feedback", { p_client: data.client.id, p_code: code, p_kind: "complaint", p_body: `[${rating} star${rating > 1 ? "s" : ""}] ${text}`, p_media: [], p_name: share && fbName.trim() ? fbName.trim().slice(0, 60) : null, p_phone: share ? `+91${ph}` : null, p_consent: share });
+    const { error: e } = await supabaseBrowser().rpc("guest_submit_feedback", { p_client: data.client.id, p_code: code, p_kind: "complaint", p_body: `${source === "mini" ? "[Mini link] " : ""}[${rating} star${rating > 1 ? "s" : ""}] ${text}`, p_media: [], p_name: share && fbName.trim() ? fbName.trim().slice(0, 60) : null, p_phone: share ? `+91${ph}` : null, p_consent: share });
     setFbSending(false);
     if (e) { setFbError("Your message did not send. Check your connection and try again. Nothing you wrote was lost."); return; }
     setFbSent(true);

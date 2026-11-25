@@ -40,7 +40,7 @@ export const loadClient = cache(async (slug: string) => {
   const role = toRole(roleRaw);
   // Buttons the Taprizz team switched off for this business: the owner and managers do not see them. Floor staff keep their own limited screens, and the team sees everything.
   const hidden = !teamRole && (role === "owner" || role === "manager") ? ((data as { hidden_sections?: string[] }).hidden_sections ?? []) : [];
-  return { sb, client: data as DashClient, features: (features ?? {}) as Record<string, unknown>, role, hidden, isTeam: !!teamRole };
+  return { sb, client: data as DashClient, features: (features ?? {}) as Record<string, unknown>, role, hidden, isTeam: !!teamRole, limited: hidden.includes("mini_only") };
 });
 
 export { timeAgo } from "./dash-time";
@@ -49,6 +49,8 @@ export { timeAgo } from "./dash-time";
 export async function requireSection(slug: string, section: Section, key?: string) {
   const ctx = await loadClient(slug);
   const hk = key ?? hideKey(section);
+  // "Mini link only" businesses: every other screen is locked and shows a teaser.
+  if (ctx.limited && hk !== "minilink") redirect(section === "home" ? `/dashboard/${slug}/mini-link` : `/dashboard/${slug}/locked`);
   if (hk && ctx.hidden.includes(hk)) redirect(`/dashboard/${slug}`);
   if (!can(ctx.role, section)) redirect(can(ctx.role, "pos-kitchen") && !can(ctx.role, "pos") ? `/pos/${slug}/kitchen` : can(ctx.role, "pos") && ctx.features.pos === true ? `/pos/${slug}` : can(ctx.role, "calls") ? `/dashboard/${slug}/calls` : "/dashboard");
   return ctx;

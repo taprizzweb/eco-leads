@@ -41,7 +41,7 @@ export function LinkReviewSheet({ code, onClose }: { code: string; onClose: () =
         </div>
         {!g && !failed && <div className="grid place-items-center py-16"><Loader2 className="animate-spin" /></div>}
         {failed && <p className="py-10 text-center text-sm opacity-80">Reviews are not available on this page right now.</p>}
-        {g && <ReviewFlow data={g} code={code} visitor={null} onPrivateFeedback={g.features.complaints ? () => {} : undefined} />}
+        {g && <ReviewFlow data={g} code={code} visitor={null} source="mini" onPrivateFeedback={g.features.complaints ? () => {} : undefined} />}
       </div>
     </div>
   );

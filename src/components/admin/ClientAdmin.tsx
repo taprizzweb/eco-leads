@@ -334,6 +334,12 @@ export function ClientAdmin({ client, packages, plates: p0, members: m0, invites
           )}
         </Card>
 
+        <Card title="Mini link only (lock the rest)" sub="For brands that only try the mini link and AI Review by Tap. The owner sees every button, but only Mini link opens; the others show a lock and a short note. Switch off to open everything again.">
+          <button role="switch" aria-checked={(c.hidden_sections ?? []).includes("mini_only")} aria-label="Mini link only" disabled={busy === "h-mini_only"} onClick={() => { const on = (c.hidden_sections ?? []).includes("mini_only"); patch("h-mini_only", { hidden_sections: on ? (c.hidden_sections ?? []).filter((x) => x !== "mini_only") : [...(c.hidden_sections ?? []), "mini_only"] }, on ? "Everything is open again" : "Only Mini link is open"); }} className="relative h-7 w-12 shrink-0 rounded-full transition-colors" style={{ background: (c.hidden_sections ?? []).includes("mini_only") ? "var(--d-green)" : "var(--d-line-2)" }}>
+            <span className="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all" style={{ left: (c.hidden_sections ?? []).includes("mini_only") ? 22 : 2 }} />
+          </button>
+        </Card>
+
         <Card title="Owner dashboard buttons" sub="Which buttons this business's owner and managers see. A button that is switched off disappears and its page cannot be opened. Home always shows. Floor staff and the Taprizz team are not affected.">
           <ul className="grid gap-x-6 sm:grid-cols-2">
             {OWNER_BUTTONS.map((b) => {
