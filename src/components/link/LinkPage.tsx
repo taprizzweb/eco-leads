@@ -240,12 +240,12 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         </div>
 
         <motion.header {...rise(0)} className="flex flex-col items-center px-6 pt-14 text-center">
-          <span className="grid h-[84px] w-[84px] place-items-center overflow-hidden rounded-full bg-white" style={{ boxShadow: "0 14px 40px -16px var(--l-accent), 0 0 0 1px var(--l-line)" }}>
+          <a href="https://taprizz.in" target="_blank" rel="noopener" aria-label="Taprizz" onClick={() => track("click", "Taprizz logo")} className="grid h-[84px] w-[84px] place-items-center overflow-hidden rounded-full bg-white" style={{ boxShadow: "0 14px 40px -16px var(--l-accent), 0 0 0 1px var(--l-line)" }}>
             {data.logo_url
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={data.logo_url} alt={`${data.name} logo`} width={84} height={84} className="h-full w-full object-cover" />
               : <span className="text-3xl font-semibold text-black/80" style={display}>{data.name.slice(0, 1).toUpperCase()}</span>}
-          </span>
+          </a>
           <h1 className="mt-4 text-[44px] leading-none tracking-[0.02em] uppercase" style={display}>{data.name}</h1>
           {data.tagline && <p className="mt-1.5 text-[17px] leading-none tracking-[0.03em] uppercase" style={{ ...display, color: "var(--l-muted)" }}>{data.tagline}</p>}
         </motion.header>
@@ -340,7 +340,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           </motion.section>
         )}
 
-        <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><Mark size={16} />Powered by Taprizz</footer>
+        <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><a href="https://taprizz.in" target="_blank" rel="noopener" onClick={() => track("click", "Powered by Taprizz")} className="flex items-center gap-2"><Mark size={16} />Powered by Taprizz</a></footer>
         {data.plan === "mini" && !data.premium && !preview && <MiniFooter slug={data.slug} />}
       </main>
       {reviewOpen && data.review_code && <LinkReviewSheet code={data.review_code} onClose={() => setReviewOpen(false)} />}
