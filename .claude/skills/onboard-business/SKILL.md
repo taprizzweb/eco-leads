@@ -18,6 +18,14 @@ Input: the business name (and city if not Jaipur). Everything else is found, dra
 - Never put medical claims, prices, staff names or results in chips. Banned words: 100%, guaranteed, cure, miracle, no side effects.
 - Suggest colours from the logo (`accent`), tagline (max ~8 words), and mini link buttons (Menu, Instagram, Maps, Call, WhatsApp) with the real URLs found.
 
+## 2b. SEO and GEO keywords (act as a senior SEO / GEO operator)
+Make a dedicated keyword set for THIS business, from real facts only:
+- **Local SEO (Google search / Maps):** "<what> in <area>", "<what> near <landmark>", "best <what> <city>", "<signature item> <city>", area and neighbourhood names the business really serves, plus brand-name variants and common spellings (including Hinglish: "cafe jaipur me", "sasta aur accha ..."). 12-20 keywords, no stuffing, no "best in Jaipur" claims on the page itself.
+- **GEO (AI answers such as ChatGPT, Gemini, Perplexity):** 5-8 plain question-style phrases people ask ("where to get <item> in <area>", "<type> open late near <landmark>") and one factual 2-line description (what it is, where, timings, what it is known for, only verified facts) so AI engines can quote it.
+- Save: `link_pages.seo_keywords` (search words, premium/full pages only), `link_pages.tags` (scrolling tags), `clients.seo_keywords` / `clients.keywords`, tagline and description. Check the page's title/description in `src/lib/link-seo.ts` come out right.
+- Also suggest 3-5 Google Business Profile actions (categories, services, Q&A, photo posts) as a to-do for the owner. These are suggestions; do not post anything on their behalf.
+- Free mini pages stay noindex and have no keywords by design.
+
 ## 3. Photos and logo
 - Use only what the owner sends or what is on the business's OWN site/social with their consent. Do not scrape or re-host other people's photos. If none, leave empty and tell the owner what to send. Logo: ask for the file, or use the site's logo only if the owner OKs it.
 

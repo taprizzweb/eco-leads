@@ -425,7 +425,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
         <div className="sticky bottom-3 z-10 flex flex-wrap gap-2 rounded-2xl p-2 backdrop-blur" style={{ background: "color-mix(in srgb, var(--d-bg) 80%, transparent)" }}>
           <button className="d-btn d-btn-p" disabled={busy || !!up} onClick={save}>{busy && <Loader2 size={16} className="animate-spin" />} Save</button>
           <a className="d-btn d-btn-s" href={`/l/${slugify(initial.slug)}${initial.published ? "" : mode === "token" ? `?preview=${token}` : "?preview=1"}`} target="_blank" rel="noopener">Open page</a>
-          <button className="d-btn d-btn-s" onClick={() => void downloadUrlQr(`${LINK_BASE}/${slugify(initial.slug)}`, slugify(initial.slug))}>Download QR</button>
+          {admin && <button className="d-btn d-btn-s" onClick={() => void downloadUrlQr(`${LINK_BASE}/${slugify(initial.slug)}`, slugify(initial.slug))}>Download QR</button>}
           {admin && <button className="d-btn d-btn-s ml-auto" onClick={remove}>Delete</button>}
         </div>
       </div>

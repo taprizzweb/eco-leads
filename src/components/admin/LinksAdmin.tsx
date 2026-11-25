@@ -3,12 +3,13 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Copy, ExternalLink, Loader2, Plus, Search } from "lucide-react";
+import { Copy, ExternalLink, QrCode, Loader2, Plus, Search } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useToast } from "@/components/dash/Toast";
 import { slugify, LINK_BASE, linkUrl } from "@/lib/features";
 import { DEFAULT_BUTTONS, LINK_THEMES, type LinkTheme } from "@/lib/linkpage";
 import { Pill } from "./ui";
+import { downloadUrlQr } from "./qr";
 
 export type LinkRow = { id: string; slug: string; name: string; logo_url: string | null; theme: string; published: boolean; fee_inr: number; client_id: string | null; views: number; clicks: number };
 export type ClientOpt = { id: string; name: string; slug: string };
@@ -114,6 +115,7 @@ export function LinksAdmin({ links, clients }: { links: LinkRow[]; clients: Clie
                 <div className="mt-1 flex gap-1.5">{l.published ? <Pill tone="green">Live</Pill> : <Pill tone="amber">Draft</Pill>}{l.client_id ? <Pill tone="blue">Registered</Pill> : <Pill tone="gray">Link only</Pill>}</div>
               </div>
               <button className="d-btn d-btn-s !px-3" aria-label={`Copy link for ${l.name}`} onClick={() => copy(l)}><Copy size={15} /></button>
+              <button className="d-btn d-btn-s !px-3" aria-label={`Download QR for ${l.name}`} title="Download QR" onClick={() => void downloadUrlQr(linkUrl(l.slug), l.slug)}><QrCode size={15} /></button>
               <a className="d-btn d-btn-s !px-3" aria-label={`Open ${l.name}`} href={`/l/${l.slug}${l.published ? "" : "?preview=1"}`} target="_blank" rel="noopener"><ExternalLink size={15} /></a>
             </article>
           ))}
