@@ -97,6 +97,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
   const closePosters = useCallback(() => setPostersOpen(false), []);
   const newStyle = client.card_config?.new_style ?? "pill";
   const cardStyle = client.card_config?.card_style ?? "classic";
+  const iconStyle = client.card_config?.icon_style ?? "neon";
   // The "What is new" posters open as soon as the guest page loads, every time.
   const posterIds = (data.extras?.posters ?? []).map((p) => p.id).join(",");
   const menuBackKey = `tz_menuback_${client.id}`;
@@ -338,7 +339,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
                   if (cardStyle === "compact") {
                     return (
                       <motion.button key={k} {...rise(5 + i)} whileTap={reduce ? undefined : { scale: 0.98 }} onClick={() => onCard(k)} className="flex w-full items-center gap-3.5 rounded-2xl py-3 pr-3.5 pl-3 text-left ring-1 ring-line" style={{ background: `radial-gradient(80% 160% at 0% 50%, rgba(${t},0.16), transparent 60%), var(--surface)` }}>
-                        <AnimatedIcon name={k} tint={t} size={46} play={i} />
+                        <AnimatedIcon variant={iconStyle} name={k} tint={t} size={46} play={i} />
                         <span className="min-w-0 flex-1">
                           {stars}
                           <span className="block text-[16.5px] leading-tight font-semibold tracking-[-0.01em]">{c.title}</span>
@@ -349,8 +350,8 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
                     );
                   }
                   return (
-                    <motion.button key={k} {...rise(5 + i)} whileTap={reduce ? undefined : { scale: 0.97 }} onClick={() => onCard(k)} className={`flex min-h-[148px] flex-col items-start justify-between gap-3 rounded-[24px] p-4 text-left ring-1 ring-line ${k === "review" ? "col-span-2" : ""}`} style={{ background: `radial-gradient(100% 90% at 100% 0%, rgba(${t},0.20), transparent 62%), var(--surface)` }}>
-                      <AnimatedIcon name={k} tint={t} size={52} play={i} />
+                    <motion.button key={k} {...rise(5 + i)} whileTap={reduce ? undefined : { scale: 0.97 }} onClick={() => onCard(k)} className={`flex min-h-[148px] flex-col items-start justify-between gap-3 rounded-[24px] p-4 text-left ring-1 ring-line ${k === "review" || k === "menu" ? "col-span-2" : ""}`} style={{ background: `radial-gradient(100% 90% at 100% 0%, rgba(${t},0.20), transparent 62%), var(--surface)` }}>
+                      <AnimatedIcon variant={iconStyle} name={k} tint={t} size={52} play={i} />
                       <span className="block w-full min-w-0">
                         {stars}
                         <span className="block text-[16.5px] leading-tight font-semibold tracking-[-0.01em]">{c.title}</span>
@@ -379,7 +380,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
                           <span className="block text-[20px] leading-tight font-semibold tracking-[-0.02em]">{c.title}</span>
                           <span className="mt-1 block text-[13.5px] leading-snug text-muted">{c.help}</span>
                         </span>
-                        <AnimatedIcon name={k} tint="251, 191, 36" size={68} play={i} />
+                        <AnimatedIcon variant={iconStyle} name={k} tint="251, 191, 36" size={68} play={i} />
                       </span>
                     </motion.button>
                   );
@@ -401,7 +402,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
                         <span className="block text-[18px] leading-tight font-semibold tracking-[-0.02em]">{c.title}</span>
                         <span className="mt-1 block text-[13.5px] leading-snug text-muted">{c.help}</span>
                       </span>
-                      <AnimatedIcon name={k} tint={tint} size={60} play={i} />
+                      <AnimatedIcon variant={iconStyle} name={k} tint={tint} size={60} play={i} />
                     </span>
                   </motion.button>
                 );
@@ -429,7 +430,7 @@ export function GuestPage({ data, code, hubHref, hubGeo, outlets = [] }: { data:
                           <span className="block truncate text-[18px] leading-tight font-semibold tracking-[-0.02em]">{l.label}</span>
                           {host && <span className="mt-1 block truncate text-[13.5px] text-muted">{host}</span>}
                         </span>
-                        <AnimatedIcon name="link" tint="148, 163, 184" size={56} play={i} />
+                        <AnimatedIcon variant={iconStyle} name="link" tint="148, 163, 184" size={56} play={i} />
                       </span>
                     </motion.a>
                   );

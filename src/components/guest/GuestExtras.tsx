@@ -126,6 +126,12 @@ export const CARD_STYLES: { id: CardStyle; label: string; help: string }[] = [
   { id: "compact", label: "Slim rows", help: "Slim rows with a small icon. More fits on the screen." },
   { id: "tiles", label: "Square tiles", help: "Two tiles side by side, like an app home screen." },
 ];
+export const ICON_STYLES: { id: "neon" | "solid" | "soft" | "brand"; label: string; help: string }[] = [
+  { id: "neon", label: "Neon glow", help: "Glowing icons that draw themselves in." },
+  { id: "solid", label: "Solid colour", help: "Flat tiles, each card in its own colour. No animation." },
+  { id: "soft", label: "Soft", help: "Light tinted tiles with a coloured icon. Calm and still." },
+  { id: "brand", label: "Brand colour", help: "Every icon uses your button colour. Clean and on-brand." },
+];
 export type NewStyle = "pill" | "tab" | "banner";
 export const NEW_STYLES: { id: NewStyle; label: string; help: string }[] = [
   { id: "pill", label: "Red button", help: "A red NEW button floats above the footer, in the middle." },

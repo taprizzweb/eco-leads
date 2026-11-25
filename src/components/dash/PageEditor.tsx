@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, ImagePlus, X, Smartphone, Lock } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { THEMES, type ThemeId } from "@/lib/themes";
-import { CARD_STYLES, NEW_STYLES, type CardStyle, type NewStyle } from "@/components/guest/GuestExtras";
+import { CARD_STYLES, ICON_STYLES, NEW_STYLES, type CardStyle, type NewStyle } from "@/components/guest/GuestExtras";
 import { SortableList, Grip } from "@/components/ui/SortableList";
 import { ColorField, BG_SWATCHES } from "@/components/ui/ColorField";
 import { logoPalettes, type Palette } from "@/lib/logo-colors";
@@ -77,6 +77,7 @@ export function PageEditor({
     google_review_url: client.google_review_url ?? "",
     menu_url: client.menu_url ?? "",
     theme: client.theme as ThemeId,
+    icon_style: (((client.card_config as { icon_style?: string } | null)?.icon_style) ?? "neon") as "neon" | "solid" | "soft" | "brand",
     card_style: (((client.card_config as { card_style?: CardStyle } | null)?.card_style) ?? "classic") as CardStyle,
     new_style: (((client.card_config as { new_style?: NewStyle } | null)?.new_style) ?? "pill") as NewStyle,
     colors: { ...(client.colors ?? {}) } as { bg?: string; accent?: string; button?: string },
@@ -140,7 +141,7 @@ export function PageEditor({
       google_review_url: f.google_review_url.trim() || null,
       menu_url: f.menu_url.trim() || null,
       theme: f.theme,
-      card_config: { ...(client.card_config ?? {}), new_style: f.new_style, card_style: f.card_style },
+      card_config: { ...(client.card_config ?? {}), new_style: f.new_style, card_style: f.card_style, icon_style: f.icon_style },
       colors: Object.fromEntries(Object.entries(f.colors).filter(([, v]) => /^#[0-9a-f]{6}$/i.test(v ?? ""))),
       logo_url: f.logo_url,
       socials,
@@ -318,7 +319,7 @@ export function PageEditor({
       id: client.id, slug: client.slug, name: f.name || "Your business", tagline: f.tagline || template?.tagline || null,
       logo_url: f.logo_url, theme: f.theme, colors: f.colors, google_review_url: f.google_review_url || null, menu_url: f.menu_url || null,
       business_type: client.business_type, socials: f.socials, keywords: f.keywords,
-      review_chips: template?.review_chips ?? [], card_config: { new_style: f.new_style, card_style: f.card_style }, card_copy: template?.card_copy ?? {},
+      review_chips: template?.review_chips ?? [], card_config: { new_style: f.new_style, card_style: f.card_style, icon_style: f.icon_style }, card_copy: template?.card_copy ?? {},
     },
     features: features as GuestPageData["features"],
     gallery: gallery.slice(0, photoLimit),
@@ -419,6 +420,30 @@ export function PageEditor({
                       {o.id === "classic" && <span className="flex h-full flex-col gap-1.5">{[0, 1].map((n) => <span key={n} className="flex flex-1 items-center justify-between rounded-lg px-2" style={{ background: "var(--d-line-2)" }}>{bar}<span className="h-4 w-4 rounded-md bg-purple-400/70" /></span>)}</span>}
                       {o.id === "compact" && <span className="flex h-full flex-col gap-1">{[0, 1, 2].map((n) => <span key={n} className="flex flex-1 items-center gap-1.5 rounded-md px-1.5" style={{ background: "var(--d-line-2)" }}><span className="h-3 w-3 rounded bg-teal-400/70" />{bar}</span>)}</span>}
                       {o.id === "tiles" && <span className="grid h-full grid-cols-2 gap-1.5">{[0, 1, 2, 3].map((n) => <span key={n} className="flex flex-col justify-between rounded-md p-1.5" style={{ background: "var(--d-line-2)" }}><span className="h-3 w-3 rounded bg-sky-400/70" />{bar}</span>)}</span>}
+                    </span>
+                    <span className="block font-medium" style={{ color: "var(--d-text)" }}>{o.label}</span>
+                    <span className="block text-xs" style={{ color: "var(--d-muted)" }}>{o.help}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Section title="Icon style" sub="The small icon tile on each action button. Pick a look; the preview on the right changes at once.">
+            <div className="grid gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Icon style">
+              {ICON_STYLES.map((o) => {
+                const on = f.icon_style === o.id;
+                const tints = ["168,85,247", "239,68,68", "20,184,166"];
+                return (
+                  <button key={o.id} type="button" role="radio" aria-checked={on} onClick={() => set("icon_style", o.id)} className="rounded-lg p-2 text-left text-sm" style={{ boxShadow: `inset 0 0 0 ${on ? 2 : 1}px ${on ? "var(--d-blue)" : "var(--d-line-2)"}` }}>
+                    <span className="mb-2 flex h-20 items-center justify-center gap-2 rounded-md" style={{ background: "var(--d-bg)" }}>
+                      {tints.map((t) => (
+                        <span key={t} className="h-9 w-9 rounded-xl" style={
+                          o.id === "solid" ? { background: `rgb(${t})` }
+                          : o.id === "soft" ? { background: `rgba(${t},0.18)`, boxShadow: `inset 0 0 0 1px rgba(${t},0.35)` }
+                          : o.id === "brand" ? { background: "var(--d-text)" }
+                          : { background: `radial-gradient(120% 120% at 30% 20%, rgba(${t},0.5), rgba(${t},0.15))`, boxShadow: `0 8px 18px -8px rgba(${t},0.9)` }} />
+                      ))}
                     </span>
                     <span className="block font-medium" style={{ color: "var(--d-text)" }}>{o.label}</span>
                     <span className="block text-xs" style={{ color: "var(--d-muted)" }}>{o.help}</span>

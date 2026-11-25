@@ -52,6 +52,7 @@ export type GuestPageData = {
       hidden?: CardKey[];
       new_style?: "pill" | "tab" | "banner";
       card_style?: "classic" | "compact" | "tiles";
+      icon_style?: "neon" | "solid" | "soft" | "brand";
       copy?: Partial<Record<CardKey, { title?: string; help?: string }>>;
     };
     card_copy: Partial<Record<CardKey, { title?: string; help?: string }>>;
