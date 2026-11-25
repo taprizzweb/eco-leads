@@ -305,12 +305,13 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
                   <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Move button ${i + 1} down`} disabled={i === r.buttons.length - 1} onClick={() => set("buttons", move(r.buttons, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={16} /></button>
                   <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove button ${i + 1}`} onClick={() => set("buttons", r.buttons.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={16} /></button>
                 </div>
-                {b.url === "#outlets" || b.url === "#offers" ? (
-                  <div className="flex items-center justify-between gap-2 text-sm" style={{ color: "var(--d-muted)" }}><span>{b.url === "#offers" ? `Opens the offers list, outlet by outlet${r.offers.length === 0 ? " (add offers below first)" : ""}.` : `Opens the outlets list${r.outlets.length === 0 ? " (add outlets below first)" : ""}.`}</span><button type="button" className="underline underline-offset-4" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "" } : x)))}>Use a link instead</button></div>
+                {b.url === "#outlets" || b.url === "#offers" || b.url === "#contact" ? (
+                  <div className="flex items-center justify-between gap-2 text-sm" style={{ color: "var(--d-muted)" }}><span>{b.url === "#contact" ? "Opens the contact form (name, email, phone, message). Messages show above." : b.url === "#offers" ? `Opens the offers list, outlet by outlet${r.offers.length === 0 ? " (add offers below first)" : ""}.` : `Opens the outlets list${r.outlets.length === 0 ? " (add outlets below first)" : ""}.`}</span><button type="button" className="underline underline-offset-4" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "" } : x)))}>Use a link instead</button></div>
                 ) : (
                   <div className="flex gap-2"><input aria-label={`Button ${i + 1} link`} className="d-input !min-h-10" inputMode="url" maxLength={500} value={b.url} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: e.target.value } : x)))} placeholder="https://, tel: or mailto:" />
                     <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#outlets", icon: "outlets" } : x)))}>Outlets</button>
-                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#offers", icon: "gift" } : x)))}>Offers</button></div>
+                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#offers", icon: "gift" } : x)))}>Offers</button>
+                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#contact", icon: "mail" } : x)))}>Form</button></div>
                 )}
               </div>
             ))}

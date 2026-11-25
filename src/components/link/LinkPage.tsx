@@ -10,6 +10,7 @@ import { BRAND, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon 
 import { brandFor } from "./brands";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { LinkReviewSheet } from "./LinkReview";
+import { ContactSheet } from "./ContactSheet";
 import { getLinkTheme, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
@@ -171,6 +172,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const [outlets, setOutlets] = useState(false);
   const [offersOpen, setOffersOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const [note, setNote] = useState("");
   const sb = supabaseBrowser();
   // A review opens the business on Google Maps: its first outlet's map link, else the page's own Maps link.
@@ -221,7 +223,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   ].filter(Boolean) as { href: string; label: string; node: React.ReactNode; brand: { bg: string; fg: string } | null }[];
 
   const offers = (data.offers ?? []).filter((o) => o.title.trim());
-  const buttons = data.buttons.filter((b) => b.label.trim() && (b.url === "#outlets" ? data.outlets.length > 0 : b.url === "#offers" ? offers.length > 0 : !!safeUrl(b.url)));
+  const buttons = data.buttons.filter((b) => b.label.trim() && (b.url === "#contact" ? true : b.url === "#outlets" ? data.outlets.length > 0 : b.url === "#offers" ? offers.length > 0 : !!safeUrl(b.url)));
   const rise = (i: number) => (reduce ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.4, delay: 0.05 + i * 0.05 } } : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] as const } });
   const topBtn = "grid h-9 w-9 place-items-center rounded-full transition active:scale-90";
 
@@ -299,8 +301,8 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
               );
               const cls = "relative flex min-h-[52px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]";
               const st = { background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8)" } as const;
-              return b.url === "#outlets" || b.url === "#offers"
-                ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click", `Button: ${b.label}`); if (b.url === "#offers") setOffersOpen(true); else setOutlets(true); }}>{inner}</button>
+              return b.url === "#outlets" || b.url === "#offers" || b.url === "#contact"
+                ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click", `Button: ${b.label}`); if (b.url === "#offers") setOffersOpen(true); else if (b.url === "#contact") setContactOpen(true); else setOutlets(true); }}>{inner}</button>
                 : <a key={i} href={safeUrl(b.url) ?? "#"} target={b.url.startsWith("tel:") || b.url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener" className={cls} style={st} onClick={() => track("click", `Button: ${b.label}`)}>{inner}</a>;
             })}
           </motion.nav>
@@ -341,6 +343,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         {data.plan === "mini" && !data.premium && !preview && <MiniFooter slug={data.slug} />}
       </main>
       {reviewOpen && data.review_code && <LinkReviewSheet code={data.review_code} onClose={() => setReviewOpen(false)} />}
+      {contactOpen && <ContactSheet linkId={data.id} onClose={() => setContactOpen(false)} onSent={() => track("click", "Contact form sent")} />}
       {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click", "Offer: Get this offer")} />}
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click", "Outlet: call, map or Instagram")} />}
     </div>

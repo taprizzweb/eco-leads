@@ -1,4 +1,5 @@
 import { requireSection } from "@/lib/dash";
+import { ContactList } from "@/components/link/ContactList";
 import { LinkManager } from "@/components/link/LinkManager";
 import { LINK_BASE } from "@/lib/features";
 
@@ -22,6 +23,7 @@ export default async function MiniLinkPage({ params }: { params: Promise<{ slug:
     sb.from("review_drafts").select("id", head).eq("client_id", client.id).eq("plate_code", "mini").eq("copied", true).gte("created_at", since),
     sb.from("feedback").select("id, body, status, created_at").eq("client_id", client.id).eq("kind", "complaint").like("body", "[Mini link]%").order("created_at", { ascending: false }).limit(20),
   ]) : [null, null, null];
+  const { data: contacts } = await sb.rpc("link_contacts_list", { p_id: (data as { id: string }).id, p_limit: 100 });
   const row = { fee_inr: 0, billing_note: null, ...(data as object) } as Parameters<typeof LinkManager>[0]["initial"];
   return (
     <>
@@ -49,6 +51,7 @@ export default async function MiniLinkPage({ params }: { params: Promise<{ slug:
           )}
         </section>
       )}
+      <ContactList rows={(contacts ?? []) as Parameters<typeof ContactList>[0]["rows"]} />
       <LinkManager initial={row} clientName={client.name} mode="member" />
     </>
   );
