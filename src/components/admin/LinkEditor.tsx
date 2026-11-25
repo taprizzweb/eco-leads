@@ -24,6 +24,24 @@ type Row = {
 /** admin: Taprizz team (everything). member: the business owner or manager signed in. token: the private control link, no login. */
 export type EditorMode = "admin" | "member" | "token";
 
+/** Shows a feature exactly as it will look, dimmed and locked, with a way to upgrade. Children are not clickable while locked. */
+function Gate({ locked, title, text, children }: { locked: boolean; title: string; text: string; children: React.ReactNode }) {
+  if (!locked) return <>{children}</>;
+  return (
+    <div className="relative">
+      <div aria-hidden inert style={{ opacity: 0.42, filter: "grayscale(0.4)", pointerEvents: "none" }}>{children}</div>
+      <div className="absolute inset-0 flex items-start justify-center p-4 pt-28">
+        <div className="max-w-xs rounded-2xl p-4 text-center" style={{ background: "var(--d-surface)", boxShadow: "0 18px 40px -16px rgba(0,0,0,.45), inset 0 0 0 1px var(--d-line-2)" }}>
+          <p className="text-2xl" aria-hidden>🔒</p>
+          <p className="mt-1 font-semibold">{title} <span className="text-xs font-medium" style={{ color: "var(--d-muted)" }}>Premium</span></p>
+          <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>{text}</p>
+          <button type="button" className="d-btn d-btn-p mt-3" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Upgrade for Rs 150</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LockedCard({ title, text }: { title: string; text: string }) {
   return (
     <section className="d-card flex items-center gap-3 p-4">
@@ -169,14 +187,14 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           </div>
         </Sec>)}
 
-        {(!mini || step === 1) && (<Sec title="Template" sub="The colours of the page.">
+        {(!mini || step === 1) && (<Sec title="Template" sub={mini && !premium ? "Pick one of the templates. Premium also lets you set your own colours." : "The colours of the page."}>
           <div className="flex flex-wrap gap-2">{(Object.keys(LINK_THEMES) as LinkTheme[]).map((t) => (
             <button key={t} type="button" aria-pressed={r.theme === t} onClick={() => set("theme", t)} className="flex items-center gap-2 rounded-full py-1.5 pr-3.5 pl-1.5 text-[13px]" style={{ background: "var(--d-bg)", color: "var(--d-text)", boxShadow: r.theme === t ? "inset 0 0 0 2px var(--d-text)" : "inset 0 0 0 1px var(--d-line-2)" }}>
               <span className="h-6 w-6 rounded-full" style={{ background: `linear-gradient(135deg, ${LINK_THEMES[t].vars["--l-accent"]}, ${LINK_THEMES[t].vars["--l-bg"]})`, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.2)" }} />{LINK_THEMES[t].label}
             </button>))}</div>
         </Sec>)}
 
-        {(!mini || step === 1) && (<Sec title="Colours" sub="Pick any colour for the background, the glow and the buttons. Text turns light or dark by itself so it stays readable. Leave a colour empty to keep the template's.">
+        {(!mini || step === 1) && (<Gate locked={mini && !premium} title="Your own colours" text="Set any background colour, glow and button colour, or take them from your logo. Free pages use the templates above."><Sec title="Colours" sub="Pick any colour for the background, the glow and the buttons. Text turns light or dark by itself so it stays readable. Leave a colour empty to keep the template's.">
           {(() => { const t = getLinkTheme(r.theme, r.colors); const c = r.colors ?? {}; return (
             <>
               <div className="space-y-2">
@@ -209,7 +227,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
               <button type="button" className="d-btn d-btn-s" disabled={!Object.keys(c).length} onClick={() => set("colors", {})}>Reset all colours</button>
             </>
           ); })()}
-        </Sec>)}
+        </Sec></Gate>)}
 
         {(!mini || step === 1) && (<Sec title="Profile">
           <div className="flex items-center gap-4">
@@ -218,7 +236,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={r.logo_url} alt="" className="h-full w-full object-cover" /> : <ImagePlus size={22} style={{ color: "var(--d-muted)" }} />}
             </button>
-            <input ref={logoIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void guard("logo", async () => { set("logo_url", await upload(f, 500)); void pickFromLogo(f, true); }); }} />
+            <input ref={logoIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void guard("logo", async () => { set("logo_url", await upload(f, 500)); if (!mini || premium) void pickFromLogo(f, true); }); }} />
             <p className="text-sm" style={{ color: "var(--d-muted)" }}>Square logo works best. It is shrunk for fast loading.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
