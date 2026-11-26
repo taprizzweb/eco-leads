@@ -1,5 +1,7 @@
 # Taprizz app (eco-leads) — CLAUDE.md
 
+> New chat? Read `docs/HANDOVER.md` first: the owner's plan, prices, rules, Carbon demo and what is pending.
+
 Next.js 15 app for app.taprizz.in: owner dashboard, admin, guest pages, AI review, mini links (link.taprizz.in).
 Database: Supabase project `taprizz-app` (id `znvuvemeaobmwrluwxwd`). Migrations: `supabase/migrations/` (apply with the Supabase MCP, keep the file in git too).
 
