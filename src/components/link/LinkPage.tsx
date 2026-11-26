@@ -6,7 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { Bike, CalendarDays, Coffee, Gift, Globe, Instagram, Facebook, Link2, Mail, MapPin, MessageSquareText, Phone, Share2, ShoppingBag, Star, Store, Utensils, X } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Mark } from "@/components/dash/AuthFrame";
-import { BRAND, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
+import { BRAND, GoogleColorIcon, GoogleIcon, InstagramIcon, SwiggyIcon, WhatsappIcon, ZomatoIcon } from "@/components/guest/BrandIcons";
 import { brandFor } from "./brands";
 import { SiteLogo } from "./SiteLogo";
 import { PhotoStrip } from "@/components/PhotoStrip";
@@ -20,6 +20,22 @@ const ICONS: Record<string, Ico> = {
   bag: ShoppingBag, outlets: Store, whatsapp: WhatsappIcon, zomato: Bike, swiggy: Bike, link: Link2,
 };
 const display = { fontFamily: 'var(--font-bebas), "Bebas Neue", Oswald, "Arial Narrow", Impact, sans-serif' } as const;
+
+/** A button that asks for a Google review: it points at Google's write-a-review page, or carries the "smile" wording when it opens the outlet list first. */
+const isReviewButton = (b: { url: string; label: string }) => /search\.google\.com\/local\/writereview|g\.page\/r\/[^/]+\/review/i.test(b.url) || /\b(win a|free) smile\b/i.test(b.label);
+const googleBadge = <span className="grid h-7 w-7 place-items-center rounded-lg bg-white"><GoogleColorIcon size={18} /></span>;
+
+/** Gold stars that sit on the top right edge of the review buttons. Decoration only. */
+function Sparkles() {
+  const star = "M12 0C13.2 7.2 16.8 10.8 24 12C16.8 13.2 13.2 16.8 12 24C10.8 16.8 7.2 13.2 0 12C7.2 10.8 10.8 7.2 12 0Z";
+  return (
+    <svg width={42} height={36} viewBox="0 0 42 36" className="pointer-events-none absolute -top-3.5 right-4" aria-hidden focusable="false">
+      <path d={star} transform="translate(3 9)" fill="#f9c80e" />
+      <path d={star} transform="translate(25 1) scale(0.62)" fill="#ffdd4a" />
+      <path d={star} transform="translate(29 22) scale(0.36)" fill="#ffdd4a" />
+    </svg>
+  );
+}
 
 /** Repeats a short list until it has at least n items, so a moving strip never shows a blank gap. */
 const fillTo = <T,>(list: T[], n: number): T[] => (list.length === 0 ? list : Array.from({ length: Math.ceil(n / list.length) }).flatMap(() => list));
@@ -281,8 +297,9 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.div {...rise(4)} className="mt-4 px-3">
             <button type="button" onClick={() => { track("click", data.review_label || "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
               style={{ background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" }}>
-              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden><Star size={22} className="fill-amber-400 text-amber-400" /></span>
+              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{googleBadge}</span>
               <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>{data.review_label || "AI Review by Tap"}</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
+              <Sparkles />
             </button>
           </motion.div>
         )}
@@ -292,12 +309,16 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
             {buttons.map((b, i) => {
               const Icon = ICONS[b.icon] ?? Link2;
               // Every link shows the logo of the app it points to (Facebook, YouTube, LinkedIn, X, Instagram...). Unknown ones keep the generic icon.
-              const logo = brandFor(b.url, b.label) ?? (b.icon === "link" && /^https?:\/\//i.test(b.url) ? <SiteLogo url={b.url} /> : null);
+              // Review buttons always show Google's logo. The "google" icon can also be chosen by hand for any other button.
+              const review = isReviewButton(b);
+              const logo = review || b.icon === "google" ? googleBadge
+                : brandFor(b.url, b.label) ?? (b.icon === "link" && /^https?:\/\//i.test(b.url) ? <SiteLogo url={b.url} /> : null);
               const glyph = logo ?? <Icon size={21} strokeWidth={1.7} />;
               const inner = (
                 <>
                   <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{glyph}</span>
                   <span className="text-[22px] leading-none tracking-[0.03em] uppercase" style={display}>{b.label}</span>
+                  {review && <Sparkles />}
                 </>
               );
               const cls = "relative flex min-h-[52px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]";
@@ -312,8 +333,9 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.div {...rise(4)} className="mt-4 px-3">
             <button type="button" onClick={() => { track("click", data.review_label || "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
               style={{ background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" }}>
-              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden><Star size={22} className="fill-amber-400 text-amber-400" /></span>
+              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{googleBadge}</span>
               <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>{data.review_label || "AI Review by Tap"}</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
+              <Sparkles />
             </button>
           </motion.div>
         )}
