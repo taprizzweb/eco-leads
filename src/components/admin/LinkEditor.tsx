@@ -73,6 +73,8 @@ const SOCIAL_FIELDS: [keyof LinkSocials, string, string][] = [
 export function LinkEditor({ initial, clientName, mode = "admin", token, mini = false, premium = false }: { initial: Row; clientName: string | null; mode?: EditorMode; token?: string; mini?: boolean; premium?: boolean }) {
   const admin = mode === "admin";
   const maxPhotos = mini ? (premium ? 10 : 3) : 30;
+  // The team may keep a longer list. The database function that saves for a business accepts 8.
+  const seoMax = admin ? 30 : 8;
   const [step, setStep] = useState(1);
   const goStep = (n: number) => { setStep(n); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); };
   // Uploads: the team uses links/<page>, a signed-in business uses its own folder, the control link uses a folder named by its secret.
@@ -83,6 +85,8 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
   const [r, setR] = useState<Row>(initial);
   const [tagText, setTagText] = useState(initial.tags.join(", "));
   const [seoText, setSeoText] = useState((initial.seo_keywords ?? []).join(", "));
+  // What the database holds. Save leaves the keywords alone unless this box was changed, so a longer list is never cut by saving something else.
+  const savedSeo = useRef(seoText);
   const [busy, setBusy] = useState(false);
   const [up, setUp] = useState<string | null>(null);
   const [ver, setVer] = useState(0);
@@ -125,12 +129,13 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
   async function save() {
     if (!r.name.trim()) return toast("Add the business name.", true);
     const tags = tagText.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 20);
-    const seo_keywords = seoText.split(",").map((t) => t.trim().slice(0, 60)).filter(Boolean).slice(0, 8);
+    const seoChanged = seoText !== savedSeo.current;
+    const seo_keywords = seoText.split(",").map((t) => t.trim().slice(0, 60)).filter(Boolean).slice(0, seoMax);
     const socials = Object.fromEntries(Object.entries(r.socials).filter(([, v]) => typeof v === "string" && v.trim()).map(([k, v]) => [k, String(v).trim()]));
     const norm = mini ? miniNormalize(socials as Record<string, string>, r.buttons) : null;
     if (norm?.error) return toast(norm.error, true);
     const content = {
-      name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, colors: Object.fromEntries(Object.entries(r.colors ?? {}).filter(([, v]) => isHex(v))), tags, seo_keywords, socials: norm ? norm.socials : socials, photo_direction: r.photo_direction,
+      name: r.name.trim(), tagline: r.tagline?.trim() || null, logo_url: r.logo_url, theme: r.theme, colors: Object.fromEntries(Object.entries(r.colors ?? {}).filter(([, v]) => isHex(v))), tags, ...(seoChanged ? { seo_keywords } : {}), socials: norm ? norm.socials : socials, photo_direction: r.photo_direction,
       photos: r.photos.slice(0, maxPhotos), buttons: (norm ? norm.buttons : r.buttons).filter((b) => b.label.trim()).slice(0, 12), outlets: r.outlets.filter((o) => o.name.trim()).slice(0, 30), offers: r.offers.filter((o) => o.title.trim()).slice(0, 60),
     };
     setBusy(true);
@@ -151,6 +156,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
     }
     setBusy(false);
     if (message) return toast(message, true);
+    if (seoChanged) { savedSeo.current = seo_keywords.join(", "); setSeoText(savedSeo.current); }
     setVer((v) => v + 1);
     toast("Saved");
     if (admin) router.refresh();
@@ -264,8 +270,8 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           ))}</div>
         </Sec>)}
 
-        {!mini && (<Sec title="Search keywords" sub="Phrases people type into Google to find this place, for example: cafe in C-Scheme Jaipur. They go into the page's search description. Up to 8, separated by commas. Use real phrases that describe the place, and do not repeat them.">
-          <input className="d-input" maxLength={600} value={seoText} onChange={(e) => setSeoText(e.target.value)} placeholder="cafe in C-Scheme Jaipur, fresh fruits delivery Jaipur" aria-label="Search keywords" />
+        {!mini && (<Sec title="Search keywords" sub={`Phrases people type into Google to find this place, for example: cafe in C-Scheme Jaipur. They go into the page's search description. Up to ${seoMax}, separated by commas. Use real phrases that describe the place, and do not repeat them.`}>
+          <input className="d-input" maxLength={admin ? 2000 : 600} value={seoText} onChange={(e) => setSeoText(e.target.value)} placeholder="cafe in C-Scheme Jaipur, fresh fruits delivery Jaipur" aria-label="Search keywords" />
         </Sec>)}
 
         {(!mini || (step === 3 && premium)) && (<Sec title="Scrolling tags" sub="Short words that keep scrolling, like offers.">
