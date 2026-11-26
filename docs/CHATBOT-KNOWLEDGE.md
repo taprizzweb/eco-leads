@@ -25,9 +25,9 @@ A guest taps an NFC plate or scans a QR code at the counter, table or reception.
 ## 4. Plans (monthly, live in the system)
 | Plan | Price | Includes |
 |---|---|---|
-| Starter | Rs 999 | Review flow, menu, offers strip, keywords, 10 photos, 3 extra link buttons, WhatsApp contact capture, basic monthly report, review replies by copy |
-| Growth | Rs 2,499 | Starter plus complaint and suggestion inbox, offers with claim codes, events, creators corner, 20 photos, 6 link buttons, full report, review replies with approve |
-| Pro | Rs 4,500 | Growth plus table ordering links (each table plate opens that table's own ordering link, for cafes and restaurants that already take orders from table QR codes), membership, 30 photos, 12 link buttons, report with a call, automatic replies for 4 and 5 stars (after Google approval), WhatsApp messages included up to a cap, content help from the Taprizz team |
+| Starter | Rs 1,700 | Review flow, menu, offers strip, keywords, 10 photos, 3 extra link buttons, WhatsApp contact capture, basic monthly report, review replies by copy |
+| Growth | Rs 2,700 | Starter plus complaint and suggestion inbox, offers with claim codes, events, creators corner, 20 photos, 6 link buttons, full report, review replies with approve |
+| Pro | Rs 3,500 | Growth plus table ordering links (each table plate opens that table's own ordering link, for cafes and restaurants that already take orders from table QR codes), membership, 30 photos, 12 link buttons, report with a call, automatic replies for 4 and 5 stars (after Google approval), WhatsApp messages included up to a cap, content help from the Taprizz team |
 
 Not decided yet: **[TO CONFIRM]** one-time setup fee for plate and NFC stand, annual discount, price of the separate Mini web site for a business, price of the WhatsApp chatbot add-on.
 
@@ -59,7 +59,7 @@ A: Nahi. Guest apne hi choices se apna review banata hai, aur use badal bhi sakt
 A: Nahi. Har star rating ke liye wahi process hai. Naraz guest ki baat aapko alag se private complaint mein bhi mil sakti hai.
 
 **Q: Price kya hai?**
-A: Starter Rs 999, Growth Rs 2,499, Pro Rs 4,500 mahina. Setup aur stand ka alag kharcha ho sakta hai, ye team confirm karegi.
+A: Starter Rs 1,700, Growth Rs 2,700, Pro Rs 3,500 mahina. Setup aur stand ka alag kharcha ho sakta hai, ye team confirm karegi.
 
 **Q: Mujhe sab plan mein se kaun sa lena chahiye?**
 A: Ek chhote cafe ya salon ke liye Starter se shuru karna theek hai. Agar complaints aur offers chahiye to Growth. Agar aap chahte hain ki hamari team content aur replies mein madad kare to Pro.
