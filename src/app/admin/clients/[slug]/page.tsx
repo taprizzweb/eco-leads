@@ -4,6 +4,7 @@ import { loadOverview } from "@/lib/admin-data";
 import { ClientAdmin } from "@/components/admin/ClientAdmin";
 import { ClientReviewSetup } from "@/components/admin/ClientReviewSetup";
 import { ClientChain } from "@/components/admin/ClientChain";
+import { ClientMiniLink, type ClientLinkPage } from "@/components/admin/ClientMiniLink";
 import { PageHead } from "@/components/admin/ui";
 
 export default async function ClientPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -11,7 +12,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
   const { sb, role, clients, packages } = await loadOverview();
   const base = clients.find((c) => c.slug === slug);
   if (!base) notFound();
-  const [plates, members, invites, audit, cats, setupRow, groupsQ] = await Promise.all([
+  const [plates, members, invites, audit, cats, setupRow, groupsQ, linksQ] = await Promise.all([
     sb.from("plates").select("code, label, active, menu_url, redirect_url").eq("client_id", base.id).order("created_at"),
     sb.rpc("admin_client_members", { p_client: base.id }),
     sb.from("invites").select("id, email, created_at").eq("client_id", base.id).is("claimed_at", null).order("created_at", { ascending: false }),
@@ -19,6 +20,7 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
     sb.from("business_templates").select("id, label, questions").order("sort"),
     sb.from("clients").select("review_setup, business_type, group_id").eq("id", base.id).single(),
     sb.from("groups").select("id, name, slug").order("name"),
+    sb.from("link_pages").select("id, slug, name, published, plan, client_id").or(`client_id.eq.${base.id},client_id.is.null`).order("name"),
   ]);
   const groups = (groupsQ.data ?? []) as { id: string; name: string; slug: string }[];
   const current = groups.find((g) => g.id === setupRow.data?.group_id) ?? null;
@@ -29,6 +31,9 @@ export default async function ClientPage({ params }: { params: Promise<{ slug: s
         {role !== "rep" && <Link href={`/admin/clients/new?from=${base.slug}`} className="d-btn d-btn-s">Duplicate client</Link>}
         <a href={`/e/${base.slug}`} target="_blank" rel="noopener" className="d-btn d-btn-s">Open guest page</a>
       </PageHead>
+      {role !== "rep" && (
+        <div className="mb-4 max-w-4xl"><ClientMiniLink clientId={base.id} clientName={base.name} pages={(linksQ.data ?? []) as ClientLinkPage[]} /></div>
+      )}
       <ClientAdmin
         client={base}
         packages={packages}
