@@ -304,20 +304,21 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           <div className="space-y-3">
             {r.buttons.map((b, i) => (
               <div key={i} className="d-raise space-y-2 p-3">
-                <div className="flex gap-2">
-                  <input aria-label={`Button ${i + 1} label`} className="d-input !min-h-10" maxLength={40} value={b.label} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))} placeholder="Food Menu" />
-                  <select aria-label={`Button ${i + 1} icon`} className="d-input !min-h-10 !w-36" value={b.icon} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, icon: e.target.value } : x)))}>{BUTTON_ICONS.map((ic) => <option key={ic} value={ic}>{ICON_LABEL[ic]}</option>)}</select>
-                  <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Move button ${i + 1} up`} disabled={i === 0} onClick={() => set("buttons", move(r.buttons, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={16} /></button>
-                  <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Move button ${i + 1} down`} disabled={i === r.buttons.length - 1} onClick={() => set("buttons", move(r.buttons, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={16} /></button>
-                  <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove button ${i + 1}`} onClick={() => set("buttons", r.buttons.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={16} /></button>
+                {/* On a phone each part has its own line, so nothing is squeezed: name and arrows, then icon, then the link, then the shortcuts. */}
+                <div className="flex items-center gap-1">
+                  <input aria-label={`Button ${i + 1} label`} className="d-input !min-h-11 min-w-0 flex-1" maxLength={40} value={b.label} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))} placeholder="Food Menu" />
+                  <button type="button" className="grid h-11 w-10 shrink-0 place-items-center" aria-label={`Move button ${i + 1} up`} disabled={i === 0} onClick={() => set("buttons", move(r.buttons, i, -1))} style={{ color: "var(--d-muted)" }}><ArrowUp size={18} /></button>
+                  <button type="button" className="grid h-11 w-10 shrink-0 place-items-center" aria-label={`Move button ${i + 1} down`} disabled={i === r.buttons.length - 1} onClick={() => set("buttons", move(r.buttons, i, 1))} style={{ color: "var(--d-muted)" }}><ArrowDown size={18} /></button>
+                  <button type="button" className="grid h-11 w-10 shrink-0 place-items-center" aria-label={`Remove button ${i + 1}`} onClick={() => set("buttons", r.buttons.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={18} /></button>
                 </div>
+                <select aria-label={`Button ${i + 1} icon`} className="d-input !min-h-11 w-full" value={b.icon} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, icon: e.target.value } : x)))}>{BUTTON_ICONS.map((ic) => <option key={ic} value={ic}>{ICON_LABEL[ic]}</option>)}</select>
                 {b.url === "#outlets" || b.url === "#offers" || b.url === "#contact" ? (
                   <div className="flex items-center justify-between gap-2 text-sm" style={{ color: "var(--d-muted)" }}><span>{b.url === "#contact" ? "Opens the contact form (name, email, phone, message). Messages show above." : b.url === "#offers" ? `Opens the offers list, outlet by outlet${r.offers.length === 0 ? " (add offers below first)" : ""}.` : `Opens the outlets list${r.outlets.length === 0 ? " (add outlets below first)" : ""}.`}</span><button type="button" className="underline underline-offset-4" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "" } : x)))}>Use a link instead</button></div>
                 ) : (
-                  <div className="flex gap-2"><input aria-label={`Button ${i + 1} link`} className="d-input !min-h-10" inputMode="url" maxLength={500} value={b.url} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: e.target.value } : x)))} placeholder="https://, tel: or mailto:" />
-                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#outlets", icon: "outlets" } : x)))}>Outlets</button>
+                  <div className="space-y-2"><input aria-label={`Button ${i + 1} link`} className="d-input !min-h-11 w-full" inputMode="url" maxLength={500} value={b.url} onChange={(e) => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: e.target.value } : x)))} placeholder="https://, tel: or mailto:" />
+                    <div className="flex flex-wrap gap-2"><button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#outlets", icon: "outlets" } : x)))}>Outlets</button>
                     <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#offers", icon: "gift" } : x)))}>Offers</button>
-                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#contact", icon: "mail" } : x)))}>Form</button></div>
+                    <button type="button" className="d-btn d-btn-s !min-h-10 shrink-0" onClick={() => set("buttons", r.buttons.map((x, k) => (k === i ? { ...x, url: "#contact", icon: "mail" } : x)))}>Form</button></div></div>
                 )}
               </div>
             ))}
@@ -429,11 +430,12 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           <p className="text-xs" style={{ color: "var(--d-muted)" }}>Only add real reviews that guests wrote.</p>
         </Sec>)}
 
-        <div className="sticky bottom-3 z-10 flex flex-wrap gap-2 rounded-2xl p-2 backdrop-blur" style={{ background: "color-mix(in srgb, var(--d-bg) 80%, transparent)" }}>
-          <button className="d-btn d-btn-p" disabled={busy || !!up} onClick={save}>{busy && <Loader2 size={16} className="animate-spin" />} Save</button>
-          <a className="d-btn d-btn-s" href={`/l/${slugify(initial.slug)}${initial.published ? "" : mode === "token" ? `?preview=${token}` : "?preview=1"}`} target="_blank" rel="noopener">Open page</a>
-          {admin && <button className="d-btn d-btn-s" onClick={() => void downloadUrlQr(`${LINK_BASE}/${slugify(initial.slug)}`, slugify(initial.slug))}>Download QR</button>}
-          {admin && <button className="d-btn d-btn-s ml-auto" onClick={remove}>Delete</button>}
+        {/* A slim bar: on a phone it is one row, so it does not cover the form. */}
+        <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-1.5 rounded-2xl p-1.5 backdrop-blur" style={{ background: "color-mix(in srgb, var(--d-bg) 85%, transparent)" }}>
+          <button className="d-btn d-btn-p !min-h-10 !px-4 !text-sm" disabled={busy || !!up} onClick={save}>{busy && <Loader2 size={16} className="animate-spin" />} Save</button>
+          <a className="d-btn d-btn-s !min-h-10 !px-3 !text-sm" href={`/l/${slugify(initial.slug)}${initial.published ? "" : mode === "token" ? `?preview=${token}` : "?preview=1"}`} target="_blank" rel="noopener">Open page</a>
+          {admin && <button className="d-btn d-btn-s !min-h-10 !px-3 !text-sm" aria-label="Download QR" onClick={() => void downloadUrlQr(`${LINK_BASE}/${slugify(initial.slug)}`, slugify(initial.slug))}>QR</button>}
+          {admin && <button className="d-btn d-btn-s ml-auto !min-h-10 !px-3 !text-sm" onClick={remove}>Delete</button>}
         </div>
       </div>
 
