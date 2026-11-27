@@ -21,7 +21,7 @@ type Tab = "businesses" | "connection" | "rules" | "categories" | "playground";
 
 const SAMPLE_RULES = `Write like a real person typing on their phone, not like a brochure.
 Keep sentences short. It is fine to be a little informal.
-Mention a feeling or a small moment, never a list of features.
+Say how it felt in simple words, never as a list.
 Do not repeat the business name more than once.
 Never exaggerate. A 3-star review should sound lukewarm, not angry.`;
 
@@ -188,7 +188,7 @@ function Categories({ initial }: { initial: Cat[] }) {
     <section className="d-card space-y-4 p-5">
       <div>
         <h2 className="font-semibold">Categories and their questions</h2>
-        <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>Each business belongs to one category. A category sets the questions guests are asked, the words that fit that kind of place, and what its guests care about. A single business can still override its questions on its own page.</p>
+        <p className="mt-1 text-sm" style={{ color: "var(--d-muted)" }}>Each business belongs to one category. A category sets the questions guests are asked, plus words that fit that kind of place and what its guests care about. Those words and notes are not put into guest reviews: a review says only what the guest answered or typed. A single business can still override its questions on its own page.</p>
       </div>
       <label className="block text-sm"><span className="font-medium" style={{ color: "var(--d-text)" }}>Category</span>
         <select className="d-input mt-1.5 !w-72" value={sel} onChange={(e) => choose(e.target.value)}>{cats.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}<option value="new">+ New category</option></select></label>

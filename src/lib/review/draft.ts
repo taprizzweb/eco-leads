@@ -3,57 +3,15 @@
 //   custom    your own trained model behind a URL (see docs/REVIEW_AI.md for the exact request and reply)
 //   openai | gemini | anthropic   a general model, with our prompt below
 //   template  built-in sentences, no AI, no cost (also the fallback whenever the chosen provider fails)
-// Drafts use ONLY what the guest answered. Nothing is invented, and no reward is ever tied to a review.
-
-export type ReviewAnswers = {
-  rating: number;
-  chips: string[];
-  company?: string; // "friends", "family", "partner", "solo", "work"
-  recommend?: "yes" | "maybe" | "no";
-  businessName: string;
-  businessType?: string | null;
-};
-export type DraftResult = { draft: string; provider: string };
+// Drafts use ONLY what the guest answered or typed (see facts.ts). Nothing is invented, and no reward is ever tied to a review.
 
 export type ReplyInput = { businessName: string; businessType?: string | null; author: string; rating: number; text: string; keywords?: string[] };
 export type ReplyResult = { reply: string; provider: string };
 
-const COMPANY_PHRASE: Record<string, string> = {
-  friends: "with friends",
-  family: "with family",
-  partner: "with my partner",
-  solo: "on my own",
-  work: "for work",
-};
-
-const list = (items: string[]) => {
-  const l = items.map((s) => s.toLowerCase());
-  return l.length <= 1 ? l.join("") : `${l.slice(0, -1).join(", ")} and ${l[l.length - 1]}`;
-};
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const firstName = (n: string) => n.trim().split(/\s+/).filter((w) => !/^(mr|mrs|ms|miss|dr|shri|smt)\.?$/i.test(w))[0] ?? "";
 
-/* ------------------------------------------------------------------ templates (no AI) */
-
-export function templateDraft(a: ReviewAnswers): string {
-  const chips = a.chips.slice(0, 4);
-  const who = a.company ? ` ${COMPANY_PHRASE[a.company] ?? ""}` : "";
-  const parts: string[] = [];
-  if (a.rating >= 4) {
-    parts.push(pick([`Visited ${a.businessName}${who} and had a great time.`, `Lovely visit to ${a.businessName}${who}.`, `Really enjoyed ${a.businessName}${who}.`]));
-    if (chips.length) parts.push(pick([`The ${list(chips)} stood out.`, `Loved the ${list(chips)}.`, `Special mention for the ${list(chips)}.`]));
-    if (a.recommend === "yes") parts.push(pick(["Would definitely recommend.", "Will be back soon.", "Highly recommended."]));
-  } else if (a.rating === 3) {
-    parts.push(`Decent visit to ${a.businessName}${who}.`);
-    if (chips.length) parts.push(`The ${list(chips)} ${chips.length > 1 ? "were" : "was"} good.`);
-    parts.push(a.recommend === "yes" ? "Worth a visit." : "Some things could be better.");
-  } else {
-    parts.push(`Visited ${a.businessName}${who}.`);
-    if (chips.length) parts.push(`The ${list(chips)} ${chips.length > 1 ? "were" : "was"} fine.`);
-    parts.push("The experience did not meet my expectations this time.");
-  }
-  return parts.join(" ");
-}
+/* ------------------------------------------------------------------ reply template (no AI) */
 
 export function templateReply(a: ReplyInput): string {
   const n = firstName(a.author);
@@ -71,19 +29,6 @@ export function templateReply(a: ReplyInput): string {
 }
 
 /* ------------------------------------------------------------------ prompts for general models */
-
-function draftPrompt(a: ReviewAnswers): string {
-  return [
-    `Write a short, natural Google review (2 to 3 sentences, under 60 words) in first person, in plain English.`,
-    `Use ONLY these facts from the guest. Do not invent dishes, names, prices, or details that are not listed.`,
-    `Business: ${a.businessName}${a.businessType ? ` (${a.businessType})` : ""}`,
-    `Star rating: ${a.rating} out of 5`,
-    `What stood out: ${a.chips.length ? a.chips.join(", ") : "nothing specific"}`,
-    a.company ? `Came ${COMPANY_PHRASE[a.company] ?? a.company}` : "",
-    a.recommend ? `Would recommend: ${a.recommend}` : "",
-    `Match the tone to the rating. No hashtags, no emojis, no quotation marks. Output only the review text.`,
-  ].filter(Boolean).join("\n");
-}
 
 /** Which language and script the reviewer wrote in, so the reply matches it. */
 export function replyLanguage(text: string): "hindi" | "hinglish" | "english" {
@@ -308,15 +253,6 @@ async function run(task: "review_draft" | "review_reply", payload: Record<string
   return null;
 }
 
-export async function writeDraft(a: ReviewAnswers): Promise<DraftResult> {
-  const r = await run("review_draft", {
-    business: { name: a.businessName, type: a.businessType ?? null },
-    rating: a.rating,
-    answers: { chips: a.chips, company: a.company ?? null, recommend: a.recommend ?? null },
-  }, draftPrompt(a), 600);
-  return r ? { draft: r.text, provider: r.provider } : { draft: templateDraft(a), provider: "template" };
-}
-
 export async function writeReply(a: ReplyInput): Promise<ReplyResult> {
   // One search phrase at most, chosen at random so replies differ, and only for happy reviews.
   const keyword = a.rating >= 4 && a.keywords?.length ? pick(a.keywords.filter((k) => k.trim())) : undefined;
@@ -373,7 +309,8 @@ export async function aiProbe(): Promise<{ ok: boolean; provider: string; ms: nu
 /* ------------------------------------------------------------------ the AI Review Studio writer */
 
 import { LANG_NAME, type Lang } from "./questions";
-import { maxSimilarity, pickShape, shingles, shuffle, type Shape } from "./variation";
+import { maxSimilarity, pickShape, shingles, type Shape } from "./variation";
+import { addsUnsaid, favouriteItem, guestSource, isHad, selectFacts, usableAnswers } from "./facts";
 
 export class ReviewBusy extends Error {}
 
@@ -391,16 +328,16 @@ export type ReviewRequest = { rating: number; language: Lang; name: string; answ
 export type WrittenReview = { draft: string; provider: string; sig: number[]; similarity: number; tries: number };
 
 const FEELING: Record<number, string> = {
-  5: "very satisfied. Show it through specifics, not through adjectives like amazing, awesome, wonderful or grateful",
-  4: "pleased, with at most one small wish for improvement",
-  3: "mixed: some things were good, some were only okay. Balanced and fair",
-  2: "disappointed, but fair and polite. Say what fell short",
-  1: "let down, but civil and factual. No anger, no insults",
+  5: "very satisfied. Say so plainly and let their answers carry it",
+  4: "pleased. Mention a downside or a wish only if their answers contain one",
+  3: "middling: it was okay. Do not make up a good point or a bad point to balance it",
+  2: "disappointed, but fair and polite. Name a shortcoming only if their answers name it",
+  1: "let down, but civil. No anger, no insults. Name a problem only if their answers name it",
 };
 const LANG_RULE: Record<Lang, string> = {
   en: "English, the way a regular Indian customer writes on Google: simple words, natural rhythm, no fancy vocabulary.",
-  hi: "Hindi in Devanagari script only: everyday spoken Hindi, not bookish or formal. Write common English words (coffee, staff, service) in Devanagari too (कॉफ़ी, स्टाफ़, सर्विस). Only the business name may stay in English letters.",
-  hinglish: "Hinglish: Hindi written in Roman letters mixed with English, exactly how people text each other (for example \"coffee ekdum mast thi, staff bhi kaafi helpful\"). Never Devanagari.",
+  hi: "Hindi in Devanagari script: everyday spoken Hindi, not bookish or formal. Write common English words in Devanagari too. Only the business name, and item names written with capital letters in the answers, stay in English letters exactly as written. Avoid verb forms that assume the customer's gender.",
+  hinglish: "Hinglish: Hindi written in Roman letters mixed with everyday English words, exactly how people text each other. Never Devanagari. Avoid verb forms that assume the customer's gender.",
 };
 
 // Phrases that make a review sound machine-made or copy-pasted. A draft containing one is rejected and rewritten.
@@ -411,82 +348,90 @@ const GENERIC_BANNED = [
   "i felt relaxed", "felt relax", "love the really", "really good taste", "my name is", "overall a great", "great experience overall",
 ];
 
-export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Shape, retry: boolean): string {
-  const facts = r.answers.filter((a) => a.values.length).map((a) => `- ${a.label} ${a.values.join(", ")}`);
-  const chosen = shuffle(facts).slice(0, Math.max(1, shape.mention));
+export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, facts: QA[], shape: Shape, retry: boolean): string {
   const banned = [...new Set([...GENERIC_BANNED, ...(cfg.banned ?? [])])].slice(0, 80);
   const ex = (cfg.examples ?? []).filter((e) => e.text?.trim() && (!e.language || e.language === r.language)).slice(0, 4);
   const own = r.extra.trim();
-  const kw = shuffle(cfg.category.keywords ?? []).slice(0, 4);
+  const fav = favouriteItem(r.answers);
+  // A search keyword is offered only when this guest's own answers or words already contain it.
+  const said = guestSource(cfg.business.name, r.answers, r.extra).toLowerCase();
+  const kw = (cfg.category.keywords ?? []).map((k) => k.trim()).filter((k) => k && said.includes(k.toLowerCase())).slice(0, 2);
+  // The category's notes and the business tagline are left out on purpose: this guest did not say them.
   return [
-    `You write ONE Google review as the real customer, in the first person, the way they would type it on their phone after the visit. It must read like a real person wrote it: specific and natural, never like marketing and never like a template. The language must be correct: right grammar, spelling and punctuation.`,
+    `You write ONE Google review as the real customer, in the first person, the way they would type it on their phone. It must read like a real person wrote it: simple and natural, never like marketing and never like a template. It reports this customer's own answers and nothing else. The language must be correct: right grammar, spelling and punctuation.`,
     ``,
-    `BUSINESS: ${cfg.business.name}${cfg.category.label ? ` (${cfg.category.label})` : ""}. This is the only business name that may appear in the review.`,
-    cfg.category.notes ? `WHAT GUESTS OF THIS KIND OF PLACE CARE ABOUT: ${cfg.category.notes}` : "",
+    `BUSINESS NAME: ${cfg.business.name}. This is the only business name that may appear in the review.`,
+    cfg.category.label ? `KIND OF BUSINESS (background so that you understand the answers; the customer did not say it): ${cfg.category.label}` : "",
     ``,
     `STARS GIVEN: ${r.rating} out of 5. The customer feels: ${FEELING[r.rating] ?? FEELING[3]}.`,
     `LANGUAGE: ${LANG_RULE[r.language]}`,
     ``,
-    `FACTS FROM THE CUSTOMER (the ONLY facts you may state; weave in about ${chosen.length} of them as concrete, specific sentences, not as a list):`,
-    ...(chosen.length ? chosen : ["- (nothing specific; keep it short and general)"]),
+    `THE CUSTOMER'S ANSWERS (with their own words, if any are given below, this is everything you know about the visit):`,
+    ...(facts.length ? facts.map((a) => `- ${a.label} ${a.values.join(", ")}`) : ["- (nothing was answered: write only the overall feeling that matches the stars)"]),
+    fav ? `MUST KEEP: the customer picked "${fav}" as the one they liked most. Say that, and write the name exactly as "${fav}".` : "",
     own ? `THE CUSTOMER'S OWN WORDS (if they carry a real detail, use that detail in your own phrasing; if it is only a vague word like "nice" or "good", treat it as mood only and never repeat it): "${own.slice(0, 300)}"` : "",
-    r.name ? `CUSTOMER FIRST NAME: ${r.name}. ${shape.useName ? "Use the name once in a natural way, for example a short sign-off at the end or a casual self-mention. Never write 'My name is' or 'I am'." : "Do NOT use the name in this review."}` : "",
+    r.name ? `CUSTOMER FIRST NAME: ${r.name}. ${shape.useName ? "Use it once, as a short sign-off at the end. Never write 'My name is' or 'I am'." : "Do NOT use the name in this review."}` : "",
     ``,
-    `HELPFUL AND SEARCH-FRIENDLY: make the review useful to the next customer by saying what they would actually want to know (what to try, who it suits, what it is good for) using only the facts above. For search, say the business name ${shape.seoMentions === 1 ? "once" : "at most twice"}${cfg.category.label ? ` and say what kind of place it is (${cfg.category.label})` : ""}.${kw.length ? ` Where it is true to the facts, use up to two of these words or phrases, written the way a person would say them: ${kw.join(", ")}.` : ""} Never stuff keywords, never repeat one, never list them.`,
+    `USING THE ANSWERS: work every answer above into natural sentences, not a list. Keep each answer's meaning and strength: "Good" stays good, "Maybe" stays maybe. For search, mention the business name ${shape.seoMentions === 1 ? "once" : "at most twice"}.${kw.length ? ` These words come from the customer's own answers and may be written as they are: ${kw.join(", ")}.` : ""} Never stuff keywords, never repeat one, never list them.`,
     `WRITING QUALITY: use correct grammar, spelling and punctuation. Every sentence is complete, the tense stays the same, no word is repeated by accident, and each sentence starts with a capital letter and ends with a full stop (or a question or exclamation mark). Check it once before you answer.`,
     ``,
-    `SHAPE FOR THIS ONE (follow it so that no two reviews look alike):`,
-    `- Write exactly ${shape.lines} sentences (about ${shape.words} words in total), with different sentence lengths.`,
+    `SHAPE FOR THIS ONE (so that no two reviews look alike; the shape never justifies adding a detail):`,
+    `- About ${shape.lines} sentence${shape.lines > 1 ? "s" : ""} and about ${shape.words} words, with different sentence lengths. If the answers run out, stop: shorter is always better than padded.`,
     `- Begin the review with exactly these words: "${shape.starter}" (then continue naturally).`,
     `- Tone: ${shape.tone}.`,
-    `- Structure: ${shape.angle}`,
+    `- Order: ${shape.angle}`,
     `- Opening: ${shape.opener}.`,
     `- Grammar feel: ${shape.grammar}.`,
-    `- Do not finish with a "will come back" line unless the facts say the customer would return.`,
-    retry ? `IMPORTANT: an earlier version was rejected for being too similar to other reviews or using stock phrases. Use completely different words, a different first word, and a different sentence order.` : "",
+    retry ? `IMPORTANT: an earlier version was rejected because it added something the customer did not say, left out what they liked most, used a stock phrase, or read too much like other reviews. Stay close to the answers, with different words and a different sentence order.` : "",
+    cfg.rules.trim() ? `\nHOUSE STYLE NOTES (about how to write only; nothing in them is part of this customer's visit, so never turn them into a statement in the review, for example a city, an area, the weather or a feature of the place):\n${cfg.rules.trim().slice(0, 4000)}` : "",
+    ex.length ? `\nEXAMPLES OF THE STYLE WE WANT (copy only the feel; none of their words or details belong to this customer):\n${ex.map((e, i) => `${i + 1}. ${e.text.trim().slice(0, 400)}`).join("\n")}` : "",
     ``,
-    `HARD RULES:`,
-    `- Never invent anything the customer did not tell us: no dish names, staff names, prices, dates, offers or events. You may add ordinary connecting words and how they felt, but no new factual claims.`,
+    `HARD RULES (these win over everything above):`,
+    `- Every statement about the visit must come from the customer's answers or own words. Feeling words that match the stars are fine.`,
+    `- Unless an answer says it, never add: who they came with, the occasion, the meal or time of day, when they came (today, yesterday, last week), how long they stayed, whether it was a first or repeat visit, waiting time, weather, city or area, what staff did, said or looked like, portion size, price or value, seating, decor or facilities, health benefits, who the place suits, or any little story or moment.`,
+    `- Do not describe an item's taste, texture, temperature or ingredients beyond what the answers say. No dish names, staff names, prices, dates, offers or events of your own.`,
     `- Spell the business name exactly as "${cfg.business.name}", in every language, never changed, shortened or translated.`,
-    `- Do not say it was a first visit, a repeat visit, or when the customer came (today, yesterday, last week), and do not call the place "the best", "number one" or "the most": these are not in the facts.`,
+    `- Do not call the place "the best" or "number one".`,
+    `- Say they would come back or would recommend only if an answer says so. Do not advise other people what to order or do.`,
     `- Never offer or mention any reward, discount or gift. Never ask anyone to review or to visit.`,
     `- No hashtags, no emojis, no quotation marks, no headings, no lists. Plain sentences only.`,
     `- For 1 to 3 stars stay calm and factual. No insults, no accusations, nothing defamatory.`,
     `- Do not use any of these phrases or close variants: ${banned.join("; ")}.`,
-    `- Do not use these empty words as the main praise: amazing, awesome, wonderful, fantastic, superb, great experience, nice place.`,
-    cfg.rules.trim() ? `\nHOUSE RULES (follow these):\n${cfg.rules.trim().slice(0, 4000)}` : "",
-    ex.length ? `\nEXAMPLES OF THE STYLE WE WANT (never copy their words, only the feel):\n${ex.map((e, i) => `${i + 1}. ${e.text.trim().slice(0, 400)}`).join("\n")}` : "",
+    `- Do not use these empty words as the main praise unless the customer picked them: amazing, awesome, wonderful, fantastic, superb, great experience, nice place.`,
     ``,
     `Output only the review text.`,
   ].filter((l) => l !== "").join("\n");
 }
 
-/** Cheap local check before a draft is accepted: stock phrases, a name stamp, or far too short. */
-export function looksMachineMade(text: string, shape: Shape, cfg: StudioConfig): boolean {
+/** Cheap local check before a draft is accepted: stock phrases, a name stamp, far too short, or a detail the guest never gave. */
+export function looksMachineMade(text: string, shape: Shape, cfg: StudioConfig, source: string): boolean {
   const t = text.toLowerCase();
   const words = text.trim().split(/\s+/).length;
-  if (words < Math.max(8, shape.lines * 4)) return true;
+  if (words < Math.max(4, Math.min(8, Math.round(shape.words * 0.4)))) return true;
   if (/^\s*(i am|i'm|my name is|main hoon|mera naam)\b/.test(t)) return true;
   if (/(#\w+|[\u{1F300}-\u{1FAFF}])/u.test(text)) return true;
   // rewards, links and phone numbers never belong in a guest's review (policy: nothing is offered for reviews)
   if (/(https?:\/\/|www\.|\d{6,}|\b(discount|coupon|voucher|cashback|% off|percent off|free gift|in return)\b)/i.test(text)) return true;
+  if (addsUnsaid(text, source)) return true;
   return [...GENERIC_BANNED, ...(cfg.banned ?? [])].some((b) => b.trim() && t.includes(b.toLowerCase()));
 }
 
-function templateFromAnswers(r: ReviewRequest, business: string): string {
-  const facts = r.answers.flatMap((a) => a.values).slice(0, 3).map((v) => v.toLowerCase());
-  const f = facts.length ? facts.join(", ") : "";
-  const nm = r.name ? `${r.name} here. ` : "";
-  if (r.language === "hi") return `${nm}${business} में अच्छा अनुभव रहा।${f ? ` ${f} पसंद आया।` : ""}`.trim();
-  if (r.language === "hinglish") return `${nm}${business} ka experience ${r.rating >= 4 ? "kaafi accha" : r.rating === 3 ? "theek-thaak" : "thoda nirash karne wala"} raha.${f ? ` ${f} ${r.rating >= 4 ? "pasand aaya" : "ok tha"}.` : ""}`.trim();
-  return `${nm}${templateDraft({ rating: r.rating, chips: facts, businessName: business })}`.trim();
+/** Plain sentences for when no AI answers: the stars, what the guest had and what they liked most, and nothing around it. */
+export function templateFromAnswers(r: ReviewRequest, business: string): string {
+  const had = usableAnswers(r.answers).filter(isHad).flatMap((a) => a.values);
+  const fav = favouriteItem(r.answers);
+  const mood = r.rating >= 4 ? 0 : r.rating === 3 ? 1 : 2;
+  const joined = (and: string) => (had.length <= 1 ? had.join("") : `${had.slice(0, -1).join(", ")} ${and} ${had[had.length - 1]}`);
+  const parts =
+    r.language === "hi" ? [`${business} में अनुभव ${["अच्छा", "ठीक-ठाक", "निराश करने वाला"][mood]} रहा।`, had.length ? `चुना: ${joined("और")}।` : ""]
+    : r.language === "hinglish" ? [`${business} ka experience ${["accha", "theek-thaak", "nirash karne wala"][mood]} raha.`, had.length ? `Liya: ${joined("aur")}.` : ""]
+    : [`${["Good", "An okay", "A disappointing"][mood]} experience at ${business}.`, had.length ? `Went for ${joined("and")}.` : ""];
+  return [...parts, fav ? favouriteLine(r.language, fav) : "", r.name ? `- ${r.name}` : ""].filter(Boolean).join(" ");
 }
 
-/**
- * Writes one review. Up to three attempts: each gets a fresh random shape, and an attempt is accepted only when it is
- * not too similar to the business's recent drafts. Without a working AI provider it falls back to plain sentences,
- * which is what guests get until an AI key is connected.
- */
+const favouriteLine = (lang: Lang, item: string) =>
+  lang === "hi" ? `सबसे ज़्यादा ${item} पसंद आया।` : lang === "hinglish" ? `Sabse zyada ${item} pasand aaya.` : `Liked the ${item} the most.`;
+
 /** Removes the sentences that break a rule (rewards, links, numbers, hashtags, stock phrases, "my name is"). Returns what is left. */
 export function repairDraft(text: string, cfg: StudioConfig): string {
   const bad = (x: string) => /(#\w+|[\u{1F300}-\u{1FAFF}]|https?:\/\/|www\.|\d{6,}|\b(discount|coupon|voucher|cashback|% off|percent off|free gift|in return)\b)/iu.test(x)
@@ -497,42 +442,56 @@ export function repairDraft(text: string, cfg: StudioConfig): string {
 }
 
 /**
- * Writes one review. Up to four attempts: each gets a fresh random shape, and an attempt is accepted only when it is
- * not too similar to the business's recent drafts and passes the rules. If every attempt breaks a rule, the offending
- * sentences are cut out; if too little is left, the guest is asked to try again. A draft that breaks a rule is never returned.
- * Without a connected AI it falls back to plain sentences.
+ * Writes one review. Up to four attempts: each gets a fresh random shape and pick of answers, and an attempt is accepted
+ * when it passes the rules, keeps the guest's favourite item and is not too similar to the business's recent drafts.
+ * If every attempt breaks a rule, the offending sentences are cut out; if a detail was made up, or too little is left,
+ * or there is no working AI, the guest gets plain sentences built from their own picks (the admin test page gets the error instead).
+ * A draft that breaks a rule is never returned.
  */
 export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSigs: number[][], opts: { tries?: number; strict?: boolean } = {}): Promise<WrittenReview> {
-  const factCount = r.answers.filter((a) => a.values.length).length;
+  const source = guestSource(cfg.business.name, r.answers, r.extra);
+  const fav = favouriteItem(r.answers);
+  const keeps = (text: string) => !fav || text.toLowerCase().includes(fav.toLowerCase());
+  const withFavourite = (text: string) => (keeps(text) ? text : `${text} ${favouriteLine(r.language, fav!)}`);
   let best: WrittenReview | null = null;
   const broken: { text: string; provider: string; shape: Shape }[] = [];
   const attempts = opts.tries ?? 2;
   // The guest waits only a few seconds: the AI gets REVIEW_AI_BUDGET_MS (3000 by default), then the plain review built from their own picks is shown.
   const deadline = Date.now() + (Number(process.env.REVIEW_AI_BUDGET_MS) || 3000);
-  // Up to two extra attempts when the best draft so far is almost a copy of a recent one.
+  // Up to two extra attempts when the best draft so far is almost a copy of a recent one, or lost the favourite.
   for (let i = 0; i < attempts + 2; i++) {
-    if (i >= attempts && (!best || best.similarity < 0.85 || Date.now() > deadline - 1500)) break;
+    if (i >= attempts && (!best || (best.similarity < 0.85 && keeps(best.draft)) || Date.now() > deadline - 1500)) break;
     if (i > 0 && deadline - Date.now() < 1500) break; // not enough time for another try
-    const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, factCount, r.language, r.rating);
-    const prompt = buildReviewPrompt(cfg, r, shape, i > 0);
+    const facts = selectFacts(r.answers, r.rating);
+    const typed = r.extra.split(/\s+/).filter(Boolean).length;
+    const details = facts.reduce((n, a) => n + a.values.length, 0) + Math.min(6, Math.ceil(typed / 4));
+    const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, facts.length + (typed ? 1 : 0), details, r.language, r.rating);
+    const prompt = buildReviewPrompt(cfg, r, facts, shape, i > 0);
     const out = await run("review_draft", {
       business: { name: cfg.business.name, type: cfg.category.label ?? null },
-      rating: r.rating, language: r.language, name: r.name, answers: r.answers, extra: r.extra, rules: cfg.rules, shape, prompt,
-    }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 0.9 + Math.random() * 0.3, deadline });
+      rating: r.rating, language: r.language, name: r.name, answers: facts, extra: r.extra, rules: cfg.rules, shape, prompt,
+    }, prompt, 900, { max: r.language === "hi" ? 700 : 400, temp: 0.7 + Math.random() * 0.3, deadline });
     if (!out) break; // no provider, or it failed: no point trying again
-    if (looksMachineMade(out.text, shape, cfg)) { broken.push({ text: out.text, provider: out.provider, shape }); continue; }
+    if (looksMachineMade(out.text, shape, cfg, source)) { broken.push({ text: out.text, provider: out.provider, shape }); continue; }
     const sig = shingles(out.text);
     const sim = maxSimilarity(sig, recentSigs);
     const cand: WrittenReview = { draft: out.text, provider: out.provider, sig, similarity: sim, tries: i + 1 };
-    if (!best || sim < best.similarity) best = cand;
-    if (sim < 0.4) break;
+    // keeping the favourite counts for more than being different
+    if (!best || (keeps(cand.draft) !== keeps(best.draft) ? keeps(cand.draft) : sim < best.similarity)) best = cand;
+    if (sim < 0.4 && keeps(out.text)) break;
   }
-  if (best) return best;
-  // Every attempt broke a rule: keep what is still clean, if enough is left.
+  if (best) {
+    const draft = withFavourite(best.draft);
+    return draft === best.draft ? best : { ...best, draft, sig: shingles(draft) };
+  }
+  // Every attempt broke a rule: keep what is still clean, if enough is left. A draft that added a detail of its own is
+  // never cut down and used, because the sentences around an invention are usually invented too.
   for (const b of broken) {
+    if (addsUnsaid(b.text, source)) continue;
     const fixed = repairDraft(b.text, cfg);
-    if (fixed && !looksMachineMade(fixed, { ...b.shape, lines: Math.min(b.shape.lines, 2) }, cfg)) {
-      return { draft: fixed, provider: b.provider, sig: shingles(fixed), similarity: 0.5, tries: attempts };
+    if (fixed && !looksMachineMade(fixed, b.shape, cfg, source)) {
+      const draft = withFavourite(fixed);
+      return { draft, provider: b.provider, sig: shingles(draft), similarity: 0.5, tries: attempts };
     }
   }
   // The admin test page asks for strict mode so it shows the real AI error instead of a template.

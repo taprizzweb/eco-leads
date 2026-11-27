@@ -1,5 +1,5 @@
 // Keeps every generated review different, even when two guests tick exactly the same answers.
-// Two layers: each request gets its own random "shape" (length, tone, opener, how many facts to mention),
+// Two layers: each request gets its own random "shape" (length, tone, opener, order),
 // and each new draft is compared with the business's recent drafts; if it is too similar it is written again.
 
 function fnv(s: string): number {
@@ -29,27 +29,26 @@ export const maxSimilarity = (a: number[], others: number[][]) => others.reduce(
 
 const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
-export const TONES = ["warm and casual", "short and to the point", "cheerful", "calm and thoughtful", "chatty, like telling a friend", "plain and sincere", "a little witty", "matter-of-fact and practical"];
+// Everything below changes only HOW a review is written. None of it may ask for a fact (a story, a moment, company,
+// an occasion, an item or a plan): the writer would make one up to satisfy it.
+export const TONES = ["warm and casual", "short and to the point", "cheerful", "calm", "friendly and relaxed", "plain and sincere", "simple and direct", "matter-of-fact"];
 
-// Different ways a real person structures a review. One is chosen at random for every request.
+// The order in which a real person puts things. One is chosen at random for every request.
 export const ANGLES = [
-  "Tell it as a tiny story of the visit, in the order things happened.",
-  "Lead with the single thing that stood out, then add one more detail.",
-  "Write it as a tip to the next customer: what to order or do, and who it suits.",
-  "Start with an expectation versus reality line, then the specifics.",
-  "Write two or three very short sentences, almost like a text message.",
-  "Describe one specific moment from the visit, then give a one-line verdict.",
-  "Start with who they came with or the occasion, then what they liked.",
-  "Give a verdict first, then the reasons in a natural flow.",
-  "Write it as a recommendation to a friend who is deciding whether to go.",
+  "Open with the overall verdict, then give the answers that back it.",
+  "Open with one of the answers, then the verdict, then the rest.",
+  "Put the most specific answer first and the overall feeling last.",
+  "Keep it to short plain statements, almost like a text message.",
+  "Save the overall verdict for the very last sentence.",
+  "Run the answers together in a relaxed, natural flow.",
+  "Say what you would tell someone who asked how it was, using only the answers.",
 ];
 const OPENERS = [
-  "do not start with the business name or with the word 'I'",
-  "start with the business name",
-  "start with a specific item or service from the facts",
-  "start with a short natural reaction (not 'Wow')",
-  "start with when or why they went, only if the facts say so, otherwise start with the verdict",
-  "start with the feeling after leaving, said plainly",
+  "do not use the word 'I' in the first sentence",
+  "name the business in the first sentence",
+  "name the business only after the first sentence, or in the middle of it",
+  "keep the first sentence very short",
+  "let the first sentence run a little longer than the others",
 ];
 const GRAMMAR = [
   "full, correct sentences",
@@ -59,43 +58,49 @@ const GRAMMAR = [
   "warm and natural, still with correct grammar and punctuation",
 ];
 
-export type Shape = { starter: string; lines: number; words: number; tone: string; opener: string; angle: string; grammar: string; mention: number; useName: boolean; seoMentions: number };
+export type Shape = { starter: string; lines: number; words: number; tone: string; opener: string; angle: string; grammar: string; useName: boolean; seoMentions: number };
 
 // Words a review must begin with. Re-rolled on every request, so the same answers never open the same way twice.
+// A starter carries only a feeling, never a fact, a visit history or a wish.
 const STARTERS: Record<string, Record<string, string[]>> = {
   en: {
-    pos: ["Really glad", "Honestly,", "Such a", "Quick review:", "Loved", "Very happy", "Top notch", "Pleasant", "Can't complain", "Smooth", "Impressed", "Definitely", "What a", "Solid", "Worth it", "Lovely", "Hands down", "Genuinely", "Felt", "All good", "Glad I", "Short version:", "No complaints", "Easily", "Came for", "Turns out", "Nothing fancy, but", "Straight up,"],
-    mix: ["Decent", "Okay overall", "Mixed feelings", "Not bad", "Fair", "Some good", "It was fine", "Mostly", "Reasonable", "Partly", "Alright", "Honest take:", "Good in parts"],
-    neg: ["Not great", "Disappointed", "Expected more", "Sadly", "Unfortunately", "Below expectations", "Could be better", "A bit let down", "Room for improvement", "Wish"],
+    pos: ["Really glad", "Honestly,", "Quick review:", "Very happy", "Genuinely", "All good", "Short version:", "No complaints", "Overall,", "Simply put,", "My take:", "Happy with", "Pretty happy", "So,", "Good experience", "Liked", "Really liked", "For me,", "In short,"],
+    mix: ["Decent", "Okay overall", "Not bad", "Fair", "It was fine", "Alright", "Honest take:", "Overall,", "My take:", "In short,"],
+    neg: ["Not great", "Disappointed", "Sadly", "Unfortunately", "A bit let down", "Honest take:", "My take:", "Overall,", "In short,"],
   },
   hinglish: {
-    pos: ["Bahut accha", "Kaafi accha", "Sach mein", "Ekdum", "Mast", "Badhiya", "Dil se", "Seedhi baat,", "Achha laga", "Yahan ka", "Bilkul", "Kya baat", "Zabardast", "Mujhe", "Overall", "Shandaar", "Ek number", "Sukoon", "Seriously,", "Kaafi", "Khush hoon", "Short mein,", "Koi shikayat nahi", "Dost ke saath aaya tha,", "Pehli baar aaya, par"],
-    mix: ["Theek-thaak", "Thik tha", "Kuch cheezein", "Average", "Overall theek", "Thoda", "Mixed", "Chal jayega", "Sahi tha", "Honestly,", "Normal"],
-    neg: ["Utna accha nahi", "Thoda disappoint", "Umeed", "Afsos", "Expected zyada", "Sach kahun", "Kuch khaas nahi", "Mazaa nahi", "Kaash"],
+    pos: ["Bahut accha", "Kaafi accha", "Sach mein", "Ekdum", "Mast", "Badhiya", "Dil se", "Seedhi baat,", "Achha laga", "Bilkul", "Overall", "Ek number", "Mujhe", "Seriously,", "Kaafi", "Khush hoon", "Short mein,", "Koi shikayat nahi", "Honestly,"],
+    mix: ["Theek-thaak", "Theek tha", "Average", "Overall theek", "Chal jayega", "Sahi tha", "Honestly,", "Normal", "Seedhi baat,"],
+    neg: ["Utna accha nahi", "Thoda disappoint", "Afsos", "Sach kahun", "Mazaa nahi", "Seedhi baat,", "Honestly,"],
   },
   hi: {
-    pos: ["सच में", "काफ़ी अच्छा", "बहुत बढ़िया", "दिल से", "मज़ा आ गया", "सीधी बात,", "अच्छा लगा", "यहाँ का", "बिल्कुल", "क्या बात", "ज़बरदस्त", "मुझे", "कुल मिलाकर", "शानदार", "सुकून", "सच कहूँ तो", "कोई शिकायत नहीं", "छोटा सा रिव्यू,", "दोस्तों के साथ गया था,"],
-    mix: ["ठीक-ठाक", "ठीक था", "कुछ चीज़ें", "औसत", "कुल मिलाकर ठीक", "थोड़ा", "मिला-जुला", "चल जाएगा", "सही था"],
-    neg: ["उतना अच्छा नहीं", "थोड़ा निराश", "उम्मीद", "अफ़सोस", "उम्मीद से कम", "सच कहूँ तो", "कुछ ख़ास नहीं", "काश"],
+    pos: ["सच में", "काफ़ी अच्छा", "बहुत बढ़िया", "दिल से", "सीधी बात,", "अच्छा लगा", "बिल्कुल", "ज़बरदस्त", "मुझे", "कुल मिलाकर", "शानदार", "सच कहूँ तो", "कोई शिकायत नहीं", "छोटा सा रिव्यू,"],
+    mix: ["ठीक-ठाक", "ठीक था", "औसत", "कुल मिलाकर ठीक", "चल जाएगा", "सही था", "सीधी बात,"],
+    neg: ["उतना अच्छा नहीं", "थोड़ा निराश", "अफ़सोस", "सच कहूँ तो", "सीधी बात,", "मज़ा नहीं आया,"],
   },
 };
 const LINES = [{ v: 2, w: 10 }, { v: 3, w: 24 }, { v: 4, w: 28 }, { v: 5, w: 22 }, { v: 6, w: 16 }];
 const weighted = () => { let t = Math.random() * LINES.reduce((a, b) => a + b.w, 0); for (const l of LINES) { t -= l.w; if (t <= 0) return l.v; } return 4; };
 
-export function pickShape(min: number, max: number, hasName: boolean, factCount: number, lang: string = "en", rating: number = 5): Shape {
-  const lo = Math.max(10, Math.min(min, max)), hi = Math.max(lo, max);
-  // about one review in ten is very short, as real ones sometimes are
-  const words = Math.random() < 0.1 ? Math.round(16 + Math.random() * 12) : Math.round(lo + Math.random() * (hi - lo));
+/**
+ * `answers` is how many answers this draft uses and `details` how many separate things the guest told us in them.
+ * Length never exceeds what that material can fill: asking for more words than there are facts makes a writer invent.
+ */
+export function pickShape(min: number, max: number, hasName: boolean, answers: number, details: number, lang: string = "en", rating: number = 5): Shape {
+  const room = Math.round(10 + 6 * details);
+  const hi = Math.max(10, Math.min(Math.max(min, max), room));
+  const lo = Math.max(8, Math.min(min, Math.round(hi * 0.7)));
+  // about one review in ten is as short as it can be, as real ones sometimes are
+  const words = Math.random() < 0.1 ? lo : Math.round(lo + Math.random() * (hi - lo));
   const mood = rating >= 4 ? "pos" : rating === 3 ? "mix" : "neg";
   return {
     starter: pick((STARTERS[lang] ?? STARTERS.en)[mood]),
-    lines: weighted(),
+    lines: Math.max(1, Math.min(weighted(), answers)),
     words,
     tone: pick(TONES),
     opener: pick(OPENERS),
     angle: pick(ANGLES),
     grammar: pick(GRAMMAR),
-    mention: factCount <= 2 ? factCount : Math.max(2, Math.min(factCount, 2 + Math.floor(Math.random() * 3))),
     // the name is used in roughly one review in three, so it never feels like a stamp
     useName: hasName && Math.random() < 0.34,
     seoMentions: Math.random() < 0.7 ? 1 : 2,
