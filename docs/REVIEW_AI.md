@@ -60,3 +60,9 @@ Reply to a Google review, pasted by the owner:
 ## Today's other options
 
 `REVIEW_AI_PROVIDER` can also be `openai`, `gemini` or `anthropic` (with their key), or `template` for the built-in sentences.
+
+## Gemini only, with several keys as backups
+- Set `REVIEW_AI_PROVIDER=gemini` in Vercel.
+- Put up to 6 Gemini keys in `GEMINI_API_KEYS`, comma separated, in the order to try (or one key in `GEMINI_API_KEY`). A key that is used up, busy or refused (401, 403, 408, 429, 5xx, timeout) hands over to the next key. A bad request (400) is not retried.
+- To use no other AI, remove `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` from Vercel. A backup runs only when its key is set. If every Gemini key fails, the guest gets the plain built-in review.
+- Keys go only in Vercel, never in code or chat. Check Google's Gemini API terms before spreading use across several accounts; one paid key is safer.

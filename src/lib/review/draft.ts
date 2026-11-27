@@ -153,19 +153,39 @@ const callOpenAI: TextCaller = async (prompt, o) => {
   return (await res.json()).choices?.[0]?.message?.content ?? "";
 };
 
-const callGemini: TextCaller = async (prompt, o) => {
+/** Gemini keys, in the order they are tried: GEMINI_API_KEYS (comma separated, up to 6) and then GEMINI_API_KEY. Only the key values go in Vercel, never in code or chat. */
+export const geminiKeys = (): string[] => {
+  const all = `${process.env.GEMINI_API_KEYS ?? ""},${process.env.GEMINI_API_KEY ?? ""}`.split(",").map((k) => k.trim()).filter(Boolean);
+  return [...new Set(all)].slice(0, 6);
+};
+// A key that is used up, busy or refused hands over to the next one. A bad request (400) is not a key problem, so it stops.
+const keyFailed = (status: number) => status === 401 || status === 403 || status === 408 || status === 429 || status >= 500;
+
+export const callGemini: TextCaller = async (prompt, o) => {
   const model = o?.model || process.env.REVIEW_AI_MODEL || "gemini-2.0-flash";
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      // 2.5 models "think" first and that eats the output budget, so thinking is switched off for short reviews.
-      generationConfig: { maxOutputTokens: o?.max ?? 200, temperature: o?.temp ?? 0.8, ...(model.includes("2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
-    }),
+  const keys = geminiKeys();
+  if (!keys.length) throw new Error("gemini no key");
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    // 2.5 models "think" first and that eats the output budget, so thinking is switched off for short reviews.
+    generationConfig: { maxOutputTokens: o?.max ?? 200, temperature: o?.temp ?? 0.8, ...(model.includes("2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
   });
-  if (!res.ok) throw new Error(`gemini ${res.status}`);
-  return (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  let last = "gemini failed";
+  for (let k = 0; k < keys.length; k++) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": keys[k] }, body, signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) return (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      last = `gemini ${res.status}`;
+      if (!keyFailed(res.status)) break;
+      console.error(`review ai: gemini key ${k + 1} of ${keys.length} gave ${res.status}, trying the next key`);
+    } catch (e) {
+      last = /abort|timeout/i.test(String((e as Error)?.message)) ? "gemini timeout" : "gemini fetch failed";
+      console.error(`review ai: gemini key ${k + 1} of ${keys.length}: ${last}, trying the next key`);
+    }
+  }
+  throw new Error(last);
 };
 
 const callAnthropic: TextCaller = async (prompt, o) => {
@@ -178,6 +198,7 @@ const callAnthropic: TextCaller = async (prompt, o) => {
   return (await res.json()).content?.[0]?.text ?? "";
 };
 
+const hasKey = (n: string) => (n === "gemini" ? geminiKeys().length > 0 : !!process.env[GENERAL[n].key]);
 const GENERAL: Record<string, { key: string; call: TextCaller }> = {
   openai: { key: "OPENAI_API_KEY", call: callOpenAI },
   gemini: { key: "GEMINI_API_KEY", call: callGemini },
@@ -238,10 +259,10 @@ async function run(task: "review_draft" | "review_reply", payload: Record<string
     if (name === "custom" && process.env.REVIEW_AI_URL) {
       const t = clean(await withTimeout(callCustom(task, payload), Math.max(2000, Math.min(12000, (opts?.deadline ?? Infinity) - Date.now()))), max);
       if (t) return { text: t, provider: "custom" };
-    } else if (GENERAL[name] && process.env[GENERAL[name].key]) {
+    } else if (GENERAL[name] && hasKey(name)) {
       // The chosen provider first (a busy or rate-limited model is retried once, then the next model is tried).
       // If it still fails, every other provider that has a key set (Gemini, Claude) is tried in turn as a backup.
-      const backups = Object.keys(GENERAL).filter((n) => n !== name && process.env[GENERAL[n].key] && (n !== "openai" || !process.env.REVIEW_AI_BASE_URL));
+      const backups = Object.keys(GENERAL).filter((n) => n !== name && hasKey(n) && (n !== "openai" || !process.env.REVIEW_AI_BASE_URL));
       for (const prov of [name, ...backups]) {
         const primary = prov === name;
         const models: (string | undefined)[] = primary ? modelChain() : BACKUP_MODELS[prov] ?? [undefined];
@@ -314,7 +335,7 @@ export async function aiProbe(): Promise<{ ok: boolean; provider: string; ms: nu
   try {
     let text = "";
     if (st.provider === "custom") text = await withTimeout(callCustom("review_reply", { business: { name: sample.businessName, type: sample.businessType }, review: { author: sample.author, rating: sample.rating, text: sample.text } }), 10000);
-    else if (GENERAL[st.provider] && process.env[GENERAL[st.provider].key]) text = await withTimeout(GENERAL[st.provider].call(replyPrompt(sample)), 10000);
+    else if (GENERAL[st.provider] && hasKey(st.provider)) text = await withTimeout(GENERAL[st.provider].call(replyPrompt(sample)), 10000);
     else return { ok: true, provider: "template", ms: Date.now() - t0, text: templateReply(sample), hint: st.provider === "template" ? "The built-in writer is active. Set REVIEW_AI_PROVIDER to custom to use your own model." : "The provider is chosen but its key or address is missing, so the built-in writer is used." };
     text = clean(text, 700);
     if (!text) return { ok: false, provider: st.provider, ms: Date.now() - t0, error: "Connected, but the answer was empty.", hint: 'Your endpoint must reply with JSON like {"text": "the reply"}.' };
@@ -514,7 +535,7 @@ export async function translateQuestions(
 ): Promise<Record<string, Partial<Record<Lang, { label: string; chips: string[] }>>> | null> {
   const name = (process.env.REVIEW_AI_PROVIDER || "template").toLowerCase();
   const g = GENERAL[name];
-  if (!g || !process.env[g.key]) return null;
+  if (!g || !hasKey(name)) return null;
   const style: Record<Lang, string> = {
     en: "natural, simple English",
     hi: "natural spoken Hindi in Devanagari script, the way people actually talk, not stiff textbook Hindi",
