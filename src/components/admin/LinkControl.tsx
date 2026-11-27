@@ -4,9 +4,10 @@ import { useState } from "react";
 import { Copy, KeyRound, Loader2 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useToast } from "@/components/dash/Toast";
+import { LINK_BASE } from "@/lib/features";
 
 // The private control link for a mini link: whoever holds it can edit the page and see its numbers, with no login.
-export function LinkControl({ linkId, initialToken, initialEnabled }: { linkId: string; initialToken: string | null; initialEnabled: boolean }) {
+export function LinkControl({ linkId, initialToken, initialEnabled, name, slug }: { linkId: string; initialToken: string | null; initialEnabled: boolean; name: string; slug: string }) {
   const sb = supabaseBrowser();
   const toast = useToast();
   const [token, setToken] = useState(initialToken);
@@ -29,6 +30,18 @@ export function LinkControl({ linkId, initialToken, initialEnabled }: { linkId: 
     catch { toast("Could not copy. Select the link and copy it.", true); }
   }
 
+  // A message that is ready to forward: it already has the business name, the page, the control link and what the owner can do with it.
+  function message(lang: "hi" | "en") {
+    const page = `${LINK_BASE}/${slug}`;
+    return lang === "hi"
+      ? `Namaste! ${name} ka Taprizz page taiyaar hai.\n\nAapka page: ${page}\n\nAapka private control link (ise kisi ko mat bhejna):\n${url}\n\nIs link se aap:\n- Dekh sakte ho ki kitne log aapka page khol rahe hain aur kaun sa button kitna dabaya ja raha hai.\n- Page ka naam, photos, menu, offers, outlets aur buttons khud badal sakte ho.\n- Buttons ka order badal sakte ho.\n\nLogin ki zarurat nahi: link phone par seedha khulta hai.`
+      : `Hello! The Taprizz page for ${name} is ready.\n\nYour page: ${page}\n\nYour private control link (please do not share it):\n${url}\n\nWith this link you can:\n- See how many people open your page and which button is tapped how many times.\n- Change the name, photos, menu, offers, outlets and buttons yourself.\n- Change the order of the buttons.\n\nNo login needed: the link opens straight on your phone.`;
+  }
+  async function copyMessage(lang: "hi" | "en") {
+    try { await navigator.clipboard.writeText(message(lang)); toast("Message copied. Paste it on WhatsApp."); }
+    catch { toast("Could not copy.", true); }
+  }
+
   return (
     <section className="d-card space-y-3 p-5">
       <div className="flex items-center gap-2"><KeyRound size={17} /><h2 className="font-semibold">Control link</h2></div>
@@ -37,7 +50,9 @@ export function LinkControl({ linkId, initialToken, initialEnabled }: { linkId: 
         <>
           <input readOnly aria-label="Control link" className="d-input !min-h-10 font-mono text-xs" value={url} onFocus={(e) => e.currentTarget.select()} />
           <div className="flex flex-wrap items-center gap-2">
-            <button className="d-btn d-btn-p" onClick={copy} disabled={!enabled}><Copy size={15} /> Copy link</button>
+            <button className="d-btn d-btn-p" onClick={() => copyMessage("hi")} disabled={!enabled}><Copy size={15} /> Copy message</button>
+            <button className="d-btn d-btn-s" onClick={() => copyMessage("en")} disabled={!enabled}>Message in English</button>
+            <button className="d-btn d-btn-s" onClick={copy} disabled={!enabled}>Copy link only</button>
             <button className="d-btn d-btn-s" disabled={busy} onClick={() => act(enabled ? "disable" : "enable")}>{enabled ? "Switch off" : "Switch on"}</button>
             <button className="d-btn d-btn-s" disabled={busy} onClick={() => act("reset")}>Make a new link</button>
             {busy && <Loader2 size={16} className="animate-spin" />}

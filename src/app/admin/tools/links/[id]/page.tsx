@@ -16,7 +16,7 @@ export default async function LinkEditPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <PageHead title={data.name} sub="Edit the page. Press Save to see changes in the preview." />
-      <div className="mb-4"><LinkControl linkId={data.id} initialToken={data.edit_token ?? null} initialEnabled={data.edit_enabled !== false} /></div>
+      <div className="mb-4"><LinkControl name={data.name} slug={data.slug} linkId={data.id} initialToken={data.edit_token ?? null} initialEnabled={data.edit_enabled !== false} /></div>
       <ContactList rows={(contacts ?? []) as Parameters<typeof ContactList>[0]["rows"]} />
       <LinkManager initial={data as never} clientName={client?.name ?? null} mode="admin" />
     </>
