@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ReviewBusy, writeReview } from "@/lib/review/draft";
+import { isEventGuest } from "@/lib/review/event";
 import { buildAnswers, cleanName, cleanText, resolveQuestions, toConfig } from "@/lib/review/prepare";
 import type { GuestPageData } from "@/lib/types";
 import { rpcKeyed } from "@/lib/review/serverkey";
@@ -35,6 +36,8 @@ export async function POST(req: Request) {
   const b = parsed.data;
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (tooMany(`${ip}:${b.code}`)) return NextResponse.json({ error: "That is a lot of tries. Please wait a few minutes." }, { status: 429 });
+  // A guest who was at an event stall did not visit the outlet, so no Google review is written for them.
+  if (isEventGuest(b.answers.map((a) => a.values))) return NextResponse.json({ error: "Thank you for visiting our stall. Google reviews are for visits to our outlet." }, { status: 403 });
 
   const sb = await supabaseServer();
   const { data: page } = await sb.rpc("guest_page", { p_code: b.code });

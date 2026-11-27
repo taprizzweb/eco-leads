@@ -5,6 +5,7 @@ import { Star, Copy, Check, Loader2, ArrowLeft, RefreshCw, HeartHandshake, Smile
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { GuestPageData } from "@/lib/types";
 import { LANGS, localize, resolveQuestions, type Lang } from "@/lib/review/questions";
+import { isEventChip, isEventGuest } from "@/lib/review/event";
 import type { Visitor } from "@/lib/visitor";
 import { chip, glassInput, pillPrimary, pillSoft } from "./ui";
 
@@ -14,6 +15,8 @@ type SpeechLike = { lang: string; interimResults: boolean; continuous: boolean; 
 
 // The guest's own answers become their review. The Google button is always available, at every rating,
 // and nothing is ever offered in return for a review. Low ratings are offered a private message first.
+// One exception, by place and not by rating: a guest who says they were at an event stall did not visit the outlet,
+// so their words go privately to the management and no Google review is written or linked for them.
 export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: { data: GuestPageData; code: string; visitor: Visitor | null; onPrivateFeedback?: () => void; source?: "mini" }) {
   const questions = useMemo(() => resolveQuestions(data.review, data.client.business_type), [data.review, data.client.business_type]);
   const langs = useMemo(() => LANGS.filter((l) => (data.review?.languages ?? LANGS.map((x) => x.id)).includes(l.id)), [data.review]);
@@ -70,6 +73,18 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: {
   const q = questions[qi];
   const lq = q ? localize(q, lang) : null;
   const lowStars = rating > 0 && rating <= 3 && lowMode === "private_first" && !!onPrivateFeedback && !continueAnyway;
+  const eventGuest = isEventGuest(Object.values(answers));
+  // The private box, for 1 to 3 stars or for an event stall guest (who gets it only if the business can receive messages).
+  const privateBox = eventGuest ? !!onPrivateFeedback : lowStars && step !== "draft";
+
+  // The guest tapped the stall answer by mistake: clear it and show that question again.
+  function undoEvent() {
+    const at = questions.findIndex((x) => (answers[x.id] ?? []).some(isEventChip));
+    setAnswers((a) => Object.fromEntries(Object.entries(a).map(([id, v]) => [id, v.filter((x) => !isEventChip(x))])));
+    setFbSent(false); setFbError(null); setContinueAnyway(true);
+    if (at >= 0) setQi(at);
+    setStep("q");
+  }
 
   function choose(n: number) {
     setRating(n);
@@ -94,6 +109,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: {
 
   // After the last question the review is written straight away. No extra step.
   function advance(a: Record<string, string[]> = answers) {
+    if (isEventGuest(Object.values(a))) return;
     if (qi + 1 < questions.length) setQi((i) => Math.min(i + 1, questions.length - 1));
     else void write(a);
   }
@@ -158,7 +174,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: {
     const share = fbContact && !!ph;
     recog.current?.stop();
     setFbSending(true); setFbError(null);
-    const { error: e } = await supabaseBrowser().rpc("guest_submit_feedback", { p_client: data.client.id, p_code: code, p_kind: "complaint", p_body: `${source === "mini" ? "[Mini link] " : ""}[${rating} star${rating > 1 ? "s" : ""}] ${text}`, p_media: [], p_name: share && fbName.trim() ? fbName.trim().slice(0, 60) : null, p_phone: share ? `+91${ph}` : null, p_consent: share });
+    const { error: e } = await supabaseBrowser().rpc("guest_submit_feedback", { p_client: data.client.id, p_code: code, p_kind: "complaint", p_body: `${source === "mini" ? "[Mini link] " : ""}${eventGuest ? "[Event stall] " : ""}[${rating} star${rating > 1 ? "s" : ""}] ${text}`, p_media: [], p_name: share && fbName.trim() ? fbName.trim().slice(0, 60) : null, p_phone: share ? `+91${ph}` : null, p_consent: share });
     setFbSending(false);
     if (e) { setFbError("Your message did not send. Check your connection and try again. Nothing you wrote was lost."); return; }
     setFbSent(true);
@@ -210,18 +226,29 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: {
         </div>
       </div>
 
+      {/* An event stall guest, when the business cannot receive messages here: a thank you only. */}
+      {eventGuest && !onPrivateFeedback && (
+        <div className="space-y-2 rounded-3xl p-5 text-center bg-[color-mix(in_srgb,var(--text)_7%,transparent)]" role="status">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-500/15 text-emerald-500"><Smile size={32} /></span>
+          <p className="text-lg font-semibold">Thank you for visiting our stall</p>
+          <p className="text-sm text-muted">We hope to see you at our outlet.</p>
+          <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={undoEvent}>Change my answer</button>
+        </div>
+      )}
+
       {/* 1 to 3 stars: a box to type or speak into, sent privately to the management. The Google link stays available. */}
-      {lowStars && step !== "draft" && (
+      {privateBox && (
         fbSent ? (
           <div className="space-y-2 rounded-3xl p-5 text-center bg-[color-mix(in_srgb,var(--text)_7%,transparent)]" role="status">
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-500/15 text-emerald-500"><Smile size={32} /></span>
             <p className="text-lg font-semibold">Thank you for your feedback</p>
             <p className="text-sm text-muted">The management will read it.</p>
-            <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => { setFbSent(false); setContinueAnyway(true); }}>I would also like to write a Google review</button>
+            {!eventGuest && <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => { setFbSent(false); setContinueAnyway(true); }}>I would also like to write a Google review</button>}
           </div>
         ) : (
           <div className="space-y-3 rounded-3xl p-4 bg-[color-mix(in_srgb,var(--text)_7%,transparent)]">
-            <label htmlFor="fb" className="flex items-center gap-2 font-semibold"><HeartHandshake size={18} /> What could we do better?</label>
+            <label htmlFor="fb" className="flex items-center gap-2 font-semibold"><HeartHandshake size={18} /> {eventGuest ? "How was it at our stall?" : "What could we do better?"}</label>
+            {eventGuest && <p className="text-sm text-muted">This goes privately to the team. Google reviews are for visits to our outlet.</p>}
             <div className="relative">
               <textarea id="fb" rows={5} value={fb} onChange={(e) => setFb(e.target.value)} maxLength={1000} className={`${glassInput} rounded-2xl pr-14 leading-relaxed`} placeholder={listening ? "Listening..." : "Type here" + (canSpeak ? ", or tap the mic and speak" : "")} />
               {canSpeak && (
@@ -241,12 +268,14 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: {
               )}
             {fbError && <p role="alert" className="text-sm text-amber-400">{fbError}</p>}
             <button className={pillPrimary} onClick={() => void sendFeedback()} disabled={fbSending}>{fbSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}{fbSending ? "Sending" : "Send"}</button>
-            <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => setContinueAnyway(true)}>I would rather write a Google review</button>
+            {eventGuest
+              ? <button type="button" className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={undoEvent}>Change my answer</button>
+              : <button className="min-h-11 w-full text-center text-sm text-muted underline underline-offset-4" onClick={() => setContinueAnyway(true)}>I would rather write a Google review</button>}
           </div>
         )
       )}
 
-      {!lowStars && step === "q" && q && lq && (
+      {!lowStars && !eventGuest && step === "q" && q && lq && (
         <section aria-labelledby="q-label" className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--text)_10%,transparent)]"><div className="h-full rounded-full bg-fg transition-all" style={{ width: `${((qi + 1) / (questions.length + 1)) * 100}%` }} /></div>
@@ -267,7 +296,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: {
         </section>
       )}
 
-      {step === "draft" && (
+      {step === "draft" && !eventGuest && (
         <section className="space-y-3">
           <label htmlFor="draft" className="block text-sm text-muted">Your review. Change anything you like.</label>
           {error && <p role="alert" className="text-sm text-amber-400">{error}</p>}
@@ -290,7 +319,7 @@ export function ReviewFlow({ data, code, visitor, onPrivateFeedback, source }: {
         </section>
       )}
 
-      {googleUrl && (step !== "draft" || !!draft.trim()) && (
+      {googleUrl && !eventGuest && (step !== "draft" || !!draft.trim()) && (
         <button type="button" onClick={openGoogleDirect} className="block min-h-11 w-full py-3 text-center text-sm text-muted underline underline-offset-4">Skip and write on Google directly</button>
       )}
     </div>
