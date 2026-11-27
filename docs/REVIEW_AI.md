@@ -66,3 +66,9 @@ Reply to a Google review, pasted by the owner:
 - Put up to 6 Gemini keys in `GEMINI_API_KEYS`, comma separated, in the order to try (or one key in `GEMINI_API_KEY`). A key that is used up, busy or refused (401, 403, 408, 429, 5xx, timeout) hands over to the next key. A bad request (400) is not retried.
 - To use no other AI, remove `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` from Vercel. A backup runs only when its key is set. If every Gemini key fails, the guest gets the plain built-in review.
 - Keys go only in Vercel, never in code or chat. Check Google's Gemini API terms before spreading use across several accounts; one paid key is safer.
+
+## Speed limit and writing rules
+- The AI gets `REVIEW_AI_BUDGET_MS` (3000 by default). If it has not answered in that time, the guest gets the plain review built from their own picks. Each Gemini key waits at most 2.5 s and never longer than the time that is left.
+- For speed use a fast model, for example `REVIEW_AI_MODEL=gemini-flash-lite-latest`.
+- The prompt asks for correct grammar, spelling and punctuation, and for search-friendly wording: the business name, the kind of place and up to two of the business's own keywords, only where they are true to what the guest chose, never stuffed.
+- The total wait the guest sees also includes the page's own steps before and after the AI.

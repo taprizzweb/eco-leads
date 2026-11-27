@@ -172,9 +172,10 @@ export const callGemini: TextCaller = async (prompt, o) => {
   });
   let last = "gemini failed";
   for (let k = 0; k < keys.length; k++) {
+    if ((o?.deadline ?? Infinity) - Date.now() < 400) break; // no time left for another key
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": keys[k] }, body, signal: AbortSignal.timeout(5000),
+        method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": keys[k] }, body, signal: AbortSignal.timeout(Math.max(500, Math.min(2500, (o?.deadline ?? Infinity) - Date.now() - 100))),
       });
       if (res.ok) return (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text ?? "";
       last = `gemini ${res.status}`;
@@ -267,9 +268,9 @@ async function run(task: "review_draft" | "review_reply", payload: Record<string
         const primary = prov === name;
         const models: (string | undefined)[] = primary ? modelChain() : BACKUP_MODELS[prov] ?? [undefined];
         for (const model of models) {
-          for (let attempt = 0; attempt < (primary ? 2 : 1); attempt++) {
+          for (let attempt = 0; attempt < (primary && (opts?.deadline ?? Infinity) - Date.now() > 8000 ? 2 : 1); attempt++) {
             const left = (opts?.deadline ?? Infinity) - Date.now();
-            if (left < 2500) return null; // out of time: the guest gets a plain review instead of a hung page
+            if (left < 600) return null; // out of time: the guest gets a plain review instead of a hung page
             try {
               const t = clean(await withTimeout(GENERAL[prov].call(prompt, { ...opts, model }), Math.min(12000, left)), max);
               if (t) return { text: t, provider: prov };
@@ -400,9 +401,9 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
   const banned = [...new Set([...GENERIC_BANNED, ...(cfg.banned ?? [])])].slice(0, 80);
   const ex = (cfg.examples ?? []).filter((e) => e.text?.trim() && (!e.language || e.language === r.language)).slice(0, 4);
   const own = r.extra.trim();
-  const kw = shuffle(cfg.category.keywords ?? []).slice(0, 3);
+  const kw = shuffle(cfg.category.keywords ?? []).slice(0, 4);
   return [
-    `You write ONE Google review as the real customer, in the first person, the way they would type it on their phone after the visit. It must read like a real person wrote it: specific, a little imperfect, never like marketing and never like a template.`,
+    `You write ONE Google review as the real customer, in the first person, the way they would type it on their phone after the visit. It must read like a real person wrote it: specific and natural, never like marketing and never like a template. The language must be correct: right grammar, spelling and punctuation.`,
     ``,
     `BUSINESS: ${cfg.business.name}${cfg.category.label ? ` (${cfg.category.label})` : ""}${cfg.business.tagline ? `. ${cfg.business.tagline}` : ""}`,
     cfg.category.notes ? `WHAT GUESTS OF THIS KIND OF PLACE CARE ABOUT: ${cfg.category.notes}` : "",
@@ -415,7 +416,8 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
     own ? `THE CUSTOMER'S OWN WORDS (if they carry a real detail, use that detail in your own phrasing; if it is only a vague word like "nice" or "good", treat it as mood only and never repeat it): "${own.slice(0, 300)}"` : "",
     r.name ? `CUSTOMER FIRST NAME: ${r.name}. ${shape.useName ? "Use the name once in a natural way, for example a short sign-off at the end or a casual self-mention. Never write 'My name is' or 'I am'." : "Do NOT use the name in this review."}` : "",
     ``,
-    `HELPFUL AND SEARCHABLE (without sounding like SEO): make the review useful to the next customer by saying what they would actually want to know (what to try, who it suits, what it is good for) using only the facts above. Mention the business name ${shape.seoMentions === 1 ? "once" : "at most twice"}${cfg.category.label ? ` and naturally refer to what kind of place it is (${cfg.category.label})` : ""}.${kw.length ? ` If it fits naturally, you may use one of: ${kw.join(", ")}.` : ""} Never stuff keywords.`,
+    `HELPFUL AND SEARCH-FRIENDLY: make the review useful to the next customer by saying what they would actually want to know (what to try, who it suits, what it is good for) using only the facts above. For search, say the business name ${shape.seoMentions === 1 ? "once" : "at most twice"}${cfg.category.label ? ` and say what kind of place it is (${cfg.category.label})` : ""}.${kw.length ? ` Where it is true to the facts, use up to two of these words or phrases, written the way a person would say them: ${kw.join(", ")}.` : ""} Never stuff keywords, never repeat one, never list them.`,
+    `WRITING QUALITY: use correct grammar, spelling and punctuation. Every sentence is complete, the tense stays the same, no word is repeated by accident, and each sentence starts with a capital letter and ends with a full stop (or a question or exclamation mark). Check it once before you answer.`,
     ``,
     `SHAPE FOR THIS ONE (follow it so that no two reviews look alike):`,
     `- Write exactly ${shape.lines} sentences (about ${shape.words} words in total), with different sentence lengths.`,
@@ -486,11 +488,13 @@ export async function writeReview(cfg: StudioConfig, r: ReviewRequest, recentSig
   const factCount = r.answers.filter((a) => a.values.length).length;
   let best: WrittenReview | null = null;
   const broken: { text: string; provider: string; shape: Shape }[] = [];
-  const attempts = opts.tries ?? 4;
-  const deadline = Date.now() + 24000; // the API route may run for 30 s at most
+  const attempts = opts.tries ?? 2;
+  // The guest waits only a few seconds: the AI gets REVIEW_AI_BUDGET_MS (3000 by default), then the plain review built from their own picks is shown.
+  const deadline = Date.now() + (Number(process.env.REVIEW_AI_BUDGET_MS) || 3000);
   // Up to two extra attempts when the best draft so far is almost a copy of a recent one.
   for (let i = 0; i < attempts + 2; i++) {
-    if (i >= attempts && (!best || best.similarity < 0.85 || Date.now() > deadline - 6000)) break;
+    if (i >= attempts && (!best || best.similarity < 0.85 || Date.now() > deadline - 1500)) break;
+    if (i > 0 && deadline - Date.now() < 1500) break; // not enough time for another try
     const shape = pickShape(cfg.length_min, cfg.length_max, !!r.name, factCount, r.language, r.rating);
     const prompt = buildReviewPrompt(cfg, r, shape, i > 0);
     const out = await run("review_draft", {

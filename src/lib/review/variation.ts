@@ -52,11 +52,11 @@ const OPENERS = [
   "start with the feeling after leaving, said plainly",
 ];
 const GRAMMAR = [
-  "mostly full sentences",
-  "mix one short fragment with normal sentences",
-  "casual and slightly run-on, like speech",
-  "tidy and compact",
-  "one long sentence followed by one very short one",
+  "full, correct sentences",
+  "correct sentences, one of them short",
+  "tidy and compact, every sentence complete",
+  "one longer sentence followed by one very short one, both grammatically correct",
+  "warm and natural, still with correct grammar and punctuation",
 ];
 
 export type Shape = { starter: string; lines: number; words: number; tone: string; opener: string; angle: string; grammar: string; mention: number; useName: boolean; seoMentions: number };
