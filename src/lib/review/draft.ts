@@ -405,7 +405,7 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
   return [
     `You write ONE Google review as the real customer, in the first person, the way they would type it on their phone after the visit. It must read like a real person wrote it: specific and natural, never like marketing and never like a template. The language must be correct: right grammar, spelling and punctuation.`,
     ``,
-    `BUSINESS: ${cfg.business.name}${cfg.category.label ? ` (${cfg.category.label})` : ""}${cfg.business.tagline ? `. ${cfg.business.tagline}` : ""}`,
+    `BUSINESS: ${cfg.business.name}${cfg.category.label ? ` (${cfg.category.label})` : ""}. This is the only business name that may appear in the review.`,
     cfg.category.notes ? `WHAT GUESTS OF THIS KIND OF PLACE CARE ABOUT: ${cfg.category.notes}` : "",
     ``,
     `STARS GIVEN: ${r.rating} out of 5. The customer feels: ${FEELING[r.rating] ?? FEELING[3]}.`,
@@ -438,7 +438,7 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
     `- For 1 to 3 stars stay calm and factual. No insults, no accusations, nothing defamatory.`,
     `- Do not use any of these phrases or close variants: ${banned.join("; ")}.`,
     `- Do not use these empty words as the main praise: amazing, awesome, wonderful, fantastic, superb, great experience, nice place.`,
-    cfg.rules.trim() ? `\nHOUSE RULES FROM THE OWNER OF TAPRIZZ (follow these):\n${cfg.rules.trim().slice(0, 4000)}` : "",
+    cfg.rules.trim() ? `\nHOUSE RULES (follow these):\n${cfg.rules.trim().slice(0, 4000)}` : "",
     ex.length ? `\nEXAMPLES OF THE STYLE WE WANT (never copy their words, only the feel):\n${ex.map((e, i) => `${i + 1}. ${e.text.trim().slice(0, 400)}`).join("\n")}` : "",
     ``,
     `Output only the review text.`,
