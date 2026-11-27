@@ -431,6 +431,8 @@ export function buildReviewPrompt(cfg: StudioConfig, r: ReviewRequest, shape: Sh
     ``,
     `HARD RULES:`,
     `- Never invent anything the customer did not tell us: no dish names, staff names, prices, dates, offers or events. You may add ordinary connecting words and how they felt, but no new factual claims.`,
+    `- Spell the business name exactly as "${cfg.business.name}", in every language, never changed, shortened or translated.`,
+    `- Do not say it was a first visit, a repeat visit, or when the customer came (today, yesterday, last week), and do not call the place "the best", "number one" or "the most": these are not in the facts.`,
     `- Never offer or mention any reward, discount or gift. Never ask anyone to review or to visit.`,
     `- No hashtags, no emojis, no quotation marks, no headings, no lists. Plain sentences only.`,
     `- For 1 to 3 stars stay calm and factual. No insults, no accusations, nothing defamatory.`,
