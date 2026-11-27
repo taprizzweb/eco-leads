@@ -246,6 +246,25 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const rise = (i: number) => (reduce ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.4, delay: 0.05 + i * 0.05 } } : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] as const } });
   const topBtn = "grid h-9 w-9 place-items-center rounded-full transition active:scale-90";
 
+  // The highlighted review button. With AI review on it opens the stars inside the page; with it off it opens the plain link saved for this page.
+  const reviewLink = data.review_code ? null : safeUrl(data.review_link);
+  const googleLink = !!reviewLink && isReviewButton({ url: reviewLink, label: "" });
+  const reviewName = data.review_label || (data.review_code ? "AI Review by Tap" : googleLink ? "Review on Google" : "Open Link");
+  const reviewCls = "relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]";
+  const reviewStyle = { background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" } as const;
+  const reviewInner = (
+    <>
+      <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{!reviewLink || googleLink ? googleBadge : brandFor(reviewLink, reviewName) ?? <Link2 size={21} strokeWidth={1.7} />}</span>
+      <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>{reviewName}</span>{!reviewLink && <span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span>}</span>
+      {(!reviewLink || googleLink) && <Sparkles />}
+    </>
+  );
+  const reviewButton = data.review_code
+    ? <button type="button" onClick={() => { track("click", reviewName); setReviewOpen(true); }} className={reviewCls} style={reviewStyle}>{reviewInner}</button>
+    : reviewLink
+      ? <a href={reviewLink} target={/^(tel|mailto):/i.test(reviewLink) ? undefined : "_blank"} rel="noopener" onClick={() => track("click", reviewName)} className={reviewCls} style={reviewStyle}>{reviewInner}</a>
+      : null;
+
   return (
     <div className="min-h-dvh [overflow-x:clip]" data-theme={theme.dark ? "dark" : "light"} style={{ ...(theme.vars as React.CSSProperties), background: `radial-gradient(90% 420px at 50% -60px, var(--l-glow), transparent 70%), var(--l-bg)`, color: "var(--l-text)" }}>
       <main className="relative mx-auto flex max-w-md flex-col pb-8">
@@ -295,16 +314,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
           <motion.section {...rise(3)} className="mt-4" aria-label="Photos"><PhotoStrip items={data.photos.map((p) => ({ url: p.url, caption: p.caption, kind: p.kind }))} width={210} ratio="1/1" /></motion.section>
         )}
 
-        {data.review_code && (data.review_pos ?? "top") === "top" && (
-          <motion.div {...rise(4)} className="mt-4 px-3">
-            <button type="button" onClick={() => { track("click", data.review_label || "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
-              style={{ background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" }}>
-              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{googleBadge}</span>
-              <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>{data.review_label || "AI Review by Tap"}</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
-              <Sparkles />
-            </button>
-          </motion.div>
-        )}
+        {reviewButton && (data.review_pos ?? "top") === "top" && <motion.div {...rise(4)} className="mt-4 px-3">{reviewButton}</motion.div>}
 
         {buttons.length > 0 && (
           <motion.nav {...rise(4)} aria-label="Links" className="mt-4 space-y-2.5 px-3">
@@ -334,17 +344,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
             })}
           </motion.nav>
         )}
-        {data.review_code && (data.review_pos ?? "top") === "bottom" && (
-          <motion.div {...rise(4)} className="mt-4 px-3">
-            <button type="button" onClick={() => { track("click", data.review_label || "AI Review by Tap"); setReviewOpen(true); }} className="relative flex min-h-[60px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]"
-              style={{ background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8), 0 0 0 2px var(--l-accent)" }}>
-              <span className="absolute left-3.5 grid h-7 min-w-6 place-items-center" aria-hidden>{googleBadge}</span>
-              <span className="flex flex-col items-center leading-none"><span className="text-[22px] tracking-[0.03em] uppercase" style={display}>{data.review_label || "AI Review by Tap"}</span><span className="mt-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase opacity-70">Pick stars, get your review in seconds</span></span>
-              <Sparkles />
-            </button>
-          </motion.div>
-        )}
-
+        {reviewButton && (data.review_pos ?? "top") === "bottom" && <motion.div {...rise(4)} className="mt-4 px-3">{reviewButton}</motion.div>}
 
         {data.reviews.length > 0 && (
           <motion.section {...rise(5)} className="mt-5" aria-label="Guest reviews">
