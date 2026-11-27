@@ -72,3 +72,6 @@ Reply to a Google review, pasted by the owner:
 - For speed use a fast model, for example `REVIEW_AI_MODEL=gemini-flash-lite-latest`.
 - The prompt asks for correct grammar, spelling and punctuation, and for search-friendly wording: the business name, the kind of place and up to two of the business's own keywords, only where they are true to what the guest chose, never stuffed.
 - The total wait the guest sees also includes the page's own steps before and after the AI.
+
+## A failed key rests
+A Gemini key that is busy, used up or slow is skipped for 1 minute (30 seconds after a timeout), and a refused key (401 or 403) for 10 minutes, so a rush does not keep waiting on it. If every key is resting they are all tried again, the one that rests the shortest first. The memory is per server instance and is lost on a new deploy.

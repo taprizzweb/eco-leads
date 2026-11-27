@@ -161,9 +161,23 @@ export const geminiKeys = (): string[] => {
 // A key that is used up, busy or refused hands over to the next one. A bad request (400) is not a key problem, so it stops.
 const keyFailed = (status: number) => status === 401 || status === 403 || status === 408 || status === 429 || status >= 500;
 
+// A key that just failed is skipped for a while, so a rush does not wait on a used-up key again and again.
+// It is kept in this server's memory only. If every key is resting, they are all tried again, the one that rests the shortest first.
+const keyRest = new Map<string, number>();
+const REST_MS = 60_000;        // busy, used up or slow: rest one minute
+const REST_BAD_KEY_MS = 600_000; // refused (401 or 403): rest ten minutes
+const orderedKeys = (keys: string[]) => {
+  const now = Date.now();
+  const ready = keys.filter((k) => (keyRest.get(k) ?? 0) <= now);
+  const resting = keys.filter((k) => (keyRest.get(k) ?? 0) > now).sort((a, b) => (keyRest.get(a) ?? 0) - (keyRest.get(b) ?? 0));
+  return [...ready, ...resting];
+};
+const restKey = (k: string, ms: number) => keyRest.set(k, Date.now() + ms);
+export const resetKeyRest = () => keyRest.clear();
+
 export const callGemini: TextCaller = async (prompt, o) => {
   const model = o?.model || process.env.REVIEW_AI_MODEL || "gemini-2.0-flash";
-  const keys = geminiKeys();
+  const keys = orderedKeys(geminiKeys());
   if (!keys.length) throw new Error("gemini no key");
   const body = JSON.stringify({
     contents: [{ parts: [{ text: prompt }] }],
@@ -180,9 +194,11 @@ export const callGemini: TextCaller = async (prompt, o) => {
       if (res.ok) return (await res.json()).candidates?.[0]?.content?.parts?.[0]?.text ?? "";
       last = `gemini ${res.status}`;
       if (!keyFailed(res.status)) break;
+      restKey(keys[k], res.status === 401 || res.status === 403 ? REST_BAD_KEY_MS : REST_MS);
       console.error(`review ai: gemini key ${k + 1} of ${keys.length} gave ${res.status}, trying the next key`);
     } catch (e) {
       last = /abort|timeout/i.test(String((e as Error)?.message)) ? "gemini timeout" : "gemini fetch failed";
+      restKey(keys[k], REST_MS / 2);
       console.error(`review ai: gemini key ${k + 1} of ${keys.length}: ${last}, trying the next key`);
     }
   }
