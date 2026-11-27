@@ -12,6 +12,7 @@ import { SiteLogo } from "./SiteLogo";
 import { PhotoStrip } from "@/components/PhotoStrip";
 import { LinkReviewSheet } from "./LinkReview";
 import { ContactSheet } from "./ContactSheet";
+import { MenuViewer, menuEmbedUrl } from "./MenuViewer";
 import { getLinkTheme, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
@@ -190,6 +191,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
   const [offersOpen, setOffersOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [menuView, setMenuView] = useState<{ src: string; title: string } | null>(null);
   const [note, setNote] = useState("");
   const sb = supabaseBrowser();
   // A review opens the business on Google Maps: its first outlet's map link, else the page's own Maps link.
@@ -323,6 +325,9 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
               );
               const cls = "relative flex min-h-[52px] w-full items-center justify-center rounded-full px-12 py-2.5 transition active:scale-[0.985]";
               const st = { background: "var(--l-pill)", color: "var(--l-pill-text)", boxShadow: "0 10px 26px -16px rgba(0,0,0,0.8)" } as const;
+              // A menu button that points to a Drive file or a PDF opens inside the page, with a cross to come back.
+              const embed = b.icon === "menu" || /menu/i.test(b.label) ? menuEmbedUrl(b.url) : null;
+              if (embed) return <button key={i} type="button" className={cls} style={st} onClick={() => { track("click", `Button: ${b.label}`); setMenuView({ src: embed, title: b.label }); }}>{inner}</button>;
               return b.url === "#outlets" || b.url === "#offers" || b.url === "#contact"
                 ? <button key={i} type="button" className={cls} style={st} onClick={() => { track("click", `Button: ${b.label}`); if (b.url === "#offers") setOffersOpen(true); else if (b.url === "#contact") setContactOpen(true); else setOutlets(true); }}>{inner}</button>
                 : <a key={i} href={safeUrl(b.url) ?? "#"} target={b.url.startsWith("tel:") || b.url.startsWith("mailto:") ? undefined : "_blank"} rel="noopener" className={cls} style={st} onClick={() => track("click", `Button: ${b.label}`)}>{inner}</a>;
@@ -366,6 +371,7 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
         {data.plan === "mini" && !data.premium && !preview && <MiniFooter slug={data.slug} />}
       </main>
       {reviewOpen && data.review_code && <LinkReviewSheet code={data.review_code} onClose={() => setReviewOpen(false)} />}
+      {menuView && <MenuViewer src={menuView.src} title={menuView.title} onClose={() => setMenuView(null)} />}
       {contactOpen && <ContactSheet linkId={data.id} onClose={() => setContactOpen(false)} onSent={() => track("click", "Contact form sent")} />}
       {offersOpen && <OffersSheet offers={offers} outlets={data.outlets} onClose={() => setOffersOpen(false)} onClick={() => track("click", "Offer: Get this offer")} />}
       {outlets && <OutletsSheet outlets={data.outlets} onClose={() => setOutlets(false)} onClick={() => track("click", "Outlet: call, map or Instagram")} />}
