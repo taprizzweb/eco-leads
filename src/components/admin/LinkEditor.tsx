@@ -416,10 +416,10 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
           <div className="space-y-3">
             {r.reviews.map((x, i) => (
               <div key={i} className="d-raise space-y-2 p-3">
-                <div className="flex gap-2">
-                  <input aria-label={`Review ${i + 1} author`} className="d-input !min-h-10" maxLength={60} value={x.author} onChange={(e) => set("reviews", r.reviews.map((y, k) => (k === i ? { ...y, author: e.target.value } : y)))} placeholder="Reviewer name" />
-                  <select aria-label={`Review ${i + 1} stars`} className="d-input !min-h-10 !w-24" value={x.rating} onChange={(e) => set("reviews", r.reviews.map((y, k) => (k === i ? { ...y, rating: Number(e.target.value) } : y)))}>{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} stars</option>)}</select>
-                  <input aria-label={`Review ${i + 1} date`} className="d-input !min-h-10 !w-36" maxLength={20} value={x.date ?? ""} onChange={(e) => set("reviews", r.reviews.map((y, k) => (k === i ? { ...y, date: e.target.value } : y)))} placeholder="6 Nov 2026" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <input aria-label={`Review ${i + 1} author`} className="d-input !min-h-11 min-w-0 basis-full sm:basis-0 sm:flex-1" maxLength={60} value={x.author} onChange={(e) => set("reviews", r.reviews.map((y, k) => (k === i ? { ...y, author: e.target.value } : y)))} placeholder="Reviewer name" />
+                  <select aria-label={`Review ${i + 1} stars`} className="d-input !min-h-11 !w-24" value={x.rating} onChange={(e) => set("reviews", r.reviews.map((y, k) => (k === i ? { ...y, rating: Number(e.target.value) } : y)))}>{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} stars</option>)}</select>
+                  <input aria-label={`Review ${i + 1} date`} className="d-input !min-h-11 min-w-0 !w-auto flex-1" maxLength={20} value={x.date ?? ""} onChange={(e) => set("reviews", r.reviews.map((y, k) => (k === i ? { ...y, date: e.target.value } : y)))} placeholder="6 Nov 2026" />
                   <button type="button" className="grid h-10 w-10 shrink-0 place-items-center" aria-label={`Remove review ${i + 1}`} onClick={() => set("reviews", r.reviews.filter((_, k) => k !== i))} style={{ color: "var(--d-muted)" }}><Trash2 size={16} /></button>
                 </div>
                 <textarea aria-label={`Review ${i + 1} text`} className="d-input" rows={2} maxLength={400} value={x.body} onChange={(e) => set("reviews", r.reviews.map((y, k) => (k === i ? { ...y, body: e.target.value } : y)))} placeholder="What the guest wrote" />
