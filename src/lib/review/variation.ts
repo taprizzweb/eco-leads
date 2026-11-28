@@ -64,9 +64,9 @@ export type Shape = { starter: string; lines: number; words: number; tone: strin
 // A starter carries only a feeling, never a fact, a visit history or a wish.
 const STARTERS: Record<string, Record<string, string[]>> = {
   en: {
-    pos: ["Really glad", "Honestly,", "Quick review:", "Very happy", "Genuinely", "All good", "Short version:", "No complaints", "Overall,", "Simply put,", "My take:", "Happy with", "Pretty happy", "So,", "Good experience", "Liked", "Really liked", "For me,", "In short,"],
-    mix: ["Decent", "Okay overall", "Not bad", "Fair", "It was fine", "Alright", "Honest take:", "Overall,", "My take:", "In short,"],
-    neg: ["Not great", "Disappointed", "Sadly", "Unfortunately", "A bit let down", "Honest take:", "My take:", "Overall,", "In short,"],
+    pos: ["Really glad", "Honestly,", "Very happy", "Genuinely", "All good", "No complaints", "Overall,", "Simply put,", "Happy with", "Pretty happy", "So,", "Good experience", "Liked", "Really liked", "For me,", "In short,"],
+    mix: ["Decent", "Okay overall", "Not bad", "Fair", "It was fine", "Alright", "Overall,", "In short,"],
+    neg: ["Not great", "Disappointed", "Sadly", "Unfortunately", "A bit let down", "Overall,", "In short,"],
   },
   hinglish: {
     pos: ["Bahut accha", "Kaafi accha", "Sach mein", "Ekdum", "Mast", "Badhiya", "Dil se", "Seedhi baat,", "Achha laga", "Bilkul", "Overall", "Ek number", "Mujhe", "Seriously,", "Kaafi", "Khush hoon", "Short mein,", "Koi shikayat nahi", "Honestly,"],
@@ -74,7 +74,7 @@ const STARTERS: Record<string, Record<string, string[]>> = {
     neg: ["Utna accha nahi", "Thoda disappoint", "Afsos", "Sach kahun", "Mazaa nahi", "Seedhi baat,", "Honestly,"],
   },
   hi: {
-    pos: ["सच में", "काफ़ी अच्छा", "बहुत बढ़िया", "दिल से", "सीधी बात,", "अच्छा लगा", "बिल्कुल", "ज़बरदस्त", "मुझे", "कुल मिलाकर", "शानदार", "सच कहूँ तो", "कोई शिकायत नहीं", "छोटा सा रिव्यू,"],
+    pos: ["सच में", "काफ़ी अच्छा", "बहुत बढ़िया", "दिल से", "सीधी बात,", "अच्छा लगा", "बिल्कुल", "ज़बरदस्त", "मुझे", "कुल मिलाकर", "शानदार", "सच कहूँ तो", "कोई शिकायत नहीं"],
     mix: ["ठीक-ठाक", "ठीक था", "औसत", "कुल मिलाकर ठीक", "चल जाएगा", "सही था", "सीधी बात,"],
     neg: ["उतना अच्छा नहीं", "थोड़ा निराश", "अफ़सोस", "सच कहूँ तो", "सीधी बात,", "मज़ा नहीं आया,"],
   },
