@@ -87,9 +87,9 @@ const weighted = () => { let t = Math.random() * LINES.reduce((a, b) => a + b.w,
  * Length never exceeds what that material can fill: asking for more words than there are facts makes a writer invent.
  */
 export function pickShape(min: number, max: number, hasName: boolean, answers: number, details: number, lang: string = "en", rating: number = 5): Shape {
-  const room = Math.round(10 + 6 * details);
-  const hi = Math.max(10, Math.min(Math.max(min, max), room));
-  const lo = Math.max(8, Math.min(min, Math.round(hi * 0.7)));
+  const room = Math.round(18 + 8 * details);
+  const hi = Math.max(18, Math.min(Math.max(min, max), room));
+  const lo = Math.max(15, Math.min(min, Math.round(hi * 0.75)));
   // about one review in ten is as short as it can be, as real ones sometimes are
   const words = Math.random() < 0.1 ? lo : Math.round(lo + Math.random() * (hi - lo));
   const mood = rating >= 4 ? "pos" : rating === 3 ? "mix" : "neg";

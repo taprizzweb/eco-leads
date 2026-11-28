@@ -32,7 +32,8 @@ export function selectFacts(answers: QA[], rating: number): QA[] {
   const all = usableAnswers(answers);
   const core = all.filter((a) => isHad(a) || isFavourite(a));
   const rest = shuffle(all.filter((a) => !core.includes(a)));
-  const least = Math.min(rest.length, core.length ? 1 : 2);
+  // a guest who tapped several answers sees most of them in the review (at least two besides the main item)
+  const least = Math.min(rest.length, core.length ? 2 : 3);
   const take = rating <= 3 ? rest.length : least + Math.floor(Math.random() * (Math.min(rest.length, 4) - least + 1));
   return shuffle([...core, ...rest.slice(0, take)]);
 }
