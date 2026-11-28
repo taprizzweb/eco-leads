@@ -13,6 +13,8 @@ import { PhotoStrip } from "@/components/PhotoStrip";
 import { LinkReviewSheet } from "./LinkReview";
 import { ContactSheet } from "./ContactSheet";
 import { MenuViewer, menuEmbedUrl } from "./MenuViewer";
+import type { PartnerLite } from "@/lib/partners";
+import { LINK_BASE } from "@/lib/features";
 import { getLinkTheme, safeUrl, telLink, waLink, type LinkData, type LinkOffer, type LinkOutlet } from "@/lib/linkpage";
 
 type Ico = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
@@ -184,7 +186,7 @@ function OffersSheet({ offers, outlets, onClose, onClick }: { offers: LinkOffer[
 
 const PALETTE = ["#6c5ce7", "#00a3a3", "#e17055", "#0984e3", "#d63384", "#2d9b5e"];
 
-export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean }) {
+export function LinkPage({ data, preview, partners = [] }: { data: LinkData; preview?: boolean; partners?: PartnerLite[] }) {
   const theme = getLinkTheme(data.theme, data.colors);
   const reduce = useReducedMotion();
   const [outlets, setOutlets] = useState(false);
@@ -365,6 +367,26 @@ export function LinkPage({ data, preview }: { data: LinkData; preview?: boolean 
               ))}
             </Marquee>
           </motion.section>
+        )}
+
+        {partners.length > 0 && (
+          <section aria-label="Taprizz Partners" className="mt-8 px-4">
+            <h2 className="text-center text-[12px] font-semibold tracking-[0.28em] uppercase" style={{ color: "var(--l-muted)" }}>Taprizz Partners</h2>
+            <ul className="mt-4 grid grid-cols-3 gap-2.5">
+              {partners.slice(0, 18).map((p) => (
+                <li key={p.name} className="list-none">
+                  <a href={p.slug ? `${LINK_BASE}/${p.slug}` : "https://www.taprizz.in/#partners"} target="_blank" rel="noopener" onClick={() => track("click", `Partner: ${p.name}`)} className="flex h-full flex-col items-center rounded-2xl px-1.5 py-3 text-center transition active:scale-95" style={{ background: "var(--l-surface-2)", boxShadow: "inset 0 0 0 1px var(--l-line)" }}>
+                    {p.image
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={p.image} alt={`${p.name} logo`} width={56} height={56} loading="lazy" className="h-14 w-14 rounded-full bg-white object-contain" />
+                      : <span aria-hidden className="grid h-14 w-14 place-items-center rounded-full bg-white text-xl font-bold text-black/70">{p.name.slice(0, 1).toUpperCase()}</span>}
+                    <span className="mt-2 text-[10.5px] leading-tight font-semibold tracking-wide uppercase" style={{ color: "var(--l-text)" }}>{p.name}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <a href="https://www.taprizz.in/#partners" target="_blank" rel="noopener" className="mt-3 block text-center text-[12px] font-semibold underline underline-offset-4" style={{ color: "var(--l-muted)" }}>See all partners</a>
+          </section>
         )}
 
         <footer className="mt-6 flex items-center justify-center gap-2 text-[8.5px] font-semibold tracking-[0.3em] uppercase" style={{ color: "var(--l-muted)" }}><a href="https://taprizz.in" target="_blank" rel="noopener" onClick={() => track("click", "Powered by Taprizz")} className="flex items-center gap-2"><Mark size={16} />Powered by Taprizz</a></footer>

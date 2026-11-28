@@ -19,7 +19,7 @@ import { BUTTON_ICONS, ICON_LABEL, isHex, isVideo, MAX_VIDEO_BYTES, LINK_THEMES,
 type Row = {
   id: string; slug: string; client_id: string | null; name: string; tagline: string | null; logo_url: string | null; theme: string; colors?: LinkColors; seo_keywords?: string[]; tags: string[];
   socials: LinkSocials; photos: LinkPhoto[]; buttons: LinkButton[]; outlets: LinkOutlet[]; offers: LinkOffer[]; reviews: LinkReview[];
-  show_client_reviews: boolean; ai_review?: boolean; ai_review_label?: string | null; ai_review_pos?: "top" | "bottom"; ai_review_url?: string | null; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
+  show_client_reviews: boolean; ai_review?: boolean; ai_review_label?: string | null; show_partners?: boolean; ai_review_pos?: "top" | "bottom"; ai_review_url?: string | null; published: boolean; photo_direction: "forward" | "backward"; fee_inr: number; billing_note: string | null;
 };
 
 /** admin: Taprizz team (everything). member: the business owner or manager signed in. token: the private control link, no login. */
@@ -146,7 +146,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
       const reviewUrl = r.ai_review_url?.trim() || null;
       if (reviewUrl && !/^https:\/\/\S+$/i.test(reviewUrl)) { setBusy(false); return toast("The review button link starts with https:// and has no spaces.", true); }
       const { error } = await sb.from("link_pages").update({
-        ...content, slug, reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, ai_review: !!r.client_id && !!r.ai_review, ai_review_label: r.ai_review_label?.trim().slice(0, 30) || null, ai_review_pos: r.ai_review_pos === "bottom" ? "bottom" : "top", ai_review_url: reviewUrl, published: r.published,
+        ...content, slug, reviews: r.reviews.filter((x) => x.author.trim() && x.body.trim()).slice(0, 30), show_client_reviews: r.show_client_reviews, ai_review: !!r.client_id && !!r.ai_review, show_partners: !!r.show_partners, ai_review_label: r.ai_review_label?.trim().slice(0, 30) || null, ai_review_pos: r.ai_review_pos === "bottom" ? "bottom" : "top", ai_review_url: reviewUrl, published: r.published,
         fee_inr: Math.max(0, Math.floor(Number(r.fee_inr) || 0)), billing_note: r.billing_note?.trim() || null, updated_at: new Date().toISOString(),
       }).eq("id", r.id);
       if (error) message = /duplicate|unique/i.test(error.message) ? "That page link is already taken." : "That did not save. Please try again.";
@@ -199,6 +199,7 @@ export function LinkEditor({ initial, clientName, mode = "admin", token, mini = 
             <F label="Review button link" hint="used when AI review is off"><input className="d-input" inputMode="url" maxLength={500} value={r.ai_review_url ?? ""} onChange={(e) => set("ai_review_url", e.target.value)} placeholder="https://" /></F>
             <F label="Review button position"><select className="d-input" value={r.ai_review_pos ?? "top"} onChange={(e) => set("ai_review_pos", e.target.value as "top" | "bottom")}><option value="top">Above the other buttons</option><option value="bottom">Below the other buttons</option></select></F>
             <p className="d-muted self-center text-xs">{r.client_id && r.ai_review ? "AI review is on: the button opens the stars inside the page." : r.ai_review_url?.trim() ? "AI review is off: the button opens the link above." : "AI review is off and the link is empty, so no review button shows."} For a Google review link, use the outlet the guest visited.</p>
+            <label className="flex min-h-10 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-5 w-5" checked={!!r.show_partners} onChange={(e) => set("show_partners", e.target.checked)} />Show the Taprizz Partners list at the bottom of this page (read from the Taprizz website)</label>
             <F label="Fee for this page" hint="Rs, 0 means free"><input className="d-input" type="number" min={0} value={r.fee_inr} onChange={(e) => set("fee_inr", Number(e.target.value))} /></F>
             <F label="Billing note"><input className="d-input" maxLength={200} value={r.billing_note ?? ""} onChange={(e) => set("billing_note", e.target.value)} placeholder="Paid till March, free as a service..." /></F>
           </div>

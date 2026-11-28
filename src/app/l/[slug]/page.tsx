@@ -5,6 +5,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { LinkPage } from "@/components/link/LinkPage";
 import type { LinkData } from "@/lib/linkpage";
 import { linkDescription, linkJsonLd, linkTitle } from "@/lib/link-seo";
+import { LINK_BASE } from "@/lib/features";
+import { loadPartners } from "@/lib/partners";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ preview?: string }> };
 
@@ -33,6 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const hidden = d.plan === "mini" && !d.premium;
   return {
     title, description,
+    alternates: { canonical: `${LINK_BASE}/${d.slug}` },
     ...(hidden ? { robots: { index: false, follow: true } } : {}),
     openGraph: { title, description, type: "website", siteName: d.name, ...(d.logo_url ? { images: [d.logo_url] } : {}) },
     twitter: { card: "summary", title, description, ...(d.logo_url ? { images: [d.logo_url] } : {}) },
@@ -46,10 +49,11 @@ export default async function Page({ params, searchParams }: Props) {
   if (!data) notFound();
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
+  const partners = data.show_partners ? await loadPartners() : [];
   return (
     <>
-      {host && preview !== "1" && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: linkJsonLd(data, `https://${host}/l/${data.slug}`) }} />}
-      <LinkPage data={data} preview={preview === "1"} />
+      {host && preview !== "1" && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: linkJsonLd(data, `${LINK_BASE}/${data.slug}`) }} />}
+      <LinkPage data={data} preview={preview === "1"} partners={partners} />
     </>
   );
 }

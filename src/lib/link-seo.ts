@@ -28,7 +28,8 @@ export function linkJsonLd(d: LinkData, url: string): string {
   const o = d.outlets?.find((x) => x.address?.trim() || x.city?.trim());
   const s = d.socials ?? {};
   const same = [s.instagram, s.facebook, s.zomato, s.swiggy, s.website].map((u) => safeUrl(u)).filter((u): u is string => !!u && /^https?:/i.test(u));
-  const tel = telLink(s.phone)?.replace(/^tel:/, "");
+  const tel = (telLink(s.phone) ?? telLink(s.whatsapp ? `+${s.whatsapp.replace(/\D/g, "")}` : undefined))?.replace(/^tel:/, "");
+  const city = cityOf(d);
   const ld: Record<string, unknown> = {
     "@context": "https://schema.org", "@type": "LocalBusiness", name: d.name, url,
     ...(d.tagline ? { description: d.tagline } : {}),
@@ -37,7 +38,8 @@ export function linkJsonLd(d: LinkData, url: string): string {
     ...(tel ? { telephone: tel } : {}),
     ...(o ? { address: { "@type": "PostalAddress", ...(o.address?.trim() ? { streetAddress: o.address.trim() } : {}), ...(o.city?.trim() ? { addressLocality: o.city.trim() } : {}) } } : {}),
     ...(safeUrl(o?.map_url) ?? safeUrl(s.maps) ? { hasMap: safeUrl(o?.map_url) ?? safeUrl(s.maps) } : {}),
-    ...(d.seo_keywords?.length ? { keywords: d.seo_keywords.join(", ") } : {}),
+    ...(city ? { areaServed: { "@type": "City", name: city } } : {}),
+    ...(d.seo_keywords?.length ? { keywords: d.seo_keywords.join(", "), knowsAbout: d.seo_keywords.slice(0, 10) } : {}),
   };
   // "<" is escaped so nothing inside the data can close the script tag.
   return JSON.stringify(ld).replace(/</g, "\\u003c");
